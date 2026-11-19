@@ -1,0 +1,185 @@
+{
+  "wersja": 1,
+  "zadania": [
+    {
+      "id": 1,
+      "tytul": "Kolokwium z sieci komputerowych",
+      "opis": "Rozdziały 3–5",
+      "termin": "2026-11-18",
+      "priorytet": "wysoki",
+      "wykonane": false,
+      "tagi": ["studia"]
+    },
+    {
+      "id": 2,
+      "tytul": "Oddać sprawozdanie z fizyki",
+      "opis": "Wykresy błędów pomiarowych i wnioski do PDF",
+      "termin": "2026-11-17",
+      "priorytet": "sredni",
+      "wykonane": false,
+      "tagi": ["studia", "ćwiczenia"]
+    },
+    {
+      "id": 3,
+      "tytul": "Przedłużyć książki w bibliotece",
+      "opis": "",
+      "termin": "2026-11-16",
+      "priorytet": "niski",
+      "wykonane": false,
+      "tagi": []
+    },
+    {
+      "id": 4,
+      "tytul": "Oddać projekt z baz danych",
+      "opis": "Schemat ERD, migracje SQL i zapytania analityczne",
+      "termin": "2026-11-19",
+      "priorytet": "wysoki",
+      "wykonane": false,
+      "tagi": ["studia", "projekt", "egzamin"]
+    },
+    {
+      "id": 5,
+      "tytul": "Przygotować prezentację na seminarium",
+      "opis": "10 slajdów o architekturze mikroserwisów i krótkie demo",
+      "termin": "2026-11-20",
+      "priorytet": "wysoki",
+      "wykonane": false,
+      "tagi": ["studia", "projekt"]
+    },
+    {
+      "id": 6,
+      "tytul": "Zapłacić za akademik i bilet miesięczny",
+      "opis": "Przelew do 20. dnia miesiąca, sprawdzić numer konta",
+      "termin": "2026-11-19",
+      "priorytet": "sredni",
+      "wykonane": false,
+      "tagi": ["finanse", "dom"]
+    },
+    {
+      "id": 7,
+      "tytul": "Zrobić zakupy spożywcze na weekend",
+      "opis": "Owsianka, mleko, kawa i warzywa na obiad",
+      "termin": "2026-11-20",
+      "priorytet": "niski",
+      "wykonane": false,
+      "tagi": ["dom"]
+    },
+    {
+      "id": 8,
+      "tytul": "Zadanie eliminacyjne SmartApp",
+      "opis": "Dokończyć testy, README i nagrać 2-minutową prezentację",
+      "termin": "2026-11-22",
+      "priorytet": "wysoki",
+      "wykonane": false,
+      "tagi": ["hackathon", "projekt", "studia"]
+    },
+    {
+      "id": 9,
+      "tytul": "Laboratorium z systemów operacyjnych",
+      "opis": "Zadania z wątków POSIX i semaforów w C",
+      "termin": "2026-11-23",
+      "priorytet": "sredni",
+      "wykonane": false,
+      "tagi": ["studia", "ćwiczenia"]
+    },
+    {
+      "id": 10,
+      "tytul": "Siłownia i rozciąganie po wykładach",
+      "opis": "Trening obwodowy 45 minut",
+      "termin": "2026-11-25",
+      "priorytet": "niski",
+      "wykonane": false,
+      "tagi": ["zdrowie"]
+    },
+    {
+      "id": 11,
+      "tytul": "Egzamin zerowy z algorytmów",
+      "opis": "Powtórzyć grafy, programowanie dynamiczne i drzewa AVL",
+      "termin": "2026-12-04",
+      "priorytet": "wysoki",
+      "wykonane": false,
+      "tagi": ["studia", "egzamin"]
+    },
+    {
+      "id": 12,
+      "tytul": "Złożyć wniosek o stypendium rektora",
+      "opis": "Wydrukować zaświadczenie o średniej z dziekanatu",
+      "termin": "2026-11-30",
+      "priorytet": "sredni",
+      "wykonane": false,
+      "tagi": ["finanse", "studia"]
+    },
+    {
+      "id": 13,
+      "tytul": "Przegląd roweru przed zimą",
+      "opis": "Nasmarować łańcuch i sprawdzić klocki hamulcowe",
+      "termin": "2026-12-12",
+      "priorytet": "niski",
+      "wykonane": false,
+      "tagi": []
+    },
+    {
+      "id": 14,
+      "tytul": "Zaktualizować CV i profil GitHub",
+      "opis": "Dodać projekty z semestru i zrzuty ekranu aplikacji",
+      "termin": null,
+      "priorytet": "wysoki",
+      "wykonane": false,
+      "tagi": ["projekt", "hackathon", "studia"]
+    },
+    {
+      "id": 15,
+      "tytul": "Posprzątać biurko i posegregować notatki",
+      "opis": "Zeskanować luźne kartki z wykładów",
+      "termin": null,
+      "priorytet": "sredni",
+      "wykonane": false,
+      "tagi": ["dom"]
+    },
+    {
+      "id": 16,
+      "tytul": "Obejrzeć wykład o Rust na YouTube",
+      "opis": "",
+      "termin": null,
+      "priorytet": "niski",
+      "wykonane": false,
+      "tagi": ["projekt"]
+    },
+    {
+      "id": 17,
+      "tytul": "Wejściówka z matematyki dyskretnej",
+      "opis": "Indukcja matematyczna i kombinatoryka — zaliczone na 5",
+      "termin": "2026-11-17",
+      "priorytet": "wysoki",
+      "wykonane": true,
+      "tagi": ["studia", "egzamin"]
+    },
+    {
+      "id": 18,
+      "tytul": "Zainstalować środowisko Docker na laptopie",
+      "opis": "Skonfigurować obrazy PostgreSQL i Redis pod laboratoria",
+      "termin": "2026-11-18",
+      "priorytet": "sredni",
+      "wykonane": true,
+      "tagi": ["projekt"]
+    },
+    {
+      "id": 19,
+      "tytul": "Odebrać legitymację z dziekanatu",
+      "opis": "Nowy hologram na semestr zimowy",
+      "termin": "2026-11-19",
+      "priorytet": "sredni",
+      "wykonane": true,
+      "tagi": []
+    },
+    {
+      "id": 20,
+      "tytul": "Kupić zeszyty i zakreślacze",
+      "opis": "",
+      "termin": null,
+      "priorytet": "niski",
+      "wykonane": true,
+      "tagi": ["dom"]
+    }
+  ]
+}
