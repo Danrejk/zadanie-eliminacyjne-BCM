@@ -137,7 +137,7 @@ const CorkboardCell = React.memo(function CorkboardCell({
       onDragOver={(e) => onDragOverCell(priority, zone, e)}
       onDragLeave={(e) => onDragLeaveCell(priority, zone, e)}
       onDrop={(e) => onDropCell(priority, zone, e)}
-      className={`corkboard-cell flex flex-wrap items-start content-start gap-3 ${
+      className={`corkboard-cell flex flex-wrap items-start justify-center content-start gap-3 ${
         isOverdueCol ? 'corkboard-cell--overdue' : ''
       } ${
         dropState === 'valid'
