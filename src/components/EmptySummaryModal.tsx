@@ -2,8 +2,7 @@ import { useMemo } from 'react';
 import { Archive, AlertTriangle } from 'lucide-react';
 import { PRIORITIES } from '../types/task';
 import { useTasks } from '../context/TaskContext';
-import { PRIORITY_LABELS } from '../utils/dateBuckets';
-import { getTagColor, normalizeTag } from '../utils/tagColors';
+import { getTodayDateString, isOverdue, PRIORITY_LABELS } from '../utils/dateBuckets';
 import { playTrashPlopSound } from '../utils/sound';
 import { NotebookModal } from './NotebookModal';
 
@@ -19,35 +18,18 @@ export function EmptySummaryModal() {
     return counts;
   }, [inTrashTasks]);
 
-  const tagBreakdown = useMemo(() => {
-    const tagMap = new Map<string, { label: string; count: number }>();
-    let untaggedCount = 0;
-
+  const deadlineCounts = useMemo(() => {
+    const todayStr = getTodayDateString();
+    let onTime = 0;
+    let afterDeadline = 0;
     for (const task of inTrashTasks) {
-      if (task.tagi.length === 0) {
-        untaggedCount += 1;
-        continue;
-      }
-      const seenInTask = new Set<string>();
-      for (const rawTag of task.tagi) {
-        const norm = normalizeTag(rawTag);
-        if (!norm || seenInTask.has(norm)) {
-          continue;
-        }
-        seenInTask.add(norm);
-        const existing = tagMap.get(norm);
-        if (existing) {
-          existing.count += 1;
-        } else {
-          tagMap.set(norm, { label: rawTag.trim(), count: 1 });
-        }
+      if (isOverdue(task.termin, todayStr)) {
+        afterDeadline += 1;
+      } else {
+        onTime += 1;
       }
     }
-
-    return {
-      tags: Array.from(tagMap.entries()).sort((a, b) => b[1].count - a[1].count),
-      untaggedCount,
-    };
+    return { onTime, afterDeadline };
   }, [inTrashTasks]);
 
   const handleCancel = () => {
@@ -138,38 +120,30 @@ export function EmptySummaryModal() {
           </div>
         </div>
 
-        {/* Tag / Pin color breakdown */}
+        {/* Deadline completion breakdown */}
         <div>
           <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-[#5c4f44]">
-            Według tagów (kolorów pinezek)
+            Termin ukończenia
           </h3>
-          <div className="flex flex-wrap gap-1.5">
-            {tagBreakdown.tags.map(([norm, info]) => {
-              const color = getTagColor(norm);
-              return (
-                <span
-                  key={norm}
-                  className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold shadow-xs"
-                  style={{
-                    backgroundColor: color.bg,
-                    color: color.text,
-                  }}
-                >
-                  <span>#{info.label}</span>
-                  <span className="rounded-full bg-black/20 px-1.5 py-0.2 text-[10px]">
-                    {info.count}
-                  </span>
-                </span>
-              );
-            })}
-            {tagBreakdown.untaggedCount > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-stone-300 bg-stone-100/80 px-2.5 py-1 text-xs font-semibold text-stone-700">
-                <span>Bez tagów</span>
-                <span className="rounded-full bg-stone-300/70 px-1.5 text-[10px]">
-                  {tagBreakdown.untaggedCount}
-                </span>
-              </span>
-            )}
+          <div className="grid grid-cols-2 gap-2">
+            <div
+              data-testid="summary-on-time"
+              className="notebook-pencil-box px-3 py-3 text-center"
+            >
+              <div className="text-xs text-[#5c4f44]">Na czas</div>
+              <div className="text-xl font-bold text-[#2b231d]">
+                {deadlineCounts.onTime}
+              </div>
+            </div>
+            <div
+              data-testid="summary-after-deadline"
+              className="notebook-pencil-box px-3 py-3 text-center"
+            >
+              <div className="text-xs text-[#5c4f44]">Po terminie</div>
+              <div className="text-xl font-bold text-[#2b231d]">
+                {deadlineCounts.afterDeadline}
+              </div>
+            </div>
           </div>
         </div>
 

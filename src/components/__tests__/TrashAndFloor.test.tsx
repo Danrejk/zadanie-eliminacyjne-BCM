@@ -432,7 +432,37 @@ describe('Milestone M4 — TrashCanWidget, FloorPhysicsLayer & Archive Modals', 
 
       let latestCtx!: TaskContextValue;
       const existingArchive: ArchiveEntry[] = [];
-      renderM4Harness({ archive: existingArchive }, (ctx) => {
+      const today = getTodayDateString();
+      const seedTasks: Task[] = [
+        {
+          id: 1,
+          tytul: 'Aktywne zadanie',
+          opis: '',
+          termin: today,
+          priorytet: 'wysoki',
+          wykonane: false,
+          tagi: [],
+        },
+        {
+          id: 2,
+          tytul: 'Zadanie po terminie',
+          opis: '',
+          termin: addDaysToDateString(today, -1),
+          priorytet: 'sredni',
+          wykonane: true,
+          tagi: ['studia'],
+        },
+        {
+          id: 3,
+          tytul: 'Zadanie bez terminu',
+          opis: '',
+          termin: null,
+          priorytet: 'niski',
+          wykonane: true,
+          tagi: [],
+        },
+      ];
+      renderM4Harness({ tasks: seedTasks, archive: existingArchive }, (ctx) => {
         latestCtx = ctx;
       });
 
@@ -443,8 +473,10 @@ describe('Milestone M4 — TrashCanWidget, FloorPhysicsLayer & Archive Modals', 
       const summaryModal = screen.getByTestId('empty-summary-modal');
       expect(summaryModal).toBeInTheDocument();
       expect(summaryModal).toHaveTextContent('2');
-      expect(summaryModal).toHaveTextContent('#studia');
-      expect(summaryModal).toHaveTextContent('Bez tagów');
+      expect(summaryModal).toHaveTextContent('Na czas');
+      expect(summaryModal).toHaveTextContent('Po terminie');
+      expect(within(summaryModal).getByTestId('summary-on-time')).toHaveTextContent('1');
+      expect(within(summaryModal).getByTestId('summary-after-deadline')).toHaveTextContent('1');
 
       // Confirm empty
       fireEvent.click(screen.getByTestId('btn-confirm-empty-trash'));
