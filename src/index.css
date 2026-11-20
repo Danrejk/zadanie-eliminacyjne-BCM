@@ -1,0 +1,568 @@
+@import "tailwindcss";
+
+:root {
+  /* Corkboard & wood frame */
+  --color-desk-bg: #2e2018;
+  --color-wood-frame: #6b4423;
+  --color-wood-dark: #4a2d16;
+  --color-wood-highlight: #8b5a2b;
+  --color-cork-base: #c89d6c;
+  --color-cork-light: #d7b182;
+  --color-cork-dark: #a67c52;
+  --color-string-divider: rgba(68, 42, 22, 0.55);
+
+  /* Priority Post-it paper colors (Y-axis: high top -> medium middle -> low bottom) */
+  --color-note-high-bg: #ffccd5;
+  --color-note-high-fold: #f4a4b4;
+  --color-note-high-border: #e58a9e;
+
+  --color-note-medium-bg: #fff3a1;
+  --color-note-medium-fold: #ebd874;
+  --color-note-medium-border: #d9c255;
+
+  --color-note-low-bg: #c8f2e6;
+  --color-note-low-fold: #9fdcc9;
+  --color-note-low-border: #7ec7b1;
+
+  /* Typography & status */
+  --color-ink: #2b231d;
+  --color-ink-muted: #5c4f44;
+  --color-stamp-red: #c62828;
+
+  /* Offline-safe font stacks */
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-note: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-stamp: Impact, "Arial Black", system-ui, sans-serif;
+
+  /* Global z-index layering contract (see PROJECT.md) */
+  --z-corkboard: 0;
+  --z-notes: 10;
+  --z-note-hover: 20;
+  --z-topbar: 30;
+  --z-trash: 40;
+  --z-floor-physics: 45;
+  --z-modal: 50;
+  --z-context-menu: 60;
+  --z-toast: 70;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    min-height: 100%;
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    font-family: var(--font-sans);
+    background-color: var(--color-desk-bg);
+    color: var(--color-ink);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+}
+
+/* === M2: Corkboard texture, wood frame, Post-it cards & overdue stamp styles appended below === */
+
+/* 1. Beveled Wooden Corkboard Frame */
+.corkboard-wood-frame {
+  position: relative;
+  z-index: var(--z-corkboard);
+  border-radius: 18px;
+  padding: 16px;
+  background-color: var(--color-wood-frame);
+  background-image:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.14) 0%,
+      rgba(255, 255, 255, 0) 35%,
+      rgba(0, 0, 0, 0.24) 100%
+    ),
+    repeating-linear-gradient(
+      90deg,
+      var(--color-wood-frame) 0px,
+      var(--color-wood-highlight) 28px,
+      var(--color-wood-dark) 56px,
+      var(--color-wood-frame) 84px
+    );
+  border: 3px solid var(--color-wood-dark);
+  box-shadow:
+    0 22px 48px rgba(0, 0, 0, 0.6),
+    0 6px 16px rgba(0, 0, 0, 0.45),
+    inset 0 2px 3px rgba(255, 235, 205, 0.28),
+    inset 0 -3px 6px rgba(24, 12, 4, 0.65);
+}
+
+/* Corner brass joints on wooden frame */
+.corkboard-wood-frame::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 224, 178, 0.16);
+  pointer-events: none;
+}
+
+/* 2. Layered Tactile Cork Surface (Offline-Safe Inline SVG Fractal Noise + Pore Gradients) */
+.corkboard-surface {
+  position: relative;
+  border-radius: 10px;
+  background-color: var(--color-cork-base);
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='cork'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0.35 0 0 0 0.45 0.25 0 0 0 0.30 0.15 0 0 0 0.15 0 0 0 0.22 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23cork)'/%3E%3C/svg%3E"),
+    radial-gradient(circle at 18% 22%, rgba(255, 237, 213, 0.28) 0%, transparent 45%),
+    radial-gradient(circle at 82% 76%, rgba(92, 53, 24, 0.26) 0%, transparent 52%),
+    radial-gradient(rgba(74, 45, 22, 0.22) 1px, transparent 1.5px),
+    radial-gradient(rgba(238, 208, 171, 0.28) 1px, transparent 1.5px),
+    linear-gradient(135deg, var(--color-cork-light) 0%, var(--color-cork-base) 52%, var(--color-cork-dark) 100%);
+  background-size: 160px 160px, 100% 100%, 100% 100%, 14px 14px, 21px 21px, 100% 100%;
+  background-position: 0 0, 0 0, 0 0, 0 0, 7px 11px, 0 0;
+  border: 2px solid var(--color-wood-dark);
+  box-shadow:
+    inset 0 5px 16px rgba(36, 20, 8, 0.58),
+    inset 0 0 38px rgba(56, 32, 14, 0.36);
+  overflow-x: auto;
+}
+
+/* 3. Masking-Tape Column & Row Axis Headers */
+.corkboard-header-tape {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: linear-gradient(180deg, #fdf6e2 0%, #f3e5ab 100%);
+  color: var(--color-ink);
+  border: 1px solid rgba(120, 90, 50, 0.35);
+  border-radius: 3px;
+  box-shadow:
+    0 2px 4px rgba(28, 16, 8, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.corkboard-header-tape--overdue {
+  background: linear-gradient(180deg, #ffe4e6 0%, #fecdd3 100%);
+  color: #881337;
+  border-color: rgba(190, 18, 60, 0.35);
+}
+
+/* 4. Divider Strings (Sznurki) & 3x5 Zone Cells */
+.corkboard-cell {
+  position: relative;
+  z-index: var(--z-notes);
+  min-height: 210px;
+  padding: 16px 12px 12px 12px;
+  transition: background-color 160ms ease, box-shadow 160ms ease;
+  /* Twisted twine divider strings along cell borders */
+  border-right: 2px dashed var(--color-string-divider);
+  border-bottom: 2px dashed var(--color-string-divider);
+}
+
+.corkboard-cell:hover,
+.corkboard-cell:focus-within {
+  z-index: var(--z-note-hover);
+}
+
+.corkboard-cell--overdue {
+  background-color: rgba(136, 19, 55, 0.06);
+}
+
+/* Valid Drop-Zone Highlight */
+.corkboard-cell[data-drop-state="valid"],
+.corkboard-cell--drop-valid {
+  background-color: rgba(254, 249, 195, 0.26);
+  box-shadow:
+    inset 0 0 0 2.5px rgba(250, 204, 21, 0.9),
+    inset 0 0 22px rgba(250, 204, 21, 0.25);
+}
+
+/* Read-Only "Po terminie" Blocked Drop-Zone Cue */
+.corkboard-cell[data-drop-state="blocked"],
+.corkboard-cell--drop-blocked {
+  background-color: rgba(198, 40, 40, 0.16);
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(198, 40, 40, 0.08) 0px,
+    rgba(198, 40, 40, 0.08) 10px,
+    rgba(198, 40, 40, 0.18) 10px,
+    rgba(198, 40, 40, 0.18) 20px
+  );
+  box-shadow:
+    inset 0 0 0 2.5px rgba(198, 40, 40, 0.85),
+    inset 0 0 18px rgba(198, 40, 40, 0.25);
+  cursor: not-allowed;
+}
+
+/* 5. Post-it Note Card & Priority Paper Colors */
+.postit-motion-wrapper {
+  position: relative;
+  z-index: var(--z-notes);
+  display: flex;
+  width: min(196px, 100%);
+  max-width: 100%;
+}
+
+.postit-motion-wrapper:hover {
+  z-index: var(--z-note-hover);
+}
+
+.postit-card {
+  --note-bg: var(--color-note-medium-bg);
+  --note-fold: var(--color-note-medium-fold);
+  --note-border: var(--color-note-medium-border);
+
+  position: relative;
+  z-index: var(--z-notes);
+  width: 100%;
+  max-width: 100%;
+  min-height: 152px;
+  padding: 24px 12px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: var(--font-note);
+  color: var(--color-ink);
+  background-color: var(--note-bg);
+  background-image:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.045) 0px, rgba(0, 0, 0, 0) 24px),
+    linear-gradient(155deg, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0) 58%, rgba(0, 0, 0, 0.04) 100%);
+  border: 1px solid var(--note-border);
+  border-radius: 3px 3px 14px 3px;
+  box-shadow:
+    0 5px 10px rgba(28, 17, 9, 0.28),
+    0 1px 3px rgba(28, 17, 9, 0.2);
+  transform: rotate(var(--note-rotation, 0deg));
+  transition:
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 180ms ease,
+    opacity 180ms ease,
+    filter 180ms ease;
+  cursor: grab;
+  user-select: none;
+}
+
+.postit-card:active {
+  cursor: grabbing;
+}
+
+/* Priority Color Themes (Y-Axis: wysoki top -> sredni middle -> niski bottom) */
+.postit-card[data-priority="wysoki"] {
+  --note-bg: var(--color-note-high-bg);
+  --note-fold: var(--color-note-high-fold);
+  --note-border: var(--color-note-high-border);
+}
+
+.postit-card[data-priority="sredni"] {
+  --note-bg: var(--color-note-medium-bg);
+  --note-fold: var(--color-note-medium-fold);
+  --note-border: var(--color-note-medium-border);
+}
+
+.postit-card[data-priority="niski"] {
+  --note-bg: var(--color-note-low-bg);
+  --note-fold: var(--color-note-low-fold);
+  --note-border: var(--color-note-low-border);
+}
+
+/* Hover Lift Effect (z-20) */
+.postit-card:hover {
+  z-index: var(--z-note-hover);
+  transform: translateY(-4px) rotate(0deg) scale(1.025);
+  box-shadow:
+    0 14px 24px rgba(24, 14, 7, 0.38),
+    0 4px 8px rgba(24, 14, 7, 0.24);
+}
+
+/* Dragging Source Feedback */
+.postit-card[data-dragging="true"] {
+  opacity: 0.45;
+  transform: scale(0.96) rotate(0deg);
+}
+
+/* Highlight Mode Dimmed State */
+.postit-card[data-dimmed="true"] {
+  opacity: 0.25;
+  filter: saturate(0.45) contrast(0.92);
+}
+
+.postit-card[data-dimmed="true"]:hover {
+  opacity: 0.55;
+  filter: saturate(0.75);
+}
+
+/* Folded Bottom-Right Corner Curl */
+.postit-corner-fold {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 18px;
+  height: 18px;
+  background: linear-gradient(
+    135deg,
+    var(--note-fold) 0%,
+    var(--note-fold) 50%,
+    rgba(46, 32, 24, 0.18) 52%,
+    transparent 56%
+  );
+  border-top-left-radius: 3px;
+  box-shadow: -1px -1px 2px rgba(0, 0, 0, 0.12);
+  pointer-events: none;
+}
+
+/* Post-it Typography & Body */
+.postit-body {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.postit-title {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--color-ink);
+  word-break: break-word;
+}
+
+.postit-desc {
+  margin: 0;
+  font-size: 0.76rem;
+  line-height: 1.35;
+  color: var(--color-ink-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+.postit-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed rgba(43, 35, 29, 0.16);
+}
+
+.postit-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-ink-muted);
+}
+
+.postit-date--overdue {
+  color: var(--color-stamp-red);
+  font-weight: 700;
+}
+
+.postit-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding-right: 12px;
+}
+
+.postit-tag-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  line-height: 1.3;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 6. Prominent Rotated Red Rubber Stamp "PO TERMINIE" */
+.postit-overdue-stamp {
+  position: absolute;
+  top: 26px;
+  right: 8px;
+  z-index: 4;
+  padding: 2px 6px;
+  font-family: var(--font-stamp);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-stamp-red);
+  background-color: rgba(255, 245, 245, 0.52);
+  border: 2px solid var(--color-stamp-red);
+  border-radius: 3px;
+  box-shadow:
+    inset 0 0 0 1px rgba(198, 40, 40, 0.35),
+    0 1px 2px rgba(0, 0, 0, 0.12);
+  transform: rotate(-11deg);
+  pointer-events: none;
+  user-select: none;
+}
+
+/* 7. Push-Pin & Headless Nail Styles */
+.pushpin-strip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 22px;
+  pointer-events: none;
+}
+
+.pushpin-anchor {
+  position: absolute;
+  top: 3px;
+  transform: translateX(-50%);
+  pointer-events: auto;
+}
+
+.pushpin-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.pushpin-head--md .pushpin-sphere {
+  width: 17px;
+  height: 17px;
+}
+
+.pushpin-head--sm .pushpin-sphere {
+  width: 14px;
+  height: 14px;
+}
+
+.pushpin-head--xs .pushpin-sphere {
+  width: 12px;
+  height: 12px;
+}
+
+.pushpin-sphere {
+  position: relative;
+  display: block;
+  border-radius: 9999px;
+  border-width: 1px;
+  border-style: solid;
+  box-shadow:
+    0 3px 5px rgba(0, 0, 0, 0.38),
+    inset 0 1px 1.5px rgba(255, 255, 255, 0.65);
+  transition: transform 140ms ease;
+}
+
+.pushpin-item:hover .pushpin-sphere {
+  transform: scale(1.18) translateY(-1px);
+}
+
+.pushpin-specular {
+  position: absolute;
+  top: 2px;
+  left: 3px;
+  width: 4px;
+  height: 4px;
+  border-radius: 9999px;
+  background-color: rgba(255, 255, 255, 0.78);
+}
+
+.pushpin-needle-shadow {
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  width: 6px;
+  height: 4px;
+  border-radius: 9999px;
+  background-color: rgba(0, 0, 0, 0.35);
+  transform: translateX(-50%);
+}
+
+/* Thin Headless Nail (0 tags) */
+.pushpin-nail {
+  position: relative;
+  width: 14px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pushpin-nail-hole {
+  position: absolute;
+  bottom: 2px;
+  width: 5px;
+  height: 5px;
+  border-radius: 9999px;
+  background-color: rgba(24, 15, 8, 0.65);
+}
+
+.pushpin-nail-shaft {
+  position: absolute;
+  top: 3px;
+  width: 3px;
+  height: 11px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #f8fafc 0%, #94a3b8 50%, #334155 100%);
+  box-shadow: 1px 2px 3px rgba(0, 0, 0, 0.42);
+  transform: rotate(8deg);
+}
+
+.pushpin-nail-head {
+  position: absolute;
+  top: 2px;
+  width: 5px;
+  height: 4px;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 35% 35%, #ffffff 0%, #cbd5e1 55%, #475569 100%);
+  border: 1px solid #334155;
+  transform: translateX(0.5px);
+}
+
+/* Floating Custom Pin Tooltip */
+.pushpin-tooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%) translateY(2px);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 5px;
+  background-color: #1f1610;
+  color: #fef3c7;
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 235, 200, 0.22);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 140ms ease, transform 140ms ease;
+  z-index: 30;
+}
+
+.pushpin-item:hover .pushpin-tooltip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.pushpin-tooltip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
