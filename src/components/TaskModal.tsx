@@ -37,6 +37,21 @@ interface InitialDeadlineState {
   dateValue: string;
 }
 
+function deduplicateTags(rawTags: string[]): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const raw of rawTags) {
+    const trimmed = raw.trim();
+    if (!trimmed) continue;
+    const norm = normalizeTag(trimmed);
+    if (!seen.has(norm)) {
+      seen.add(norm);
+      result.push(trimmed);
+    }
+  }
+  return result;
+}
+
 function getInitialDeadlineForCreate(
   defaultZone?: TimeZone,
 ): InitialDeadlineState {
@@ -136,7 +151,7 @@ function TaskModalForm({
       : (defaultPriority ?? 'sredni'),
   );
   const [tags, setTags] = useState<string[]>(
-    mode === 'edit' && editingTask ? [...editingTask.tagi] : [],
+    mode === 'edit' && editingTask ? deduplicateTags(editingTask.tagi) : [],
   );
   const [tagInput, setTagInput] = useState<string>('');
   const [titleError, setTitleError] = useState<string | null>(null);

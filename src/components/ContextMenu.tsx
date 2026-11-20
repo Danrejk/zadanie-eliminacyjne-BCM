@@ -241,12 +241,37 @@ export function ContextMenu() {
   };
 
   return (
-    <div
-      ref={menuRef}
-      data-testid="context-menu"
-      data-kind={contextMenu.kind}
-      role="menu"
-      aria-label="Menu kontekstowe zadania"
+    <>
+      <div
+        data-testid="context-menu-backdrop"
+        aria-hidden="true"
+        className="fixed inset-0"
+        style={{
+          zIndex: 'calc(var(--z-context-menu) - 1)',
+          backgroundColor: 'transparent',
+        }}
+        onPointerDown={(e) => {
+          e.stopPropagation();
+        }}
+        onMouseDown={(e) => {
+          e.stopPropagation();
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          dispatch({ type: 'CLOSE_CONTEXT_MENU' });
+        }}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dispatch({ type: 'CLOSE_CONTEXT_MENU' });
+        }}
+      />
+      <div
+        ref={menuRef}
+        data-testid="context-menu"
+        data-kind={contextMenu.kind}
+        role="menu"
+        aria-label="Menu kontekstowe zadania"
       onContextMenu={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -458,7 +483,8 @@ export function ContextMenu() {
           </button>
         </>
       )}
-    </div>
+      </div>
+    </>
   );
 }
 

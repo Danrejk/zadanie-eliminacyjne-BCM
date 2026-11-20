@@ -39,6 +39,7 @@ function getViewportSize(): ViewportSize {
 
 function applyBallTransform(
   el: HTMLDivElement,
+  visualEl: HTMLDivElement | undefined,
   ball: FloorBall,
   nowMs: number,
 ): void {
@@ -53,8 +54,11 @@ function applyBallTransform(
     opacity = Math.max(0, 1 - 0.85 * t);
   }
 
-  el.style.transform = `translate3d(${ball.x - ball.radius}px, ${ball.y - ball.radius}px, 0) rotate(${ball.rotation}deg) scale(${scale})`;
+  el.style.transform = `translate3d(${ball.x - ball.radius}px, ${ball.y - ball.radius}px, 0)`;
   el.style.opacity = String(opacity);
+  if (visualEl) {
+    visualEl.style.transform = `rotate(${ball.rotation}deg) scale(${scale})`;
+  }
 }
 
 export function FloorPhysicsLayer() {
@@ -62,6 +66,7 @@ export function FloorPhysicsLayer() {
 
   const ballsRef = useRef<Map<number, FloorBall>>(new Map());
   const domRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  const ballVisualRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const samplesRef = useRef<Map<number, PointerSample[]>>(new Map());
   const lastInFlightRef = useRef<boolean>(state.ballInFlight);
   const ballInFlightRef = useRef<boolean>(state.ballInFlight);
@@ -99,7 +104,7 @@ export function FloorPhysicsLayer() {
     for (const [id, ball] of ballsRef.current.entries()) {
       const el = domRefs.current.get(id);
       if (el) {
-        applyBallTransform(el, ball, nowMs);
+        applyBallTransform(el, ballVisualRefs.current.get(id), ball, nowMs);
       }
     }
 
@@ -121,7 +126,7 @@ export function FloorPhysicsLayer() {
       for (const ball of balls) {
         const el = domRefs.current.get(ball.taskId);
         if (el) {
-          applyBallTransform(el, ball, nowMs);
+          applyBallTransform(el, ballVisualRefs.current.get(ball.taskId), ball, nowMs);
         }
       }
     };
@@ -131,6 +136,36 @@ export function FloorPhysicsLayer() {
       window.removeEventListener('resize', handleResize);
     };
   }, []);
+
+  // Cancel active drag cleanly on window blur
+  useEffect(() => {
+    const handleWindowBlur = () => {
+      let hadDragging = false;
+      const now = performance.now();
+      for (const ball of ballsRef.current.values()) {
+        if (ball.isDragging) {
+          ball.isDragging = false;
+          ball.vx = 0;
+          ball.vy = 0;
+          ball.vRot = 0;
+          samplesRef.current.delete(ball.taskId);
+          const el = domRefs.current.get(ball.taskId);
+          if (el) {
+            applyBallTransform(el, ballVisualRefs.current.get(ball.taskId), ball, now);
+          }
+          hadDragging = true;
+        }
+      }
+      if (hadDragging) {
+        dispatch({ type: 'SET_DRAGGING_FLOOR_BALL', payload: { id: null } });
+      }
+    };
+
+    window.addEventListener('blur', handleWindowBlur);
+    return () => {
+      window.removeEventListener('blur', handleWindowBlur);
+    };
+  }, [dispatch]);
 
   // 60fps requestAnimationFrame physics loop
   useEffect(() => {
@@ -163,7 +198,7 @@ export function FloorPhysicsLayer() {
       for (const ball of balls) {
         const el = domRefs.current.get(ball.taskId);
         if (el) {
-          applyBallTransform(el, ball, nowMs);
+          applyBallTransform(el, ballVisualRefs.current.get(ball.taskId), ball, nowMs);
         }
       }
 
@@ -205,31 +240,33 @@ export function FloorPhysicsLayer() {
     if (e.button !== 0) {
       return;
     }
+    const ball = ballsRef.current.get(taskId);
+    if (!ball || ball.enteringTrash) {
+      return;
+    }
+
     e.preventDefault();
     e.stopPropagation();
 
     e.currentTarget.setPointerCapture?.(e.pointerId);
 
     const viewport = getViewportSize();
-    const ball = ballsRef.current.get(taskId);
     const now = performance.now();
 
-    if (ball) {
-      const r = ball.radius || BALL_RADIUS;
-      const maxX = Math.max(r, viewport.width - r);
-      const floorY = getFloorY(viewport.height, r);
-      ball.isDragging = true;
-      ball.canScoreTrash = true;
-      ball.vx = 0;
-      ball.vy = 0;
-      ball.vRot = 0;
-      ball.x = Math.max(r, Math.min(maxX, e.clientX));
-      ball.y = Math.max(r, Math.min(floorY, e.clientY));
+    const r = ball.radius || BALL_RADIUS;
+    const maxX = Math.max(r, viewport.width - r);
+    const floorY = getFloorY(viewport.height, r);
+    ball.isDragging = true;
+    ball.canScoreTrash = true;
+    ball.vx = 0;
+    ball.vy = 0;
+    ball.vRot = 0;
+    ball.x = Math.max(r, Math.min(maxX, e.clientX));
+    ball.y = Math.max(r, Math.min(floorY, e.clientY));
 
-      const el = domRefs.current.get(taskId);
-      if (el) {
-        applyBallTransform(el, ball, now);
-      }
+    const el = domRefs.current.get(taskId);
+    if (el) {
+      applyBallTransform(el, ballVisualRefs.current.get(taskId), ball, now);
     }
 
     samplesRef.current.set(taskId, [{ x: e.clientX, y: e.clientY, t: now }]);
@@ -242,7 +279,7 @@ export function FloorPhysicsLayer() {
     e: ReactPointerEvent<HTMLDivElement>,
   ) => {
     const ball = ballsRef.current.get(taskId);
-    if (!ball || !ball.isDragging) {
+    if (!ball || ball.enteringTrash || !ball.isDragging) {
       return;
     }
 
@@ -260,7 +297,7 @@ export function FloorPhysicsLayer() {
 
     const el = domRefs.current.get(taskId);
     if (el) {
-      applyBallTransform(el, ball, now);
+      applyBallTransform(el, ballVisualRefs.current.get(taskId), ball, now);
     }
 
     const samples = samplesRef.current.get(taskId) ?? [];
@@ -275,7 +312,7 @@ export function FloorPhysicsLayer() {
     e: ReactPointerEvent<HTMLDivElement>,
   ) => {
     const ball = ballsRef.current.get(taskId);
-    if (!ball || !ball.isDragging) {
+    if (!ball || ball.enteringTrash || !ball.isDragging) {
       return;
     }
 
@@ -309,7 +346,7 @@ export function FloorPhysicsLayer() {
       playTrashPlopSound(mutedRef.current);
       const el = domRefs.current.get(taskId);
       if (el) {
-        applyBallTransform(el, ball, now);
+        applyBallTransform(el, ballVisualRefs.current.get(taskId), ball, now);
       }
       return;
     }
@@ -319,6 +356,34 @@ export function FloorPhysicsLayer() {
       ballInFlightRef.current = true;
       dispatch({ type: 'SET_BALL_IN_FLIGHT', payload: { inFlight: true } });
     }
+  };
+
+  const handlePointerCancel = (
+    taskId: number,
+    e: ReactPointerEvent<HTMLDivElement>,
+  ) => {
+    const ball = ballsRef.current.get(taskId);
+    if (!ball || ball.enteringTrash || !ball.isDragging) {
+      return;
+    }
+
+    if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
+      e.currentTarget.releasePointerCapture?.(e.pointerId);
+    }
+
+    ball.isDragging = false;
+    ball.vx = 0;
+    ball.vy = 0;
+    ball.vRot = 0;
+    samplesRef.current.delete(taskId);
+
+    const now = performance.now();
+    const el = domRefs.current.get(taskId);
+    if (el) {
+      applyBallTransform(el, ballVisualRefs.current.get(taskId), ball, now);
+    }
+
+    dispatch({ type: 'SET_DRAGGING_FLOOR_BALL', payload: { id: null } });
   };
 
   const handleContextMenu = (
@@ -370,7 +435,7 @@ export function FloorPhysicsLayer() {
             onPointerDown={(e) => handlePointerDown(task.id, e)}
             onPointerMove={(e) => handlePointerMove(task.id, e)}
             onPointerUp={(e) => handlePointerRelease(task.id, e)}
-            onPointerCancel={(e) => handlePointerRelease(task.id, e)}
+            onPointerCancel={(e) => handlePointerCancel(task.id, e)}
             onPointerEnter={() => {
               if (!isDragging) {
                 setHoveredBallId(task.id);
@@ -407,7 +472,22 @@ export function FloorPhysicsLayer() {
               userSelect: 'none',
             }}
           >
-            <CrumpledBall priority={task.priorytet} taskId={task.id} size={48} />
+            <div
+              ref={(el) => {
+                if (el) {
+                  ballVisualRefs.current.set(task.id, el);
+                } else {
+                  ballVisualRefs.current.delete(task.id);
+                }
+              }}
+              style={{
+                width: 48,
+                height: 48,
+                transformOrigin: 'center center',
+              }}
+            >
+              <CrumpledBall priority={task.priorytet} taskId={task.id} size={48} />
+            </div>
 
             {showTooltip && (
               <div

@@ -1,5 +1,6 @@
 import type { ArchiveEntry, ArchiveFile, Priority, Task, TasksFile } from '../types/task';
 import { isValidDateString } from './dateBuckets';
+import { normalizeTag } from './tagColors';
 
 export const TASKS_STORAGE_KEY = 'smartapp_tasks_v1';
 export const ARCHIVE_STORAGE_KEY = 'smartapp_archive_v1';
@@ -131,15 +132,35 @@ function validateSingleTask(
   }
 
   const rawTagi = item.tagi;
-  let cleanTagi: string[] = [];
+  const cleanTagi: string[] = [];
   if (!Array.isArray(rawTagi) || !rawTagi.every((t) => typeof t === 'string')) {
     errors.push(`${label}: pole "tagi" musi być tablicą tekstów.`);
     itemValid = false;
   } else {
-    const trimmed = rawTagi.map((t) => t.trim());
-    cleanTagi = trimmed.filter((t) => t.length > 0);
-    if (cleanTagi.length !== rawTagi.length) {
+    const seenTags = new Set<string>();
+    let droppedEmpty = false;
+    let droppedDuplicate = false;
+
+    for (let i = 0; i < rawTagi.length; i++) {
+      const trimmed = rawTagi[i].trim();
+      if (trimmed.length === 0) {
+        droppedEmpty = true;
+        continue;
+      }
+      const norm = normalizeTag(trimmed);
+      if (seenTags.has(norm)) {
+        droppedDuplicate = true;
+        continue;
+      }
+      seenTags.add(norm);
+      cleanTagi.push(trimmed);
+    }
+
+    if (droppedEmpty) {
       warnings.push(`${label}: pominięto puste tagi w polu "tagi".`);
+    }
+    if (droppedDuplicate) {
+      warnings.push(`${label}: pominięto zduplikowane tagi w polu "tagi".`);
     }
   }
 

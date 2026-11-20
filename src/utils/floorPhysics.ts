@@ -53,8 +53,8 @@ function isFiniteRect(rect: RectLike): boolean {
     Number.isFinite(rect.top) &&
     Number.isFinite(rect.right) &&
     Number.isFinite(rect.bottom) &&
-    rect.left <= rect.right &&
-    rect.top <= rect.bottom
+    rect.right > rect.left &&
+    rect.bottom > rect.top
   );
 }
 

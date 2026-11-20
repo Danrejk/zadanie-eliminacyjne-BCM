@@ -41,12 +41,17 @@ export function TrashCanWidget() {
     e.preventDefault();
     setIsDragOverNote(false);
 
-    const rawId =
+    const rawId = (
       e.dataTransfer?.getData('application/x-smartapp-task-id') ||
       e.dataTransfer?.getData('text/plain') ||
-      '';
-    const parsedId = Number.parseInt(rawId, 10);
+      ''
+    ).trim();
 
+    if (!/^\d+$/.test(rawId)) {
+      return;
+    }
+
+    const parsedId = Number(rawId);
     if (Number.isSafeInteger(parsedId) && parsedId >= 0) {
       playTrashPlopSound(state.muted);
       dispatch({ type: 'COMPLETE_TO_TRASH', payload: { id: parsedId } });

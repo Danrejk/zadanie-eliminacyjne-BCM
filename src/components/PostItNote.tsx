@@ -26,6 +26,15 @@ export function PostItNote({ task, zone, isDimmed, todayStr }: PostItNoteProps) 
   const rafIdRef = useRef<number | null>(null);
   const wasDraggingRef = useRef<boolean>(false);
   const isCrumplingRef = useRef<boolean>(false);
+  const activeModalTypeRef = useRef<string>(state.activeModal.type);
+
+  useEffect(() => {
+    activeModalTypeRef.current = state.activeModal.type;
+    if (state.activeModal.type !== 'none' && clickTimerRef.current !== null) {
+      window.clearTimeout(clickTimerRef.current);
+      clickTimerRef.current = null;
+    }
+  }, [state.activeModal.type]);
 
   useEffect(() => {
     if (!task.wykonane) {
@@ -62,13 +71,17 @@ export function PostItNote({ task, zone, isDimmed, todayStr }: PostItNoteProps) 
       clearClickTimer();
       return;
     }
-    if (wasDraggingRef.current || isCrumplingRef.current) {
+    if (wasDraggingRef.current || isCrumplingRef.current || activeModalTypeRef.current !== 'none') {
       return;
     }
     clearClickTimer();
     clickTimerRef.current = window.setTimeout(() => {
       clickTimerRef.current = null;
-      if (!wasDraggingRef.current && !isCrumplingRef.current) {
+      if (
+        !wasDraggingRef.current &&
+        !isCrumplingRef.current &&
+        activeModalTypeRef.current === 'none'
+      ) {
         dispatch({
           type: 'OPEN_MODAL',
           payload: { type: 'edit', taskId: task.id },
