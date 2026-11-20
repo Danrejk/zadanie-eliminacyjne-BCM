@@ -106,20 +106,17 @@
   pointer-events: none;
 }
 
-/* 2. Layered Tactile Cork Surface (Lightweight CSS Grain + Pore Gradients) */
+/* 2. Layered Tactile Cork Surface (Ready for static tile texture via --cork-texture-image) */
 .corkboard-surface {
+  --cork-texture-image: none;
   position: relative;
   border-radius: 10px;
   background-color: var(--color-cork-base);
   background-image:
-    radial-gradient(circle at 18% 22%, rgba(255, 237, 213, 0.28) 0%, transparent 45%),
-    radial-gradient(circle at 82% 76%, rgba(92, 53, 24, 0.26) 0%, transparent 52%),
-    radial-gradient(rgba(74, 45, 22, 0.22) 1px, transparent 1.5px),
-    radial-gradient(rgba(238, 208, 171, 0.28) 1px, transparent 1.5px),
-    radial-gradient(rgba(110, 68, 34, 0.14) 1px, transparent 1.2px),
+    var(--cork-texture-image),
     linear-gradient(135deg, var(--color-cork-light) 0%, var(--color-cork-base) 52%, var(--color-cork-dark) 100%);
-  background-size: 100% 100%, 100% 100%, 14px 14px, 21px 21px, 9px 9px, 100% 100%;
-  background-position: 0 0, 0 0, 0 0, 7px 11px, 3px 5px, 0 0;
+  background-size: 256px 256px, 100% 100%;
+  background-repeat: repeat, no-repeat;
   border: 2px solid var(--color-wood-dark);
   box-shadow:
     inset 0 5px 16px rgba(36, 20, 8, 0.58),
@@ -157,7 +154,6 @@
   z-index: var(--z-notes);
   min-height: 210px;
   padding: 16px 12px 12px 12px;
-  transition: background-color 160ms ease, box-shadow 160ms ease;
   /* Twisted twine divider strings along cell borders */
   border-right: 2px dashed var(--color-string-divider);
   border-bottom: 2px dashed var(--color-string-divider);
@@ -224,6 +220,7 @@
 .postit-motion-wrapper {
   position: relative;
   z-index: var(--z-notes);
+  isolation: isolate;
   display: flex;
   width: min(196px, 100%);
   max-width: 100%;
@@ -239,9 +236,12 @@
   --note-bg: var(--color-note-medium-bg);
   --note-fold: var(--color-note-medium-fold);
   --note-border: var(--color-note-medium-border);
+  /* 3-slice custom image hooks (set to url('/assets/...') when ready; width: 196px) */
+  --note-slice-top: none;
+  --note-slice-middle: none;
+  --note-slice-bottom: none;
 
   position: relative;
-  z-index: var(--z-notes);
   width: 100%;
   min-width: 0;
   max-width: 100%;
@@ -254,15 +254,19 @@
   font-family: var(--font-note);
   color: var(--color-ink);
   background-color: var(--note-bg);
-  background-image:
-    linear-gradient(180deg, rgba(0, 0, 0, 0.045) 0px, rgba(0, 0, 0, 0) 24px),
-    linear-gradient(155deg, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0) 58%, rgba(0, 0, 0, 0.04) 100%);
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.24) 0%,
+    rgba(255, 255, 255, 0) 45%,
+    rgba(0, 0, 0, 0.04) 100%
+  );
   border: 1px solid var(--note-border);
   border-radius: 3px 3px 14px 3px;
   box-shadow:
     0 5px 10px rgba(28, 17, 9, 0.28),
     0 1px 3px rgba(28, 17, 9, 0.2);
   transform: rotate(var(--note-rotation, 0deg));
+  will-change: transform;
   transition:
     transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
     opacity 180ms ease;
@@ -270,8 +274,67 @@
   user-select: none;
 }
 
+/* Pre-rasterized elevated hover shadow composited via opacity only (zero box-shadow repaint) */
+.postit-card::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  box-shadow:
+    0 14px 24px rgba(24, 14, 7, 0.38),
+    0 4px 8px rgba(24, 14, 7, 0.24);
+  opacity: 0;
+  transition: opacity 180ms ease;
+  pointer-events: none;
+  z-index: -1;
+}
+
 .postit-card:active {
   cursor: grabbing;
+}
+
+/* 3-Slice Non-Stretching Image Background Layer (Top fixed 32px / Middle repeat-y / Bottom fixed 28px) */
+.postit-bg-slices {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.postit-bg-top {
+  flex: 0 0 32px;
+  height: 32px;
+  width: 100%;
+  background-image: var(--note-slice-top);
+  background-size: 100% 32px;
+  background-repeat: no-repeat;
+}
+
+.postit-bg-middle {
+  flex: 1 1 auto;
+  width: 100%;
+  background-image: var(--note-slice-middle);
+  background-size: 100% auto;
+  background-repeat: repeat-y;
+}
+
+.postit-bg-bottom {
+  flex: 0 0 28px;
+  height: 28px;
+  width: 100%;
+  background-image: var(--note-slice-bottom);
+  background-size: 100% 28px;
+  background-repeat: no-repeat;
+}
+
+.postit-body,
+.postit-footer {
+  position: relative;
+  z-index: 1;
 }
 
 /* Priority Color Themes (Y-Axis: wysoki top -> sredni middle -> niski bottom) */
@@ -293,13 +356,13 @@
   --note-border: var(--color-note-low-border);
 }
 
-/* Hover Lift Effect (z-20) */
+/* Hover Lift Effect (composited transform + ::after opacity) */
 .postit-card:hover {
-  z-index: var(--z-note-hover);
   transform: translateY(-4px) rotate(0deg) scale(1.025);
-  box-shadow:
-    0 14px 24px rgba(24, 14, 7, 0.38),
-    0 4px 8px rgba(24, 14, 7, 0.24);
+}
+
+.postit-card:hover::after {
+  opacity: 1;
 }
 
 /* Dragging Source Feedback */
@@ -491,6 +554,7 @@
     0 3px 5px rgba(0, 0, 0, 0.38),
     inset 0 1px 1.5px rgba(255, 255, 255, 0.65);
   transition: transform 140ms ease;
+  pointer-events: none;
 }
 
 .pushpin-item:hover .pushpin-sphere {
@@ -505,6 +569,7 @@
   height: 4px;
   border-radius: 9999px;
   background-color: rgba(255, 255, 255, 0.78);
+  pointer-events: none;
 }
 
 .pushpin-needle-shadow {
@@ -516,6 +581,7 @@
   border-radius: 9999px;
   background-color: rgba(0, 0, 0, 0.35);
   transform: translateX(-50%);
+  pointer-events: none;
 }
 
 /* Thin Headless Nail (0 tags) */
@@ -535,6 +601,7 @@
   height: 5px;
   border-radius: 9999px;
   background-color: rgba(24, 15, 8, 0.65);
+  pointer-events: none;
 }
 
 .pushpin-nail-shaft {
@@ -546,6 +613,7 @@
   background: linear-gradient(90deg, #f8fafc 0%, #94a3b8 50%, #334155 100%);
   box-shadow: 1px 2px 3px rgba(0, 0, 0, 0.42);
   transform: rotate(8deg);
+  pointer-events: none;
 }
 
 .pushpin-nail-head {
@@ -557,6 +625,7 @@
   background: radial-gradient(circle at 35% 35%, #ffffff 0%, #cbd5e1 55%, #475569 100%);
   border: 1px solid #334155;
   transform: translateX(0.5px);
+  pointer-events: none;
 }
 
 /* Floating Custom Pin Tooltip */

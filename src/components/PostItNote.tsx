@@ -217,6 +217,12 @@ function PostItNoteComponent({
         style={{ '--note-rotation': `${rotation}deg` } as React.CSSProperties}
         className="postit-card"
       >
+        <div className="postit-bg-slices" aria-hidden="true">
+          <div className="postit-bg-top" />
+          <div className="postit-bg-middle" />
+          <div className="postit-bg-bottom" />
+        </div>
+
         <PushPin taskId={task.id} tags={task.tagi} />
 
         {overdue && (
