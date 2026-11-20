@@ -574,9 +574,7 @@ export function Corkboard({ todayStr }: CorkboardProps) {
                       isHighlightMode={isHighlightMode}
                       matchingTaskIds={matchingTaskIds}
                       draggingNoteId={cellDraggingNoteId}
-                      isModalOpen={
-                        state.activeModal.type !== 'none' || state.trashDrawerOpen
-                      }
+                      isModalOpen={state.activeModal.type !== 'none'}
                       muted={state.muted}
                       effectiveToday={effectiveToday}
                       dispatch={dispatch}

@@ -1,11 +1,64 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Archive, ChevronsRight, PackageOpen, Sparkles, Trash2 } from 'lucide-react';
+import type { Task } from '../types/task';
 import { useTasks } from '../context/TaskContext';
 import { PRIORITY_LABELS, formatDisplayDate } from '../utils/dateBuckets';
 import { getTagColor } from '../utils/tagColors';
 import { playPinClickSound, playTrashPlopSound } from '../utils/sound';
 import { CrumpledBall } from './CrumpledBall';
+
+interface HoveredTooltipState {
+  task: Task;
+  x: number;
+  y: number;
+}
+
+interface HoneycombSlot {
+  task: Task;
+  offsetX: number; // px from horizontal center
+  bottom: number;  // px from basket bottom
+}
+
+/**
+ * Packs trashed balls from the bottom up in a tight hexagonal (honeycomb) lattice
+ * that tapers slightly at the bottom to match the wire-mesh basket silhouette.
+ */
+function computeHoneycombSlots(tasks: Task[]): {
+  slots: HoneycombSlot[];
+  totalHeight: number;
+} {
+  const colStep = 30;
+  const rowStep = 25;
+  const slots: HoneycombSlot[] = [];
+
+  let idx = 0;
+  let row = 0;
+  while (idx < tasks.length) {
+    // Tapered basket fits 6 balls at the very bottom, widening to 7-8 higher up
+    const colsInRow = row === 0 ? 6 : row === 1 ? 7 : 8;
+    const remaining = tasks.length - idx;
+    const count = Math.min(colsInRow, remaining);
+    const isOddRow = row % 2 === 1;
+    const rowWidth = (count - 1) * colStep;
+
+    for (let c = 0; c < count; c++) {
+      const offsetX =
+        -rowWidth / 2 + c * colStep + (isOddRow && count < colsInRow ? colStep * 0.25 : 0);
+      const bottom = 14 + row * rowStep;
+      slots.push({
+        task: tasks[idx],
+        offsetX,
+        bottom,
+      });
+      idx += 1;
+    }
+    row += 1;
+  }
+
+  const totalHeight = Math.max(200, 36 + row * rowStep);
+  return { slots, totalHeight };
+}
 
 export function TrashDrawer() {
   const {
@@ -18,12 +71,12 @@ export function TrashDrawer() {
     noteDrag,
   } = useTasks();
 
-  const [hoveredTaskId, setHoveredTaskId] = useState<number | null>(null);
+  const [hoveredTooltip, setHoveredTooltip] = useState<HoveredTooltipState | null>(null);
   const isOpen = state.trashDrawerOpen;
 
   useEffect(() => {
     if (!isOpen) {
-      setHoveredTaskId(null);
+      setHoveredTooltip(null);
       return;
     }
 
@@ -44,13 +97,19 @@ export function TrashDrawer() {
     };
   }, [isOpen, state.activeModal.type, state.contextMenu, dispatch]);
 
+  const { slots, totalHeight } = useMemo(
+    () => computeHoneycombSlots(inTrashTasks),
+    [inTrashTasks],
+  );
+
   const handleClose = () => {
     playPinClickSound(state.muted);
-    setHoveredTaskId(null);
+    setHoveredTooltip(null);
     dispatch({ type: 'SET_TRASH_DRAWER_OPEN', payload: { open: false } });
   };
 
   const handleOpenBallMenu = (taskId: number, x: number, y: number) => {
+    setHoveredTooltip(null);
     dispatch({
       type: 'OPEN_CONTEXT_MENU',
       payload: {
@@ -75,6 +134,7 @@ export function TrashDrawer() {
       return;
     }
     playPinClickSound(state.muted);
+    setHoveredTooltip(null);
     const bodyRect = trashBodyRef.current?.getBoundingClientRect();
     const hoopRect = trashHoopRef.current?.getBoundingClientRect();
     const originX = bodyRect
@@ -94,7 +154,19 @@ export function TrashDrawer() {
     if (inTrashTasks.length === 0) {
       return;
     }
+    setHoveredTooltip(null);
     dispatch({ type: 'OPEN_MODAL', payload: { type: 'emptySummary' } });
+  };
+
+  const showBallTooltip = (task: Task, el: HTMLElement) => {
+    const rect = el.getBoundingClientRect();
+    const viewportW = typeof window !== 'undefined' ? window.innerWidth : 1280;
+    const clampedX = Math.max(112, Math.min(viewportW - 112, rect.left + rect.width / 2));
+    setHoveredTooltip({
+      task,
+      x: clampedX,
+      y: rect.top - 8,
+    });
   };
 
   const isTargetHighlighted =
@@ -130,8 +202,8 @@ export function TrashDrawer() {
           className="trash-drawer-panel flex flex-col justify-between select-none"
         >
           {/* Top Desk-Styled Control Shelf (above basket, preserving throwing headroom) */}
-          <div className="trash-drawer-control-bar px-3.5 py-2.5">
-            <div className="mb-2 flex items-center justify-between">
+          <div className="trash-drawer-control-bar px-3 py-2">
+            <div className="mb-1.5 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Trash2 className="h-4 w-4 text-amber-200" aria-hidden="true" />
                 <h2 className="text-sm font-bold tracking-wide text-amber-50">
@@ -182,34 +254,31 @@ export function TrashDrawer() {
             </div>
           </div>
 
-          {/* Middle: Open Throwing Headroom + Large Wire-Mesh Basket */}
-          <div className="relative flex flex-1 flex-col items-center justify-end px-4 pt-6 pb-2">
+          {/* Middle: Throwing Headroom + Large Wire-Mesh Basket filling the drawer */}
+          <div className="relative flex flex-1 flex-col items-center justify-end px-2 pt-2 pb-1">
             {/* Throwing headroom hint */}
-            <div className="pointer-events-none mb-auto pt-2 text-center text-[11px] font-medium text-amber-100/45">
+            <div className="pointer-events-none pt-1 pb-2 text-center text-[11px] font-medium text-amber-100/45">
               {inTrashTasks.length === 0
                 ? 'Wrzuć kulkę od góry przez obręcz'
                 : 'Kliknij kulkę w koszu, aby przywrócić lub usunąć'}
             </div>
 
-            {/* Large Basket Assembly */}
+            {/* Large Basket Assembly filling the drawer */}
             <motion.div
               key={state.trashBounceCount}
-              initial={state.trashBounceCount > 0 ? { scale: 1.04, y: 4 } : false}
+              initial={state.trashBounceCount > 0 ? { scale: 1.03, y: 4 } : false}
               animate={{ scale: 1, y: 0 }}
               transition={{ type: 'spring', stiffness: 420, damping: 18 }}
-              className="relative flex w-[236px] flex-col items-center"
+              className="relative flex w-full max-w-[318px] flex-1 max-h-[380px] min-h-[250px] flex-col items-center justify-end"
             >
-              {/* Top Hoop Opening Sensor */}
+              {/* Invisible Top Hoop Opening Sensor aligned with SVG rim */}
               <div
                 ref={(el) => {
                   trashHoopRef.current = el;
                 }}
                 data-testid="trash-hoop"
-                className={`relative z-20 -mb-3 h-8 w-[212px] rounded-full border-2 transition-all ${
-                  isTargetHighlighted
-                    ? 'border-amber-300 bg-amber-400/20 shadow-[0_0_18px_rgba(251,191,36,0.55)]'
-                    : 'border-stone-300/70 bg-stone-950/35'
-                }`}
+                aria-hidden="true"
+                className="pointer-events-none relative z-20 -mb-4 h-7 w-[278px]"
               />
 
               {/* Solid Basket Body (left/right/bottom walls bounce balls away) */}
@@ -218,111 +287,103 @@ export function TrashDrawer() {
                   trashBodyRef.current = el;
                 }}
                 data-testid="trash-body"
-                className="relative h-[240px] w-[236px]"
+                className="relative h-full w-full"
               >
-                {/* Interactive Crumpled Balls resting inside */}
-                <div className="absolute inset-x-5 top-5 bottom-4 z-20 flex flex-wrap-reverse content-start items-end justify-center gap-1.5 overflow-y-auto px-1 py-1">
-                  {inTrashTasks.map((task) => {
-                    const isHovered = hoveredTaskId === task.id;
-                    return (
-                      <div key={task.id} className="relative flex flex-col items-center">
-                        <button
-                          type="button"
-                          data-testid={`trash-ball-${task.id}`}
-                          aria-label={`Zadanie w koszu: ${task.tytul}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            const x = e.clientX || rect.left + rect.width / 2;
-                            const y = e.clientY || rect.top + rect.height / 2;
-                            handleOpenBallMenu(task.id, x, y);
-                          }}
-                          onContextMenu={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleOpenBallMenu(task.id, e.clientX, e.clientY);
-                          }}
-                          onMouseEnter={() => setHoveredTaskId(task.id)}
-                          onMouseLeave={() =>
-                            setHoveredTaskId((prev) => (prev === task.id ? null : prev))
-                          }
-                          onFocus={() => setHoveredTaskId(task.id)}
-                          onBlur={() =>
-                            setHoveredTaskId((prev) => (prev === task.id ? null : prev))
-                          }
-                          className="rounded-full p-0.5 transition-transform hover:scale-115 focus:scale-115 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
-                        >
-                          <CrumpledBall
-                            priority={task.priorytet}
-                            taskId={task.id}
-                            size={40}
-                          />
-                        </button>
-
-                        {isHovered && (
-                          <div
-                            role="tooltip"
-                            className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 w-48 -translate-x-1/2 rounded-xl border border-amber-900/30 bg-[#fdf8ee] p-2 text-left text-xs text-[#2b231d] shadow-xl"
-                          >
-                            <div className="line-clamp-2 font-bold">{task.tytul}</div>
-                            <div className="mt-0.5 flex items-center justify-between text-[10px] text-[#5c4f44]">
-                              <span>{formatDisplayDate(task.termin)}</span>
-                              <span>{PRIORITY_LABELS[task.priorytet]}</span>
-                            </div>
-                            {task.tagi.length > 0 && (
-                              <div className="mt-1 flex flex-wrap gap-1">
-                                {task.tagi.slice(0, 3).map((tag, idx) => {
-                                  const color = getTagColor(tag);
-                                  return (
-                                    <span
-                                      key={`${tag}-${idx}`}
-                                      className="rounded-full px-1.5 py-0.5 text-[9px] font-medium"
-                                      style={{
-                                        backgroundColor: color.bg,
-                                        color: color.text,
-                                      }}
-                                    >
-                                      #{tag}
-                                    </span>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                {/* Honeycomb-packed Crumpled Balls resting inside (no horizontal scroll) */}
+                <div className="absolute inset-x-6 top-5 bottom-3 z-20 overflow-y-auto overflow-x-hidden">
+                  <div
+                    className="relative w-full"
+                    style={{ height: `${totalHeight}px`, minHeight: '100%' }}
+                  >
+                    {slots.map(({ task, offsetX, bottom }) => (
+                      <button
+                        key={task.id}
+                        type="button"
+                        data-testid={`trash-ball-${task.id}`}
+                        aria-label={`Zadanie w koszu: ${task.tytul}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          const x = e.clientX || rect.left + rect.width / 2;
+                          const y = e.clientY || rect.top + rect.height / 2;
+                          handleOpenBallMenu(task.id, x, y);
+                        }}
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleOpenBallMenu(task.id, e.clientX, e.clientY);
+                        }}
+                        onMouseEnter={(e) => showBallTooltip(task, e.currentTarget)}
+                        onMouseLeave={() =>
+                          setHoveredTooltip((prev) =>
+                            prev?.task.id === task.id ? null : prev,
+                          )
+                        }
+                        onFocus={(e) => showBallTooltip(task, e.currentTarget)}
+                        onBlur={() =>
+                          setHoveredTooltip((prev) =>
+                            prev?.task.id === task.id ? null : prev,
+                          )
+                        }
+                        style={{
+                          position: 'absolute',
+                          left: '50%',
+                          bottom: `${bottom}px`,
+                          transform: `translateX(calc(-50% + ${offsetX}px))`,
+                        }}
+                        className="rounded-full p-0.5 transition-transform hover:z-30 hover:scale-115 focus:z-30 focus:scale-115 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+                      >
+                        <CrumpledBall
+                          priority={task.priorytet}
+                          taskId={task.id}
+                          size={38}
+                        />
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Large Wire-Mesh Basket SVG */}
                 <svg
-                  viewBox="0 0 220 220"
+                  viewBox="0 0 300 320"
+                  preserveAspectRatio="none"
                   className="pointer-events-none relative z-10 h-full w-full drop-shadow-[0_12px_20px_rgba(0,0,0,0.5)]"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
                   aria-hidden="true"
                 >
+                  {/* Back rim */}
+                  <ellipse
+                    cx="150"
+                    cy="14"
+                    rx="132"
+                    ry="10"
+                    fill="rgba(28, 22, 18, 0.55)"
+                    stroke={isTargetHighlighted ? '#fbbf24' : '#78716c'}
+                    strokeWidth="3"
+                  />
+                  {/* Basket body translucent mesh */}
                   <path
-                    d="M16 12 L34 204 C36 212 184 212 186 204 L204 12 Z"
-                    fill="rgba(36, 30, 26, 0.58)"
+                    d="M18 16 L40 302 C43 312 257 312 260 302 L282 16 Z"
+                    fill="rgba(36, 30, 26, 0.54)"
                     stroke={isTargetHighlighted ? '#fbbf24' : '#a8a29e'}
                     strokeWidth="3.5"
                     strokeLinejoin="round"
                   />
                   {/* Vertical wire ribs */}
-                  <line x1="48" y1="16" x2="58" y2="208" stroke="#d6d3d1" strokeWidth="1.8" opacity="0.45" />
-                  <line x1="82" y1="18" x2="86" y2="209" stroke="#d6d3d1" strokeWidth="1.8" opacity="0.45" />
-                  <line x1="110" y1="18" x2="110" y2="210" stroke="#d6d3d1" strokeWidth="1.8" opacity="0.45" />
-                  <line x1="138" y1="18" x2="134" y2="209" stroke="#d6d3d1" strokeWidth="1.8" opacity="0.45" />
-                  <line x1="172" y1="16" x2="162" y2="208" stroke="#d6d3d1" strokeWidth="1.8" opacity="0.45" />
+                  <line x1="62" y1="20" x2="76" y2="306" stroke="#d6d3d1" strokeWidth="1.8" opacity="0.42" />
+                  <line x1="106" y1="22" x2="112" y2="308" stroke="#d6d3d1" strokeWidth="1.8" opacity="0.42" />
+                  <line x1="150" y1="23" x2="150" y2="309" stroke="#d6d3d1" strokeWidth="1.8" opacity="0.42" />
+                  <line x1="194" y1="22" x2="188" y2="308" stroke="#d6d3d1" strokeWidth="1.8" opacity="0.42" />
+                  <line x1="238" y1="20" x2="224" y2="306" stroke="#d6d3d1" strokeWidth="1.8" opacity="0.42" />
                   {/* Horizontal mesh rings */}
-                  <path d="M21 54 Q110 66 199 54" stroke="#d6d3d1" strokeWidth="1.6" opacity="0.4" />
-                  <path d="M25 102 Q110 114 195 102" stroke="#d6d3d1" strokeWidth="1.6" opacity="0.4" />
-                  <path d="M29 150 Q110 162 191 150" stroke="#d6d3d1" strokeWidth="1.6" opacity="0.4" />
+                  <path d="M24 74 Q150 90 276 74" stroke="#d6d3d1" strokeWidth="1.6" opacity="0.38" />
+                  <path d="M29 144 Q150 160 271 144" stroke="#d6d3d1" strokeWidth="1.6" opacity="0.38" />
+                  <path d="M34 214 Q150 230 266 214" stroke="#d6d3d1" strokeWidth="1.6" opacity="0.38" />
+                  <path d="M38 274 Q150 288 262 274" stroke="#d6d3d1" strokeWidth="1.6" opacity="0.38" />
                   {/* Front rim */}
                   <path
-                    d="M14 10 C14 20 206 20 206 10"
+                    d="M16 14 C16 26 284 26 284 14"
                     stroke={isTargetHighlighted ? '#fde68a' : '#e7e5e4'}
                     strokeWidth="4.5"
                     strokeLinecap="round"
@@ -331,6 +392,46 @@ export function TrashDrawer() {
               </div>
             </motion.div>
           </div>
+
+          {/* Floating Tooltip rendered above the basket SVG without clipping or scrollbars */}
+          {hoveredTooltip && (
+            <div
+              role="tooltip"
+              style={{
+                position: 'fixed',
+                left: `${hoveredTooltip.x}px`,
+                top: `${hoveredTooltip.y}px`,
+                transform: 'translate(-50%, -100%)',
+                zIndex: 'var(--z-context-menu)',
+              }}
+              className="pointer-events-none w-52 rounded-xl border border-amber-900/35 bg-[#fdf8ee] p-2.5 text-left text-xs text-[#2b231d] shadow-2xl"
+            >
+              <div className="line-clamp-2 font-bold">{hoveredTooltip.task.tytul}</div>
+              <div className="mt-1 flex items-center justify-between text-[11px] text-[#5c4f44]">
+                <span>{formatDisplayDate(hoveredTooltip.task.termin)}</span>
+                <span>{PRIORITY_LABELS[hoveredTooltip.task.priorytet]}</span>
+              </div>
+              {hoveredTooltip.task.tagi.length > 0 && (
+                <div className="mt-1.5 flex flex-wrap gap-1">
+                  {hoveredTooltip.task.tagi.slice(0, 4).map((tag, idx) => {
+                    const color = getTagColor(tag);
+                    return (
+                      <span
+                        key={`${tag}-${idx}`}
+                        className="rounded-full px-1.5 py-0.5 text-[10px] font-medium"
+                        style={{
+                          backgroundColor: color.bg,
+                          color: color.text,
+                        }}
+                      >
+                        #{tag}
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Bottom Physical Drawer ("fizyczna szuflada") with >> close button */}
           <div className="trash-drawer-physical-base flex items-center justify-between px-4 py-3">

@@ -95,6 +95,10 @@ function PostItNoteComponent({
 
   useEffect(() => {
     trashDrawerOpenRef.current = state.trashDrawerOpen;
+    if (state.trashDrawerOpen && clickTimerRef.current !== null) {
+      window.clearTimeout(clickTimerRef.current);
+      clickTimerRef.current = null;
+    }
   }, [state.trashDrawerOpen]);
 
   useEffect(() => {
