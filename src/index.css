@@ -231,16 +231,16 @@
   --note-bg: var(--color-note-medium-bg);
   --note-fold: var(--color-note-medium-fold);
   --note-border: var(--color-note-medium-border);
-  /* 3-slice custom image hooks (set to url('/assets/...') when ready; width: 196px) */
-  --note-slice-top: none;
-  --note-slice-middle: none;
-  --note-slice-bottom: none;
+  /* Single square texture hook (196x196px / 392x392px / 512x512px) */
+  --note-bg-image: none;
 
   position: relative;
   width: 100%;
   min-width: 0;
   max-width: 100%;
   min-height: 152px;
+  max-height: 196px;
+  overflow: hidden;
   padding: 24px 12px 12px 12px;
   display: flex;
   flex-direction: column;
@@ -249,6 +249,10 @@
   font-family: var(--font-note);
   color: var(--color-ink);
   background-color: var(--note-bg);
+  background-image: var(--note-bg-image);
+  background-size: 100% auto;
+  background-position: top center;
+  background-repeat: no-repeat;
   border: 1px solid var(--note-border);
   border-radius: 6px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
@@ -262,49 +266,12 @@
   cursor: grabbing;
 }
 
-/* 3-Slice Non-Stretching Image Background Layer (Top fixed 32px / Middle repeat-y / Bottom fixed 28px) */
-.postit-bg-slices {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  border-radius: inherit;
-  overflow: hidden;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.postit-bg-top {
-  flex: 0 0 32px;
-  height: 32px;
-  width: 100%;
-  background-image: var(--note-slice-top);
-  background-size: 100% 32px;
-  background-repeat: no-repeat;
-}
-
-.postit-bg-middle {
-  flex: 1 1 auto;
-  width: 100%;
-  background-image: var(--note-slice-middle);
-  background-size: 100% auto;
-  background-repeat: repeat-y;
-}
-
-.postit-bg-bottom {
-  flex: 0 0 28px;
-  height: 28px;
-  width: 100%;
-  background-image: var(--note-slice-bottom);
-  background-size: 100% 28px;
-  background-repeat: no-repeat;
-}
-
-.postit-body,
-.postit-footer {
-  position: relative;
-  z-index: 1;
-}
+/*
+  Example per-priority & per-variant square textures (data-variant="0" | "1" | "2"):
+  .postit-card[data-priority="wysoki"][data-variant="0"] { --note-bg-image: url('/assets/note-high-0.webp'); }
+  .postit-card[data-priority="sredni"][data-variant="0"] { --note-bg-image: url('/assets/note-medium-0.webp'); }
+  .postit-card[data-priority="niski"][data-variant="0"]  { --note-bg-image: url('/assets/note-low-0.webp'); }
+*/
 
 /* Priority Color Themes (Y-Axis: wysoki top -> sredni middle -> niski bottom) */
 .postit-card[data-priority="wysoki"] {

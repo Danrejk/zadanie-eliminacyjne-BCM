@@ -196,6 +196,7 @@ function PostItNoteComponent({
   };
 
   const rotation = getNoteRotation(task.id);
+  const variant = Math.abs(task.id) % 3;
   const overdue = isOverdue(task.termin, todayStr);
   const formattedDate = formatDisplayDate(task.termin, todayStr);
   const trimmedDesc = task.opis.trim();
@@ -206,6 +207,7 @@ function PostItNoteComponent({
         data-testid={`postit-note-${task.id}`}
         data-priority={task.priorytet}
         data-zone={zone}
+        data-variant={variant}
         data-dimmed={isDimmed ? 'true' : 'false'}
         data-dragging={isDragging ? 'true' : 'false'}
         draggable
@@ -217,12 +219,6 @@ function PostItNoteComponent({
         style={{ '--note-rotation': `${rotation}deg` } as React.CSSProperties}
         className="postit-card"
       >
-        <div className="postit-bg-slices" aria-hidden="true">
-          <div className="postit-bg-top" />
-          <div className="postit-bg-middle" />
-          <div className="postit-bg-bottom" />
-        </div>
-
         <PushPin taskId={task.id} tags={task.tagi} />
 
         {overdue && (
