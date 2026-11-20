@@ -67,15 +67,43 @@
 
 /* === M2: Corkboard texture, wood frame, Post-it cards & overdue stamp styles appended below === */
 
-/* 1. Wooden Corkboard Frame */
+/* 1. Beveled Wooden Corkboard Frame */
 .corkboard-wood-frame {
   position: relative;
   z-index: var(--z-corkboard);
-  border-radius: 16px;
-  padding: 14px;
+  border-radius: 18px;
+  padding: 16px;
   background-color: var(--color-wood-frame);
+  background-image:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.14) 0%,
+      rgba(255, 255, 255, 0) 35%,
+      rgba(0, 0, 0, 0.24) 100%
+    ),
+    repeating-linear-gradient(
+      90deg,
+      var(--color-wood-frame) 0px,
+      var(--color-wood-highlight) 28px,
+      var(--color-wood-dark) 56px,
+      var(--color-wood-frame) 84px
+    );
   border: 3px solid var(--color-wood-dark);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+  box-shadow:
+    0 22px 48px rgba(0, 0, 0, 0.6),
+    0 6px 16px rgba(0, 0, 0, 0.45),
+    inset 0 2px 3px rgba(255, 235, 205, 0.28),
+    inset 0 -3px 6px rgba(24, 12, 4, 0.65);
+}
+
+/* Corner brass joints on wooden frame */
+.corkboard-wood-frame::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 224, 178, 0.16);
+  pointer-events: none;
 }
 
 /* 2. Cork Surface (Ready for static tile texture via --cork-texture-image) */
