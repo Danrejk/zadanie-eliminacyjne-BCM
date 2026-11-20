@@ -623,17 +623,13 @@
 
 .trash-drawer-handle {
   position: absolute;
-  left: -20px;
+  left: -22px;
   top: 50%;
+  z-index: -1;
   transform: translateY(-50%);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 140ms ease;
-}
-
-.trash-drawer-front:hover .trash-drawer-handle {
-  transform: translateY(-50%) translateX(1px);
 }
 
 .trash-drawer-side {

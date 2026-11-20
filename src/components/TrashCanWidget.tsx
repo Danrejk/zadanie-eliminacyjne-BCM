@@ -93,10 +93,46 @@ export function TrashCanWidget() {
           transition={{ type: 'spring', stiffness: 420, damping: 16 }}
           className="relative flex h-full w-full items-center justify-center"
         >
-          {/* Mini crumpled paper balls resting inside the mesh basket */}
+          {/* Layer 1 (Back): Dark recessed interior, back rim, and back diamond mesh */}
+          <svg
+            viewBox="0 0 88 88"
+            className="pointer-events-none absolute inset-0 z-0 h-full w-full"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+          >
+            <defs>
+              <linearGradient id="smBasketInterior" x1="44" y1="14" x2="44" y2="80" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#14110f" stopOpacity="0.88" />
+                <stop offset="60%" stopColor="#26211e" stopOpacity="0.78" />
+                <stop offset="100%" stopColor="#0f0c0b" stopOpacity="0.92" />
+              </linearGradient>
+              <pattern id="smMeshBack" width="7.5" height="7.5" patternUnits="userSpaceOnUse">
+                <path d="M0 0 L7.5 7.5 M7.5 0 L0 7.5" stroke="#57534e" strokeWidth="0.7" opacity="0.45" />
+              </pattern>
+              <clipPath id="smBasketClipBack">
+                <path d="M15 20 L23 76 C24 80 64 80 65 76 L73 20 Z" />
+              </clipPath>
+            </defs>
+
+            <g clipPath="url(#smBasketClipBack)">
+              <rect x="0" y="0" width="88" height="88" fill="url(#smBasketInterior)" />
+              <rect x="0" y="0" width="88" height="88" fill="url(#smMeshBack)" />
+            </g>
+
+            {/* Back half of rolled rim */}
+            <path
+              d="M14 19 C14 13 74 13 74 19"
+              stroke={isEnlarged || isHovered ? '#fbbf24' : '#57534e'}
+              strokeWidth="2.5"
+              strokeLinecap="round"
+            />
+          </svg>
+
+          {/* Layer 2 (Middle): Mini crumpled paper balls resting inside */}
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-x-4 bottom-3 flex flex-wrap-reverse items-end justify-center gap-0.5 overflow-hidden"
+            className="pointer-events-none absolute inset-x-4 bottom-3 z-10 flex flex-wrap-reverse items-end justify-center gap-0.5 overflow-hidden"
             style={{ maxHeight: '46px' }}
           >
             {previewBalls.map((task, idx) => (
@@ -116,46 +152,65 @@ export function TrashCanWidget() {
             ))}
           </div>
 
-          {/* Office wire/mesh trash basket SVG */}
+          {/* Layer 3 (Front): Front diamond wire mesh, cylindrical sheen & rolled rim */}
           <svg
             viewBox="0 0 88 88"
-            className="relative z-10 h-full w-full"
+            className="pointer-events-none relative z-20 h-full w-full"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
             aria-hidden="true"
           >
-            {/* Back rim */}
-            <ellipse
-              cx="44"
-              cy="18"
-              rx="30"
-              ry="7"
-              fill="rgba(30, 22, 16, 0.55)"
-              stroke={isEnlarged || isHovered ? '#fbbf24' : '#78716c'}
-              strokeWidth="2.5"
-            />
-            {/* Basket body translucent mesh */}
+            <defs>
+              <pattern id="smMeshFront" width="7.5" height="7.5" patternUnits="userSpaceOnUse">
+                <path d="M0 0 L7.5 7.5 M7.5 0 L0 7.5" stroke="#d6d3d1" strokeWidth="0.75" opacity="0.56" />
+              </pattern>
+              <linearGradient id="smCylinderSheen" x1="15" y1="0" x2="73" y2="0" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#0c0a09" stopOpacity="0.42" />
+                <stop offset="24%" stopColor="#ffffff" stopOpacity="0.12" />
+                <stop offset="55%" stopColor="#78716c" stopOpacity="0.05" />
+                <stop offset="100%" stopColor="#0c0a09" stopOpacity="0.42" />
+              </linearGradient>
+              <clipPath id="smBasketClipFront">
+                <path d="M15 20 L23 76 C24 80 64 80 65 76 L73 20 C73 24 15 24 15 20 Z" />
+              </clipPath>
+            </defs>
+
+            <g clipPath="url(#smBasketClipFront)">
+              <rect x="0" y="0" width="88" height="88" fill="url(#smMeshFront)" />
+              <rect x="0" y="0" width="88" height="88" fill="url(#smCylinderSheen)" />
+            </g>
+
+            {/* Outer edges & base ring */}
             <path
-              d="M15 20 L23 76 C24 80 64 80 65 76 L73 20 Z"
-              fill="rgba(41, 37, 36, 0.42)"
+              d="M15 20 L23 76 C24 80 64 80 65 76 L73 20"
               stroke={isEnlarged || isHovered ? '#fbbf24' : '#a8a29e'}
-              strokeWidth="2.2"
+              strokeWidth="1.5"
               strokeLinejoin="round"
             />
-            {/* Vertical wire ribs */}
-            <line x1="26" y1="23" x2="30" y2="77" stroke="#d6d3d1" strokeWidth="1.3" opacity="0.6" />
-            <line x1="38" y1="24" x2="39" y2="78" stroke="#d6d3d1" strokeWidth="1.3" opacity="0.6" />
-            <line x1="50" y1="24" x2="49" y2="78" stroke="#d6d3d1" strokeWidth="1.3" opacity="0.6" />
-            <line x1="62" y1="23" x2="58" y2="77" stroke="#d6d3d1" strokeWidth="1.3" opacity="0.6" />
-            {/* Horizontal mesh rings */}
-            <path d="M17 34 Q44 39 71 34" stroke="#d6d3d1" strokeWidth="1.2" opacity="0.55" />
-            <path d="M19 49 Q44 54 69 49" stroke="#d6d3d1" strokeWidth="1.2" opacity="0.55" />
-            <path d="M21 64 Q44 69 67 64" stroke="#d6d3d1" strokeWidth="1.2" opacity="0.55" />
-            {/* Front top rim */}
             <path
-              d="M14 18 C14 23 74 23 74 18"
+              d="M23 76 C24 80 64 80 65 76"
+              stroke="#57534e"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+            />
+
+            {/* Rolled metallic front rim */}
+            <path
+              d="M13.5 19 C13.5 24.5 74.5 24.5 74.5 19"
+              stroke="#292524"
+              strokeWidth="3.2"
+              strokeLinecap="round"
+            />
+            <path
+              d="M13.5 19 C13.5 24.5 74.5 24.5 74.5 19"
+              stroke={isEnlarged || isHovered ? '#fbbf24' : '#8b8580'}
+              strokeWidth="2.2"
+              strokeLinecap="round"
+            />
+            <path
+              d="M14.5 18.7 C14.5 23.7 73.5 23.7 73.5 18.7"
               stroke={isEnlarged || isHovered ? '#fde68a' : '#e7e5e4'}
-              strokeWidth="3"
+              strokeWidth="0.9"
               strokeLinecap="round"
             />
           </svg>

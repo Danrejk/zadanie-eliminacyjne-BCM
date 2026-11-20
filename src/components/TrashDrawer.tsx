@@ -196,14 +196,14 @@ export function TrashDrawer() {
           }}
           className="trash-drawer-panel flex flex-col justify-end select-none"
         >
-          {/* Throwing Headroom + Wire-Mesh Basket sitting inside the drawer */}
+          {/* Throwing Headroom + Skeuomorphic 3-Layer Gunmetal Wire-Mesh Basket */}
           <div className="relative flex flex-1 flex-col items-center justify-end px-3 pt-4">
             <motion.div
               key={state.trashBounceCount}
               initial={state.trashBounceCount > 0 ? { scale: 1.03, y: 4 } : false}
               animate={{ scale: 1, y: 0 }}
               transition={{ type: 'spring', stiffness: 420, damping: 18 }}
-              className="relative flex w-full max-w-[306px] flex-1 max-h-[380px] min-h-[250px] flex-col items-center justify-end"
+              className="relative flex w-[280px] max-w-full flex-col items-center justify-end"
             >
               {/* Invisible Top Hoop Opening Sensor aligned with SVG rim */}
               <div
@@ -212,7 +212,7 @@ export function TrashDrawer() {
                 }}
                 data-testid="trash-hoop"
                 aria-hidden="true"
-                className="pointer-events-none relative z-20 -mb-5 h-11 w-[280px]"
+                className="pointer-events-none relative z-20 -mb-5 h-11 w-[264px]"
               />
 
               {/* Solid Basket Body tucked into the drawer at the bottom */}
@@ -221,10 +221,55 @@ export function TrashDrawer() {
                   trashBodyRef.current = el;
                 }}
                 data-testid="trash-body"
-                className="relative -mb-[34px] h-full w-full"
+                className="relative -mb-[34px] aspect-[280/296] w-full max-h-[340px]"
               >
-                {/* Honeycomb-packed Crumpled Balls resting inside (no horizontal scroll) */}
-                <div className="absolute inset-x-6 top-5 bottom-7 z-20 overflow-y-auto overflow-x-hidden">
+                {/* Layer 1 (Back): Recessed dark interior, back rim, and back diamond wire mesh */}
+                <svg
+                  viewBox="0 0 280 296"
+                  preserveAspectRatio="xMidYMax meet"
+                  className="pointer-events-none absolute inset-0 z-10 h-full w-full drop-shadow-[0_14px_22px_rgba(0,0,0,0.52)]"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <defs>
+                    <linearGradient id="lgBasketInterior" x1="140" y1="10" x2="140" y2="288" gradientUnits="userSpaceOnUse">
+                      <stop offset="0%" stopColor="#14110f" stopOpacity="0.88" />
+                      <stop offset="55%" stopColor="#26211e" stopOpacity="0.78" />
+                      <stop offset="100%" stopColor="#0f0c0b" stopOpacity="0.92" />
+                    </linearGradient>
+                    <pattern id="lgMeshBack" width="16" height="16" patternUnits="userSpaceOnUse">
+                      <path d="M0 0 L16 16 M16 0 L0 16" stroke="#57534e" strokeWidth="0.9" opacity="0.45" />
+                    </pattern>
+                    <clipPath id="lgBasketBodyClipBack">
+                      <path d="M20 18 L46 276 C49 286 231 286 234 276 L260 18 Z" />
+                    </clipPath>
+                  </defs>
+
+                  {/* Dark recessed interior + back mesh */}
+                  <g clipPath="url(#lgBasketBodyClipBack)">
+                    <rect x="0" y="0" width="280" height="296" fill="url(#lgBasketInterior)" />
+                    <rect x="0" y="0" width="280" height="296" fill="url(#lgMeshBack)" />
+                  </g>
+
+                  {/* Back half of the rolled top rim */}
+                  <path
+                    d="M18 18 C18 7 262 7 262 18"
+                    stroke="#57534e"
+                    strokeWidth="4.5"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M20 18 C20 9 260 9 260 18"
+                    stroke="#a8a29e"
+                    strokeWidth="1.2"
+                    strokeLinecap="round"
+                    opacity="0.6"
+                  />
+                </svg>
+
+                {/* Layer 2 (Middle): Honeycomb-packed Crumpled Balls resting INSIDE the basket */}
+                <div className="absolute inset-x-9 top-6 bottom-6 z-20 overflow-y-auto overflow-x-hidden">
                   <div
                     className="relative w-full"
                     style={{ height: `${totalHeight}px`, minHeight: '100%' }}
@@ -265,7 +310,7 @@ export function TrashDrawer() {
                           bottom: `${bottom}px`,
                           transform: `translateX(calc(-50% + ${offsetX}px))`,
                         }}
-                        className="rounded-full p-0.5 transition-transform hover:z-30 hover:scale-115 focus:z-30 focus:scale-115 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+                        className="rounded-full p-0.5 transition-transform hover:scale-110 focus:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
                       >
                         <CrumpledBall
                           priority={task.priorytet}
@@ -277,50 +322,69 @@ export function TrashDrawer() {
                   </div>
                 </div>
 
-                {/* Large Wire-Mesh Basket SVG (neutral metallic wire, never yellow) */}
+                {/* Layer 3 (Front): Front diamond wire mesh, cylindrical sheen & rolled metallic rim */}
                 <svg
-                  viewBox="0 0 300 320"
-                  preserveAspectRatio="none"
-                  className="pointer-events-none relative z-10 h-full w-full drop-shadow-[0_12px_20px_rgba(0,0,0,0.5)]"
+                  viewBox="0 0 280 296"
+                  preserveAspectRatio="xMidYMax meet"
+                  className="pointer-events-none absolute inset-0 z-30 h-full w-full"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
                   aria-hidden="true"
                 >
-                  {/* Back rim */}
-                  <ellipse
-                    cx="150"
-                    cy="14"
-                    rx="132"
-                    ry="10"
-                    fill="rgba(28, 22, 18, 0.55)"
-                    stroke="#78716c"
-                    strokeWidth="3"
-                  />
-                  {/* Basket body translucent mesh */}
+                  <defs>
+                    <pattern id="lgMeshFront" width="16" height="16" patternUnits="userSpaceOnUse">
+                      <path d="M0 0 L16 16 M16 0 L0 16" stroke="#d6d3d1" strokeWidth="1.05" opacity="0.52" />
+                    </pattern>
+                    <linearGradient id="lgCylinderSheen" x1="20" y1="0" x2="260" y2="0" gradientUnits="userSpaceOnUse">
+                      <stop offset="0%" stopColor="#0c0a09" stopOpacity="0.45" />
+                      <stop offset="22%" stopColor="#ffffff" stopOpacity="0.1" />
+                      <stop offset="52%" stopColor="#78716c" stopOpacity="0.06" />
+                      <stop offset="100%" stopColor="#0c0a09" stopOpacity="0.45" />
+                    </linearGradient>
+                    <clipPath id="lgBasketBodyClipFront">
+                      <path d="M20 18 L46 276 C49 286 231 286 234 276 L260 18 C260 28 20 28 20 18 Z" />
+                    </clipPath>
+                  </defs>
+
+                  {/* Front diamond mesh + 3D cylindrical sheen */}
+                  <g clipPath="url(#lgBasketBodyClipFront)">
+                    <rect x="0" y="0" width="280" height="296" fill="url(#lgMeshFront)" />
+                    <rect x="0" y="0" width="280" height="296" fill="url(#lgCylinderSheen)" />
+                  </g>
+
+                  {/* Crisp outer wireframe edges & base ring */}
                   <path
-                    d="M18 16 L40 302 C43 312 257 312 260 302 L282 16 Z"
-                    fill="rgba(36, 30, 26, 0.54)"
+                    d="M20 18 L46 276 C49 286 231 286 234 276 L260 18"
                     stroke="#a8a29e"
-                    strokeWidth="3.5"
+                    strokeWidth="2.2"
                     strokeLinejoin="round"
                   />
-                  {/* Vertical wire ribs */}
-                  <line x1="62" y1="20" x2="76" y2="306" stroke="#d6d3d1" strokeWidth="1.8" opacity="0.42" />
-                  <line x1="106" y1="22" x2="112" y2="308" stroke="#d6d3d1" strokeWidth="1.8" opacity="0.42" />
-                  <line x1="150" y1="23" x2="150" y2="309" stroke="#d6d3d1" strokeWidth="1.8" opacity="0.42" />
-                  <line x1="194" y1="22" x2="188" y2="308" stroke="#d6d3d1" strokeWidth="1.8" opacity="0.42" />
-                  <line x1="238" y1="20" x2="224" y2="306" stroke="#d6d3d1" strokeWidth="1.8" opacity="0.42" />
-                  {/* Horizontal mesh rings */}
-                  <path d="M24 74 Q150 90 276 74" stroke="#d6d3d1" strokeWidth="1.6" opacity="0.38" />
-                  <path d="M29 144 Q150 160 271 144" stroke="#d6d3d1" strokeWidth="1.6" opacity="0.38" />
-                  <path d="M34 214 Q150 230 266 214" stroke="#d6d3d1" strokeWidth="1.6" opacity="0.38" />
-                  <path d="M38 274 Q150 288 262 274" stroke="#d6d3d1" strokeWidth="1.6" opacity="0.38" />
-                  {/* Front rim */}
                   <path
-                    d="M16 14 C16 26 284 26 284 14"
-                    stroke="#e7e5e4"
-                    strokeWidth="4.5"
+                    d="M46 276 C49 286 231 286 234 276"
+                    stroke="#57534e"
+                    strokeWidth="3"
                     strokeLinecap="round"
+                  />
+
+                  {/* Rolled metallic front rim with underside shadow and specular highlight */}
+                  <path
+                    d="M16 18 C16 30 264 30 264 18"
+                    stroke="#292524"
+                    strokeWidth="5.8"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M16 18 C16 30 264 30 264 18"
+                    stroke="#8b8580"
+                    strokeWidth="3.8"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M18 17.5 C18 28.5 262 28.5 262 17.5"
+                    stroke="#e7e5e4"
+                    strokeWidth="1.3"
+                    strokeLinecap="round"
+                    opacity="0.9"
                   />
                 </svg>
               </div>
