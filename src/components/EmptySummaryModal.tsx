@@ -90,7 +90,7 @@ export function EmptySummaryModal() {
             type="button"
             data-testid="btn-cancel-empty-trash"
             onClick={handleCancel}
-            className="notebook-surface rounded-lg border px-4 py-2 text-xs font-semibold text-[#2b231d] transition-colors hover:bg-amber-900/10 cursor-pointer"
+            className="notebook-pencil-box px-4 py-2 text-xs font-semibold text-[#2b231d] transition-colors hover:bg-amber-900/10 cursor-pointer"
           >
             Anuluj
           </button>
@@ -98,7 +98,7 @@ export function EmptySummaryModal() {
             type="button"
             data-testid="btn-confirm-empty-trash"
             onClick={handleConfirm}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-red-700 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-red-800 cursor-pointer"
+            className="inline-flex items-center gap-1.5 rounded-xs bg-red-700 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-red-800 cursor-pointer"
           >
             <Archive className="h-3.5 w-3.5" aria-hidden="true" />
             Potwierdź i archiwizuj
@@ -107,7 +107,7 @@ export function EmptySummaryModal() {
       }
     >
       <div className="space-y-4 text-sm">
-        <div className="notebook-surface rounded-lg border p-3.5">
+        <div className="notebook-pencil-box p-3.5">
           <div className="text-xs font-medium uppercase tracking-wide text-[#5c4f44]">
             Zadania do archiwizacji i usunięcia z listy głównej
           </div>
@@ -125,7 +125,7 @@ export function EmptySummaryModal() {
             {PRIORITIES.map((priority) => (
               <div
                 key={priority}
-                className="notebook-surface rounded-lg border px-3 py-2 text-center"
+                className="notebook-pencil-box px-3 py-2 text-center"
               >
                 <div className="text-xs text-[#5c4f44]">
                   {PRIORITY_LABELS[priority]}

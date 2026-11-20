@@ -143,7 +143,7 @@ export function NotebookModal({
             type="button"
             onClick={onClose}
             aria-label={closeAriaLabel}
-            className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-transparent transition-colors cursor-pointer ${
+            className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xs border border-transparent transition-colors cursor-pointer ${
               isDanger
                 ? 'text-[#5c4f44] hover:bg-red-100 hover:text-red-950'
                 : 'text-amber-900/70 hover:bg-amber-900/10 hover:text-amber-950'

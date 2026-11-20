@@ -61,7 +61,7 @@ export function ArchiveModal() {
             type="button"
             data-testid="btn-export-archive"
             onClick={handleExportArchive}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-amber-800 px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-amber-900 cursor-pointer"
+            className="inline-flex items-center gap-1.5 rounded-xs bg-amber-800 px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-amber-900 cursor-pointer"
           >
             <Download className="h-3.5 w-3.5" aria-hidden="true" />
             Eksportuj archiwum JSON
@@ -71,7 +71,7 @@ export function ArchiveModal() {
             type="button"
             data-testid="btn-close-archive"
             onClick={handleClose}
-            className="notebook-surface rounded-lg border px-4 py-2 text-xs font-semibold text-[#2b231d] transition-colors hover:bg-amber-900/10 cursor-pointer"
+            className="notebook-pencil-box px-4 py-2 text-xs font-semibold text-[#2b231d] transition-colors hover:bg-amber-900/10 cursor-pointer"
           >
             Zamknij
           </button>
@@ -79,7 +79,7 @@ export function ArchiveModal() {
       }
     >
       {entries.length === 0 ? (
-        <div className="notebook-surface flex min-h-[180px] flex-col items-center justify-center rounded-lg border border-dashed p-6 text-center text-[#5c4f44]">
+        <div className="notebook-surface flex min-h-[180px] flex-col items-center justify-center rounded-xs border border-dashed p-6 text-center text-[#5c4f44]">
           <Archive className="mb-2 h-9 w-9 opacity-40" aria-hidden="true" />
           <p className="text-sm font-medium">Archiwum jest puste</p>
           <p className="mt-1 text-xs opacity-80">
@@ -92,7 +92,7 @@ export function ArchiveModal() {
             <li
               key={`${entry.task.id}-${entry.oproznionoDnia}-${index}`}
               data-testid={`archive-entry-${index}`}
-              className="notebook-surface rounded-lg border p-3.5"
+              className="notebook-pencil-box p-3.5"
             >
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="font-semibold text-[#2b231d]">
