@@ -4,8 +4,23 @@ import {
   getTagColor,
   hashStringFNV1a,
   normalizeTag,
-  TAG_COLOR_PALETTE,
 } from '../tagColors';
+
+function hexToLuminance(hex: string): number {
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  const lin = (c: number) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+}
+
+function contrastRatio(hex1: string, hex2: string): number {
+  const l1 = hexToLuminance(hex1);
+  const l2 = hexToLuminance(hex2);
+  const lighter = Math.max(l1, l2);
+  const darker = Math.min(l1, l2);
+  return (lighter + 0.05) / (darker + 0.05);
+}
 
 describe('tagColors', () => {
   describe('normalizeTag', () => {
@@ -40,19 +55,19 @@ describe('tagColors', () => {
       expect(c2).toEqual(c3);
     });
 
-    it('handles Polish Unicode diacritics and empty/whitespace strings safely', () => {
+    it('handles Polish Unicode diacritics and empty/whitespace strings safely with valid hex and contrast', () => {
       for (const tag of ['ćwiczenia', 'książki', 'żółć', 'źródło', 'półfinał', '', '   ']) {
         const color = getTagColor(tag);
-        expect(TAG_COLOR_PALETTE).toContainEqual(color);
+        expect(color.name.length).toBeGreaterThan(0);
         expect(color.bg).toMatch(/^#[0-9a-f]{6}$/i);
+        expect(color.dark).toMatch(/^#[0-9a-f]{6}$/i);
+        expect(color.light).toMatch(/^#[0-9a-f]{6}$/i);
+        expect(color.text).toMatch(/^#[0-9a-f]{6}$/i);
+        expect(contrastRatio(color.bg, color.text)).toBeGreaterThanOrEqual(4.5);
       }
     });
 
-    it('provides 12 distinct palette colors and distributes varied tags broadly', () => {
-      expect(TAG_COLOR_PALETTE).toHaveLength(12);
-      const uniqueBg = new Set(TAG_COLOR_PALETTE.map((c) => c.bg));
-      expect(uniqueBg.size).toBe(12);
-
+    it('procedurally generates broad distinct colors beyond a small fixed palette', () => {
       const sampleTags = [
         'studia', 'projekt', 'egzamin', 'finanse', 'dom', 'hackathon', 'zdrowie', 'ćwiczenia',
         'algorytmy', 'sieci', 'bazy', 'fizyka', 'matematyka', 'angielski', 'praca', 'zakupy',
@@ -60,7 +75,7 @@ describe('tagColors', () => {
         'rower', 'kawa', 'muzyka', 'podróż', 'rodzina', 'hobby', 'programowanie', 'rust', 'docker',
       ];
       const mappedColors = new Set(sampleTags.map((t) => getTagColor(t).bg));
-      expect(mappedColors.size).toBeGreaterThanOrEqual(8);
+      expect(mappedColors.size).toBeGreaterThanOrEqual(24);
     });
   });
 
