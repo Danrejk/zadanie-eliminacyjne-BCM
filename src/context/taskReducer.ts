@@ -268,7 +268,9 @@ export function taskReducer(state: TaskState, action: TaskAction): TaskState {
         ballInFlight: nextFloorBalls.length === 0 ? false : state.ballInFlight,
         contextMenu: state.contextMenu?.taskId === id ? null : state.contextMenu,
         activeModal:
-          state.activeModal.type === 'edit' && state.activeModal.taskId === id
+          (state.activeModal.type === 'edit' ||
+            state.activeModal.type === 'view') &&
+          state.activeModal.taskId === id
             ? { type: 'none' }
             : state.activeModal,
       };

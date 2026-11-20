@@ -360,25 +360,25 @@ describe('Milestone M2 — Corkboard 3x5, PostItNote & PushPin', () => {
   });
 
   describe('4. 4-Way Event Disambiguation on PostItNote', () => {
-    it('debounces single-click by 230ms before dispatching OPEN_MODAL (edit)', () => {
+    it('debounces single-click by 230ms before dispatching OPEN_MODAL (view)', () => {
       vi.useFakeTimers();
       const harness = renderCorkboard();
 
       const note1 = screen.getByTestId('postit-note-1');
       fireEvent.click(note1, { detail: 1 });
 
-      // Before 230ms, edit modal must not be open
+      // Before 230ms, the note modal must not be open
       act(() => {
         vi.advanceTimersByTime(100);
       });
       expect(harness.ctx.state.activeModal).toEqual({ type: 'none' });
 
-      // At 230ms, edit modal opens for task #1
+      // At 230ms, the read-only view opens for task #1
       act(() => {
         vi.advanceTimersByTime(CLICK_DELAY_MS - 100);
       });
       expect(harness.ctx.state.activeModal).toEqual({
-        type: 'edit',
+        type: 'view',
         taskId: 1,
       });
     });
@@ -472,7 +472,7 @@ describe('Milestone M2 — Corkboard 3x5, PostItNote & PushPin', () => {
       });
       expect(harness.ctx.state.activeModal).toEqual({ type: 'none' });
 
-      // After the 50ms reset window has elapsed, a normal single-click opens the edit modal
+      // After the 50ms reset window has elapsed, a normal single-click opens the view modal
       act(() => {
         vi.advanceTimersByTime(DRAG_END_RESET_MS + 10);
       });
@@ -481,7 +481,7 @@ describe('Milestone M2 — Corkboard 3x5, PostItNote & PushPin', () => {
         vi.advanceTimersByTime(CLICK_DELAY_MS + 10);
       });
       expect(harness.ctx.state.activeModal).toEqual({
-        type: 'edit',
+        type: 'view',
         taskId: 4,
       });
     });

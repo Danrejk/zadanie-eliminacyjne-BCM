@@ -161,7 +161,7 @@ function PostItNoteComponent({
       ) {
         dispatch({
           type: 'OPEN_MODAL',
-          payload: { type: 'edit', taskId: task.id },
+          payload: { type: 'view', taskId: task.id },
         });
       }
     }, CLICK_DELAY_MS);

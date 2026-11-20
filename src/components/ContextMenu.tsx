@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import {
-  Pencil,
+  Eye,
   CheckCircle2,
   Trash2,
   Undo2,
@@ -184,10 +184,10 @@ export function ContextMenu() {
     viewportHeight,
   );
 
-  const handleEdit = () => {
+  const handleView = () => {
     dispatch({
       type: 'OPEN_MODAL',
-      payload: { type: 'edit', taskId: contextMenu.taskId },
+      payload: { type: 'view', taskId: contextMenu.taskId },
     });
     dispatch({ type: 'CLOSE_CONTEXT_MENU' });
   };
@@ -306,12 +306,12 @@ export function ContextMenu() {
           <button
             type="button"
             role="menuitem"
-            data-testid="context-menu-edit"
-            onClick={handleEdit}
+            data-testid="context-menu-view"
+            onClick={handleView}
             className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm font-medium hover:bg-amber-900/10 transition-colors cursor-pointer"
           >
-            <Pencil className="h-4 w-4 text-amber-800" aria-hidden="true" />
-            <span>Edytuj zadanie</span>
+            <Eye className="h-4 w-4 text-amber-800" aria-hidden="true" />
+            <span>Podgląd zadania</span>
           </button>
 
           <button
@@ -424,12 +424,12 @@ export function ContextMenu() {
           <button
             type="button"
             role="menuitem"
-            data-testid="context-menu-edit"
-            onClick={handleEdit}
+            data-testid="context-menu-view"
+            onClick={handleView}
             className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm font-medium hover:bg-amber-900/10 transition-colors cursor-pointer"
           >
-            <Pencil className="h-4 w-4 text-amber-800" aria-hidden="true" />
-            <span>Edytuj zadanie</span>
+            <Eye className="h-4 w-4 text-amber-800" aria-hidden="true" />
+            <span>Podgląd zadania</span>
           </button>
 
           <div

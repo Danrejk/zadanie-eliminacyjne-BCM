@@ -98,6 +98,7 @@ export type ContextMenuTarget =
 export type ActiveModal =
   | { type: 'none' }
   | { type: 'create'; defaultPriority?: Priority; defaultZone?: TimeZone }
+  | { type: 'view'; taskId: number }
   | { type: 'edit'; taskId: number }
   | { type: 'trash' }
   | { type: 'emptySummary' }
