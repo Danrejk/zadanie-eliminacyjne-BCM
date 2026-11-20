@@ -84,7 +84,7 @@ export function TrashModal() {
       aria-labelledby="trash-modal-title"
       onClick={handleBackdropClick}
       style={{ zIndex: 'var(--z-modal)' }}
-      className="fixed inset-0 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs"
+      className="fixed inset-0 flex items-center justify-center bg-black/60 p-4"
     >
       <div
         className="relative flex max-h-[88vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border-2 border-amber-900/40 bg-[#fdf8ee] text-[#2b231d] shadow-2xl"

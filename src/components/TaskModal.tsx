@@ -684,7 +684,6 @@ export function TaskModal() {
       style={{
         zIndex: 'var(--z-modal)',
         backgroundColor: 'rgba(46, 32, 24, 0.65)',
-        backdropFilter: 'blur(2px)',
       }}
     >
       <TaskModalForm

@@ -1,11 +1,9 @@
 import React, { useEffect, useRef } from 'react';
-import { motion } from 'motion/react';
 import { Calendar } from 'lucide-react';
-import type { Task, TimeZone } from '../types/task';
+import type { Task, TaskAction, TimeZone } from '../types/task';
 import { formatDisplayDate, isOverdue } from '../utils/dateBuckets';
 import { getNoteRotation, getTagColor, normalizeTag } from '../utils/tagColors';
 import { playCrumpleSound } from '../utils/sound';
-import { useTasks } from '../context/TaskContext';
 import { PushPin } from './PushPin';
 
 export const CLICK_DELAY_MS = 230;
@@ -15,26 +13,37 @@ export interface PostItNoteProps {
   task: Task;
   zone: TimeZone;
   isDimmed: boolean;
+  isDragging: boolean;
+  isModalOpen: boolean;
+  muted: boolean;
+  dispatch: React.Dispatch<TaskAction>;
   todayStr?: string;
 }
 
-export function PostItNote({ task, zone, isDimmed, todayStr }: PostItNoteProps) {
-  const { state, dispatch } = useTasks();
-
+function PostItNoteComponent({
+  task,
+  zone,
+  isDimmed,
+  isDragging,
+  isModalOpen,
+  muted,
+  dispatch,
+  todayStr,
+}: PostItNoteProps) {
   const clickTimerRef = useRef<number | null>(null);
   const dragResetTimerRef = useRef<number | null>(null);
   const rafIdRef = useRef<number | null>(null);
   const wasDraggingRef = useRef<boolean>(false);
   const isCrumplingRef = useRef<boolean>(false);
-  const activeModalTypeRef = useRef<string>(state.activeModal.type);
+  const isModalOpenRef = useRef<boolean>(isModalOpen);
 
   useEffect(() => {
-    activeModalTypeRef.current = state.activeModal.type;
-    if (state.activeModal.type !== 'none' && clickTimerRef.current !== null) {
+    isModalOpenRef.current = isModalOpen;
+    if (isModalOpen && clickTimerRef.current !== null) {
       window.clearTimeout(clickTimerRef.current);
       clickTimerRef.current = null;
     }
-  }, [state.activeModal.type]);
+  }, [isModalOpen]);
 
   useEffect(() => {
     if (!task.wykonane) {
@@ -71,7 +80,7 @@ export function PostItNote({ task, zone, isDimmed, todayStr }: PostItNoteProps) 
       clearClickTimer();
       return;
     }
-    if (wasDraggingRef.current || isCrumplingRef.current || activeModalTypeRef.current !== 'none') {
+    if (wasDraggingRef.current || isCrumplingRef.current || isModalOpenRef.current) {
       return;
     }
     clearClickTimer();
@@ -80,7 +89,7 @@ export function PostItNote({ task, zone, isDimmed, todayStr }: PostItNoteProps) 
       if (
         !wasDraggingRef.current &&
         !isCrumplingRef.current &&
-        activeModalTypeRef.current === 'none'
+        !isModalOpenRef.current
       ) {
         dispatch({
           type: 'OPEN_MODAL',
@@ -111,7 +120,7 @@ export function PostItNote({ task, zone, isDimmed, todayStr }: PostItNoteProps) 
       ? Math.round(rect.top + rect.height / 2)
       : Math.round(e.clientY || fallbackY);
 
-    playCrumpleSound(state.muted);
+    playCrumpleSound(muted);
     dispatch({
       type: 'COMPLETE_TO_FLOOR',
       payload: {
@@ -187,26 +196,20 @@ export function PostItNote({ task, zone, isDimmed, todayStr }: PostItNoteProps) 
   };
 
   const rotation = getNoteRotation(task.id);
+  const variant = Math.abs(task.id) % 3;
   const overdue = isOverdue(task.termin, todayStr);
   const formattedDate = formatDisplayDate(task.termin, todayStr);
   const trimmedDesc = task.opis.trim();
-  const isDraggingThisNote = state.draggingNoteId === task.id;
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, scale: 0.92 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.85 }}
-      transition={{ type: 'spring', stiffness: 360, damping: 28 }}
-      className="postit-motion-wrapper"
-    >
+    <div className="postit-motion-wrapper">
       <div
         data-testid={`postit-note-${task.id}`}
         data-priority={task.priorytet}
         data-zone={zone}
+        data-variant={variant}
         data-dimmed={isDimmed ? 'true' : 'false'}
-        data-dragging={isDraggingThisNote ? 'true' : 'false'}
+        data-dragging={isDragging ? 'true' : 'false'}
         draggable
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
@@ -270,8 +273,9 @@ export function PostItNote({ task, zone, isDimmed, todayStr }: PostItNoteProps) 
 
         <span className="postit-corner-fold" aria-hidden="true" />
       </div>
-    </motion.div>
+    </div>
   );
 }
 
+export const PostItNote = React.memo(PostItNoteComponent);
 export default PostItNote;
