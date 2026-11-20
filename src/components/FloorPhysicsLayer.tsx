@@ -104,6 +104,7 @@ export function FloorPhysicsLayer() {
     trashHitboxRef,
     trashHoopRef,
     trashBodyRef,
+    trashDrawerBoxRef,
   } = useTasks();
 
   const ballsRef = useRef<Map<number, FloorBall>>(new Map());
@@ -304,8 +305,9 @@ export function FloorPhysicsLayer() {
       if (trashDrawerOpenRef.current) {
         const hoopRect = trashHoopRef.current?.getBoundingClientRect() ?? null;
         const bodyRect = trashBodyRef.current?.getBoundingClientRect() ?? null;
+        const drawerRect = trashDrawerBoxRef.current?.getBoundingClientRect() ?? null;
         if (hoopRect && bodyRect) {
-          expandedTrash = { hoopRect, bodyRect };
+          expandedTrash = { hoopRect, bodyRect, drawerRect };
         }
       }
       const balls = Array.from(ballsRef.current.values());

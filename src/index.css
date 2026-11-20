@@ -623,7 +623,7 @@
 
 .trash-drawer-handle {
   position: absolute;
-  left: -17px;
+  left: -20px;
   top: 50%;
   transform: translateY(-50%);
   display: flex;
@@ -653,20 +653,6 @@
     inset 0 2px 0 rgba(255, 228, 188, 0.22),
     inset 0 -8px 18px rgba(0, 0, 0, 0.35),
     inset 6px 0 14px rgba(0, 0, 0, 0.28);
-}
-
-.trash-drawer-label {
-  padding: 4px 10px;
-  border-radius: 6px;
-  background: linear-gradient(180deg, #fdf3dc 0%, #e7cfa0 100%);
-  border: 1.5px solid #8c5a2b;
-  color: #3a210c;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  box-shadow:
-    0 2px 5px rgba(0, 0, 0, 0.38),
-    inset 0 1px 0 rgba(255, 255, 255, 0.65);
 }
 
 .trash-drawer-btn {

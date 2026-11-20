@@ -34,8 +34,9 @@ export interface ViewportSize {
 }
 
 export interface ExpandedTrashCollider {
-  hoopRect: RectLike;  // top hoop opening sensor
-  bodyRect: RectLike;  // solid left, right, and bottom walls of the expanded basket
+  hoopRect: RectLike;         // top hoop opening sensor
+  bodyRect: RectLike;         // solid left, right, and bottom walls of the expanded basket
+  drawerRect?: RectLike | null; // solid side-view physical drawer box
 }
 
 export interface PhysicsStepResult {
@@ -500,6 +501,16 @@ export function stepFloorPhysics(
           bottom: bodyRect.bottom,
         };
         resolveCircleRectBounce(ball, solidWallRect);
+
+        if (validExpandedTrash.drawerRect && isFiniteRect(validExpandedTrash.drawerRect)) {
+          const solidDrawerRect: RectLike = {
+            left: validExpandedTrash.drawerRect.left,
+            top: validExpandedTrash.drawerRect.top,
+            right: Math.max(validExpandedTrash.drawerRect.right, safeW),
+            bottom: validExpandedTrash.drawerRect.bottom,
+          };
+          resolveCircleRectBounce(ball, solidDrawerRect);
+        }
       }
     } else if (
       couldScoreThisStep &&

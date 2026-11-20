@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Archive, ChevronRight, PackageOpen, Sparkles, Trash2 } from 'lucide-react';
+import { Archive, ChevronRight, PackageOpen } from 'lucide-react';
 import type { Task } from '../types/task';
 import { useTasks } from '../context/TaskContext';
 import { PRIORITY_LABELS, formatDisplayDate } from '../utils/dateBuckets';
@@ -68,6 +68,7 @@ export function TrashDrawer() {
     floorBallTasks,
     trashHoopRef,
     trashBodyRef,
+    trashDrawerBoxRef,
   } = useTasks();
 
   const [hoveredTooltip, setHoveredTooltip] = useState<HoveredTooltipState | null>(null);
@@ -366,9 +367,14 @@ export function TrashDrawer() {
             </div>
           )}
 
-          {/* Side-View Physical Wooden Drawer (opaque side wall + left front + brass handle) */}
-          <div className="trash-drawer-box relative z-30 flex h-[138px] w-full items-stretch">
-            {/* Left Drawer Front + Brass Handle (clicking either closes the drawer) */}
+          {/* Side-View Physical Wooden Drawer (protrudes 30px left so side wall centers on basket) */}
+          <div
+            ref={(el) => {
+              trashDrawerBoxRef.current = el;
+            }}
+            className="trash-drawer-box relative z-30 -ml-[30px] flex h-[142px] w-[calc(100%+30px)] items-stretch"
+          >
+            {/* Left Drawer Front + Round Brass Knob (clicking either closes the drawer) */}
             <button
               type="button"
               data-testid="btn-close-trash-drawer"
@@ -377,31 +383,25 @@ export function TrashDrawer() {
               title="Schowaj szufladę"
               className="trash-drawer-front group relative flex w-[30px] shrink-0 cursor-pointer flex-col items-center justify-center gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
             >
-              {/* Brass Drawer Handle protruding to the left */}
+              {/* Round Brass Knob protruding to the left */}
               <span className="trash-drawer-handle pointer-events-none" aria-hidden="true">
                 <svg
-                  viewBox="0 0 22 64"
-                  className="h-14 w-5 drop-shadow-[0_3px_4px_rgba(0,0,0,0.55)]"
+                  viewBox="0 0 26 26"
+                  className="h-6 w-6 drop-shadow-[0_3px_4px_rgba(0,0,0,0.55)]"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
                 >
-                  {/* Top & bottom mounting plates */}
-                  <rect x="16" y="6" width="6" height="10" rx="1.5" fill="#b45309" stroke="#fde68a" strokeOpacity="0.45" strokeWidth="1" />
-                  <rect x="16" y="48" width="6" height="10" rx="1.5" fill="#b45309" stroke="#fde68a" strokeOpacity="0.45" strokeWidth="1" />
-                  {/* Curved brass pull bar */}
-                  <path
-                    d="M17 11 H8 C4.5 11 3 13 3 16.5 V47.5 C3 51 4.5 53 8 53 H17"
-                    stroke="url(#brassPull)"
-                    strokeWidth="5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
+                  {/* Mounting stem */}
+                  <rect x="18" y="10" width="8" height="6" rx="1.5" fill="#92400e" />
+                  {/* Round brass knob */}
+                  <circle cx="11" cy="13" r="9.5" fill="url(#brassKnob)" stroke="#78350f" strokeWidth="1.2" />
+                  <circle cx="8.5" cy="10" r="2.8" fill="#fef3c7" opacity="0.55" />
                   <defs>
-                    <linearGradient id="brassPull" x1="3" y1="11" x2="17" y2="53" gradientUnits="userSpaceOnUse">
-                      <stop offset="0%" stopColor="#fde68a" />
-                      <stop offset="45%" stopColor="#d97706" />
+                    <radialGradient id="brassKnob" cx="0.35" cy="0.3" r="0.7">
+                      <stop offset="0%" stopColor="#fef08a" />
+                      <stop offset="50%" stopColor="#d97706" />
                       <stop offset="100%" stopColor="#78350f" />
-                    </linearGradient>
+                    </radialGradient>
                   </defs>
                 </svg>
               </span>
@@ -425,40 +425,54 @@ export function TrashDrawer() {
             </button>
 
             {/* Opaque Wooden Side Wall */}
-            <div className="trash-drawer-side flex flex-1 flex-col justify-between px-3.5 py-3">
-              {/* Brass/parchment label plate */}
-              <div className="flex items-center justify-between">
-                <div className="trash-drawer-label inline-flex items-center gap-1.5">
-                  <Trash2 className="h-3.5 w-3.5 text-amber-900" aria-hidden="true" />
-                  <span>Kosz · {inTrashTasks.length}</span>
-                </div>
+            <div className="trash-drawer-side flex flex-1 flex-col justify-between px-3.5 pt-2.5 pb-3">
+              {/* Plain text label centered at the top of the side wall */}
+              <div className="text-center text-xs font-bold tracking-wide text-amber-100/90 drop-shadow-[0_1px_1px_rgba(0,0,0,0.65)]">
+                Kosz · {inTrashTasks.length}
               </div>
 
-              {/* 3 action buttons styled as plaques on the side wall */}
-              <div className="grid grid-cols-3 gap-1.5">
-                <button
-                  type="button"
-                  data-testid="btn-sweep-floor"
-                  disabled={floorBallTasks.length === 0}
-                  onClick={handleSweepFloor}
-                  title="Zbierz kulki z podłogi do kosza"
-                  className="trash-drawer-btn trash-drawer-btn--amber"
-                >
-                  <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                  <span className="truncate">Zbierz ({floorBallTasks.length})</span>
-                </button>
+              {/* Bottom row: left column (Wyjmij + Zbierz), right corner (Opróżnij) */}
+              <div className="flex items-end justify-between gap-2">
+                <div className="flex w-[140px] flex-col gap-1.5">
+                  <button
+                    type="button"
+                    data-testid="btn-take-all-out"
+                    disabled={inTrashTasks.length === 0}
+                    onClick={handleTakeAllOut}
+                    title="Wyjmij wszystkie kulki na podłogę"
+                    className="trash-drawer-btn trash-drawer-btn--wood w-full"
+                  >
+                    <PackageOpen className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    <span className="truncate">Wyjmij</span>
+                  </button>
 
-                <button
-                  type="button"
-                  data-testid="btn-take-all-out"
-                  disabled={inTrashTasks.length === 0}
-                  onClick={handleTakeAllOut}
-                  title="Wyjmij wszystkie kulki na podłogę"
-                  className="trash-drawer-btn trash-drawer-btn--wood"
-                >
-                  <PackageOpen className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                  <span className="truncate">Wyjmij</span>
-                </button>
+                  <button
+                    type="button"
+                    data-testid="btn-sweep-floor"
+                    disabled={floorBallTasks.length === 0}
+                    onClick={handleSweepFloor}
+                    title="Zbierz kulki z podłogi do kosza"
+                    className="trash-drawer-btn trash-drawer-btn--amber w-full"
+                  >
+                    {/* Broom SVG icon */}
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="h-3.5 w-3.5 shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M19 3 9.5 12.5" />
+                      <path d="M7.5 10.5 13.5 16.5" />
+                      <path d="M6 12c-2 2-3 5.5-3 8.5 3 0 6.5-1 8.5-3l2-2-6-6-1.5 2.5Z" />
+                      <path d="M5.5 16.5 7 18" />
+                    </svg>
+                    <span className="truncate">Zbierz ({floorBallTasks.length})</span>
+                  </button>
+                </div>
 
                 <button
                   type="button"
@@ -466,10 +480,10 @@ export function TrashDrawer() {
                   disabled={inTrashTasks.length === 0}
                   onClick={handleOpenEmptySummary}
                   title="Opróżnij kosz i zarchiwizuj"
-                  className="trash-drawer-btn trash-drawer-btn--danger"
+                  className="trash-drawer-btn trash-drawer-btn--danger shrink-0 px-3"
                 >
                   <Archive className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                  <span className="truncate">Opróżnij</span>
+                  <span>Opróżnij</span>
                 </button>
               </div>
             </div>

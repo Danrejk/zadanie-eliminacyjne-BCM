@@ -37,6 +37,7 @@ export interface TaskContextValue {
   trashHitboxRef: React.MutableRefObject<HTMLElement | null>;
   trashHoopRef: React.MutableRefObject<HTMLElement | null>;
   trashBodyRef: React.MutableRefObject<HTMLElement | null>;
+  trashDrawerBoxRef: React.MutableRefObject<HTMLElement | null>;
   noteDrag: NoteDragState | null;
   setNoteDrag: React.Dispatch<React.SetStateAction<NoteDragState | null>>;
 }
@@ -72,6 +73,7 @@ export function TaskProvider({ children, initialSeed }: TaskProviderProps) {
   const trashHitboxRef = useRef<HTMLElement | null>(null);
   const trashHoopRef = useRef<HTMLElement | null>(null);
   const trashBodyRef = useRef<HTMLElement | null>(null);
+  const trashDrawerBoxRef = useRef<HTMLElement | null>(null);
   const [noteDrag, setNoteDrag] = useState<NoteDragState | null>(null);
 
   // Three isolated persistence effects — NEVER persist ephemeral UI or floorBalls state
@@ -121,6 +123,7 @@ export function TaskProvider({ children, initialSeed }: TaskProviderProps) {
       trashHitboxRef,
       trashHoopRef,
       trashBodyRef,
+      trashDrawerBoxRef,
       noteDrag,
       setNoteDrag,
     }),
