@@ -106,7 +106,7 @@ export function EmptySummaryModal() {
       aria-labelledby="empty-summary-title"
       onClick={handleBackdropClick}
       style={{ zIndex: 'var(--z-modal)' }}
-      className="fixed inset-0 flex items-center justify-center bg-black/65 p-4 backdrop-blur-xs"
+      className="fixed inset-0 flex items-center justify-center bg-black/65 p-4"
     >
       <div
         className="w-full max-w-md overflow-hidden rounded-2xl border-2 border-amber-900/40 bg-[#fdf8ee] text-[#2b231d] shadow-2xl"
