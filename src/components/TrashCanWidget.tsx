@@ -62,6 +62,9 @@ export function TrashCanWidget() {
     <div
       data-testid="trash-can-widget"
       data-enlarged={isEnlarged ? 'true' : 'false'}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
       style={{
         position: 'fixed',
         right: '16px',
@@ -85,9 +88,6 @@ export function TrashCanWidget() {
             handleOpenTrash();
           }
         }}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
         animate={{
           scale: isEnlarged ? 1.45 : 1,
         }}

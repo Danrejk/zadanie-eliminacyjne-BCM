@@ -107,8 +107,17 @@ export function ContextMenu() {
       return;
     }
 
+    const openedAt = performance.now();
+
     const closeMenu = () => {
       dispatch({ type: 'CLOSE_CONTEXT_MENU' });
+    };
+
+    const handleScroll = (e: Event) => {
+      if (e.isTrusted && performance.now() - openedAt < 120) {
+        return;
+      }
+      closeMenu();
     };
 
     const handleOutsidePointerOrMouse = (e: Event) => {
@@ -128,7 +137,7 @@ export function ContextMenu() {
     document.addEventListener('mousedown', handleOutsidePointerOrMouse);
     document.addEventListener('pointerdown', handleOutsidePointerOrMouse);
     window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('scroll', closeMenu, true);
+    window.addEventListener('scroll', handleScroll, true);
     window.addEventListener('resize', closeMenu);
     window.addEventListener('blur', closeMenu);
 
@@ -136,7 +145,7 @@ export function ContextMenu() {
       document.removeEventListener('mousedown', handleOutsidePointerOrMouse);
       document.removeEventListener('pointerdown', handleOutsidePointerOrMouse);
       window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('scroll', closeMenu, true);
+      window.removeEventListener('scroll', handleScroll, true);
       window.removeEventListener('resize', closeMenu);
       window.removeEventListener('blur', closeMenu);
     };

@@ -78,7 +78,7 @@ export function Toast() {
       data-toast-type={toast.type}
       role={toast.type === 'error' ? 'alert' : 'status'}
       aria-live={toast.type === 'error' ? 'assertive' : 'polite'}
-      className="fixed bottom-5 left-5 z-70 w-full max-w-md rounded-xl border-2 p-4 shadow-2xl transition-all"
+      className="fixed top-20 right-5 z-70 w-full max-w-md rounded-xl border-2 p-4 shadow-2xl transition-all"
       style={{
         zIndex: 'var(--z-toast)',
         backgroundColor: styleConfig.bg,
