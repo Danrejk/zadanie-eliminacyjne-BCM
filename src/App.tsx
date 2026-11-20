@@ -15,7 +15,7 @@ export default function App() {
     <TaskProvider>
       <div className="min-h-screen flex flex-col">
         <TopBar />
-        <main className="flex-1 px-3 py-4 pb-28 sm:px-6">
+        <main className="flex-1 px-3 py-4 sm:px-6">
           <Corkboard />
         </main>
         <TrashCanWidget />

@@ -34,12 +34,6 @@ const PRIORITY_DOT_COLORS: Record<Priority, string> = {
   niski: '#34d399',
 };
 
-const PRIORITY_SUBLABELS: Record<Priority, string> = {
-  wysoki: 'Pilne / ważne',
-  sredni: 'Standardowe',
-  niski: 'Na spokojnie',
-};
-
 const TASK_ID_RE = /^\d+$/;
 
 function parseTaskIdFromDataTransfer(
@@ -424,7 +418,7 @@ export function Corkboard({ todayStr }: CorkboardProps) {
     <section
       data-testid="corkboard"
       aria-label="Tablica korkowa zadań 3x5"
-      className="w-full max-w-[1640px] mx-auto px-3 sm:px-6 pt-3 pb-28"
+      className="w-full max-w-[1640px] mx-auto px-3 sm:px-6 pt-3"
     >
       <div className="corkboard-wood-frame">
         <div className="corkboard-surface">
@@ -467,9 +461,6 @@ export function Corkboard({ todayStr }: CorkboardProps) {
               style={{ borderColor: 'var(--color-string-divider)' }}
             >
               <div className="p-3 flex items-center justify-center border-r-2 border-dashed" style={{ borderColor: 'var(--color-string-divider)' }}>
-                <span className="text-xs font-bold uppercase tracking-wider text-stone-900/75 bg-amber-100/70 px-2.5 py-1 rounded border border-amber-900/20">
-                  Priorytet \ Czas
-                </span>
               </div>
 
               {TIME_ZONES.map((zone) => {
@@ -519,9 +510,6 @@ export function Corkboard({ todayStr }: CorkboardProps) {
                     />
                     <span>{PRIORITY_LABELS[priority]}</span>
                   </div>
-                  <span className="text-[11px] font-semibold text-stone-950/75 text-center leading-tight">
-                    {PRIORITY_SUBLABELS[priority]}
-                  </span>
                 </div>
 
                 {/* 5 Time-Zone Drop Cells for this Priority Row */}

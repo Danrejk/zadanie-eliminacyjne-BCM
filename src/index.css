@@ -108,7 +108,7 @@
 
 /* 2. Cork Surface (Ready for static tile texture via --cork-texture-image) */
 .corkboard-surface {
-  --cork-texture-image: none;
+  --cork-texture-image: url('/assets/cork-texture.jpg');
   position: relative;
   border-radius: 10px;
   background-color: var(--color-cork-base);
@@ -394,7 +394,7 @@
 /* 6. Prominent Rotated Red Rubber Stamp "PO TERMINIE" */
 .postit-overdue-stamp {
   position: absolute;
-  bottom: 10px;
+  bottom: 38px;
   right: 8px;
   z-index: 4;
   padding: 2px 6px;
