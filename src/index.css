@@ -588,19 +588,85 @@
 }
 
 .trash-drawer-panel {
-  background: linear-gradient(180deg, rgba(42, 28, 19, 0.96) 0%, rgba(28, 18, 12, 0.98) 100%);
-  border-left: 3px solid var(--color-wood-dark);
-  box-shadow:
-    -14px 0 36px rgba(0, 0, 0, 0.6),
-    inset 1px 0 0 rgba(255, 224, 178, 0.14);
+  background: transparent;
 }
 
-.trash-drawer-control-bar {
-  background: linear-gradient(180deg, #5b391e 0%, #462a14 100%);
-  border-bottom: 2px solid var(--color-wood-dark);
+.trash-drawer-box {
+  box-shadow: -12px -4px 28px rgba(0, 0, 0, 0.48);
+}
+
+.trash-drawer-front {
+  position: relative;
+  margin-top: -8px;
+  height: calc(100% + 8px);
+  background: linear-gradient(
+    90deg,
+    var(--color-wood-highlight) 0%,
+    var(--color-wood-frame) 48%,
+    var(--color-wood-dark) 100%
+  );
+  border-top: 2px solid rgba(255, 224, 178, 0.28);
+  border-left: 2px solid rgba(255, 224, 178, 0.22);
+  border-right: 2px solid #231409;
+  border-bottom: 2px solid #231409;
+  border-top-left-radius: 5px;
+  border-bottom-left-radius: 5px;
   box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 224, 178, 0.2);
+    -6px 4px 14px rgba(0, 0, 0, 0.5),
+    inset 1px 0 1px rgba(255, 235, 205, 0.25);
+  transition: filter 140ms ease;
+}
+
+.trash-drawer-front:hover {
+  filter: brightness(1.08);
+}
+
+.trash-drawer-handle {
+  position: absolute;
+  left: -17px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 140ms ease;
+}
+
+.trash-drawer-front:hover .trash-drawer-handle {
+  transform: translateY(-50%) translateX(1px);
+}
+
+.trash-drawer-side {
+  background-color: #543318;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 224, 178, 0.04) 0px,
+      rgba(255, 224, 178, 0.04) 2px,
+      transparent 2px,
+      transparent 9px
+    ),
+    linear-gradient(180deg, #6d4624 0%, #563419 48%, #40240f 100%);
+  border-top: 3px solid var(--color-wood-dark);
+  border-bottom: 2px solid #231409;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 228, 188, 0.22),
+    inset 0 -8px 18px rgba(0, 0, 0, 0.35),
+    inset 6px 0 14px rgba(0, 0, 0, 0.28);
+}
+
+.trash-drawer-label {
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #fdf3dc 0%, #e7cfa0 100%);
+  border: 1.5px solid #8c5a2b;
+  color: #3a210c;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  box-shadow:
+    0 2px 5px rgba(0, 0, 0, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65);
 }
 
 .trash-drawer-btn {
@@ -608,19 +674,21 @@
   align-items: center;
   justify-content: center;
   gap: 5px;
-  padding: 6px 8px;
-  border-radius: 7px;
+  padding: 7px 8px;
+  border-radius: 6px;
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
   transition: background-color 140ms ease, transform 120ms ease, opacity 140ms ease;
-  border: 1px solid rgba(255, 235, 200, 0.22);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.28);
+  border: 1.5px solid rgba(58, 33, 12, 0.55);
+  box-shadow:
+    0 2px 5px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
 .trash-drawer-btn:disabled {
   cursor: not-allowed;
-  opacity: 0.42;
+  opacity: 0.45;
 }
 
 .trash-drawer-btn:not(:disabled):active {
@@ -628,43 +696,29 @@
 }
 
 .trash-drawer-btn--amber {
-  background-color: #fde68a;
+  background: linear-gradient(180deg, #fde68a 0%, #f59e0b 100%);
   color: #451a03;
 }
 
 .trash-drawer-btn--amber:not(:disabled):hover {
-  background-color: #fcd34d;
+  background: linear-gradient(180deg, #fef08a 0%, #fbbf24 100%);
 }
 
 .trash-drawer-btn--wood {
-  background-color: #fdf8ee;
+  background: linear-gradient(180deg, #fdf8ee 0%, #ead8b8 100%);
   color: #2b231d;
 }
 
 .trash-drawer-btn--wood:not(:disabled):hover {
-  background-color: #fef3c7;
+  background: linear-gradient(180deg, #fffdf8 0%, #f5e6c8 100%);
 }
 
 .trash-drawer-btn--danger {
-  background-color: #b91c1c;
+  background: linear-gradient(180deg, #dc2626 0%, #991b1b 100%);
   color: #fff5f5;
 }
 
 .trash-drawer-btn--danger:not(:disabled):hover {
-  background-color: #991b1b;
-}
-
-.trash-drawer-physical-base {
-  background: repeating-linear-gradient(
-    90deg,
-    var(--color-wood-frame) 0px,
-    var(--color-wood-highlight) 32px,
-    var(--color-wood-dark) 64px,
-    var(--color-wood-frame) 96px
-  );
-  border-top: 3px solid var(--color-wood-dark);
-  box-shadow:
-    0 -6px 16px rgba(0, 0, 0, 0.45),
-    inset 0 2px 2px rgba(255, 235, 205, 0.24);
+  background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%);
 }
 

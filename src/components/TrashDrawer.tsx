@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Archive, ChevronsRight, PackageOpen, Sparkles, Trash2 } from 'lucide-react';
+import { Archive, ChevronRight, PackageOpen, Sparkles, Trash2 } from 'lucide-react';
 import type { Task } from '../types/task';
 import { useTasks } from '../context/TaskContext';
 import { PRIORITY_LABELS, formatDisplayDate } from '../utils/dateBuckets';
@@ -68,7 +68,6 @@ export function TrashDrawer() {
     floorBallTasks,
     trashHoopRef,
     trashBodyRef,
-    noteDrag,
   } = useTasks();
 
   const [hoveredTooltip, setHoveredTooltip] = useState<HoveredTooltipState | null>(null);
@@ -169,11 +168,6 @@ export function TrashDrawer() {
     });
   };
 
-  const isTargetHighlighted =
-    state.draggingFloorBallId !== null ||
-    state.ballInFlight ||
-    Boolean(noteDrag?.isOverTrash && isOpen);
-
   return (
     <AnimatePresence>
       {isOpen && (
@@ -199,77 +193,16 @@ export function TrashDrawer() {
             maxWidth: '92vw',
             zIndex: 'var(--z-trash)',
           }}
-          className="trash-drawer-panel flex flex-col justify-between select-none"
+          className="trash-drawer-panel flex flex-col justify-end select-none"
         >
-          {/* Top Desk-Styled Control Shelf (above basket, preserving throwing headroom) */}
-          <div className="trash-drawer-control-bar px-3 py-2">
-            <div className="mb-1.5 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Trash2 className="h-4 w-4 text-amber-200" aria-hidden="true" />
-                <h2 className="text-sm font-bold tracking-wide text-amber-50">
-                  Kosz ({inTrashTasks.length})
-                </h2>
-              </div>
-              <span className="text-[11px] font-medium text-amber-200/80">
-                Celuj w obręcz!
-              </span>
-            </div>
-
-            <div className="grid grid-cols-3 gap-1.5">
-              <button
-                type="button"
-                data-testid="btn-sweep-floor"
-                disabled={floorBallTasks.length === 0}
-                onClick={handleSweepFloor}
-                title="Zbierz kulki z podłogi do kosza"
-                className="trash-drawer-btn trash-drawer-btn--amber"
-              >
-                <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                <span className="truncate">Zbierz ({floorBallTasks.length})</span>
-              </button>
-
-              <button
-                type="button"
-                data-testid="btn-take-all-out"
-                disabled={inTrashTasks.length === 0}
-                onClick={handleTakeAllOut}
-                title="Wyjmij wszystkie kulki na podłogę"
-                className="trash-drawer-btn trash-drawer-btn--wood"
-              >
-                <PackageOpen className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                <span className="truncate">Wyjmij</span>
-              </button>
-
-              <button
-                type="button"
-                data-testid="btn-empty-trash"
-                disabled={inTrashTasks.length === 0}
-                onClick={handleOpenEmptySummary}
-                title="Opróżnij kosz i zarchiwizuj"
-                className="trash-drawer-btn trash-drawer-btn--danger"
-              >
-                <Archive className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                <span className="truncate">Opróżnij</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Middle: Throwing Headroom + Large Wire-Mesh Basket filling the drawer */}
-          <div className="relative flex flex-1 flex-col items-center justify-end px-2 pt-2 pb-1">
-            {/* Throwing headroom hint */}
-            <div className="pointer-events-none pt-1 pb-2 text-center text-[11px] font-medium text-amber-100/45">
-              {inTrashTasks.length === 0
-                ? 'Wrzuć kulkę od góry przez obręcz'
-                : 'Kliknij kulkę w koszu, aby przywrócić lub usunąć'}
-            </div>
-
-            {/* Large Basket Assembly filling the drawer */}
+          {/* Throwing Headroom + Wire-Mesh Basket sitting inside the drawer */}
+          <div className="relative flex flex-1 flex-col items-center justify-end px-3 pt-4">
             <motion.div
               key={state.trashBounceCount}
               initial={state.trashBounceCount > 0 ? { scale: 1.03, y: 4 } : false}
               animate={{ scale: 1, y: 0 }}
               transition={{ type: 'spring', stiffness: 420, damping: 18 }}
-              className="relative flex w-full max-w-[318px] flex-1 max-h-[380px] min-h-[250px] flex-col items-center justify-end"
+              className="relative flex w-full max-w-[306px] flex-1 max-h-[380px] min-h-[250px] flex-col items-center justify-end"
             >
               {/* Invisible Top Hoop Opening Sensor aligned with SVG rim */}
               <div
@@ -281,16 +214,16 @@ export function TrashDrawer() {
                 className="pointer-events-none relative z-20 -mb-5 h-11 w-[280px]"
               />
 
-              {/* Solid Basket Body (left/right/bottom walls bounce balls away) */}
+              {/* Solid Basket Body tucked into the drawer at the bottom */}
               <div
                 ref={(el) => {
                   trashBodyRef.current = el;
                 }}
                 data-testid="trash-body"
-                className="relative h-full w-full"
+                className="relative -mb-[34px] h-full w-full"
               >
                 {/* Honeycomb-packed Crumpled Balls resting inside (no horizontal scroll) */}
-                <div className="absolute inset-x-6 top-5 bottom-3 z-20 overflow-y-auto overflow-x-hidden">
+                <div className="absolute inset-x-6 top-5 bottom-7 z-20 overflow-y-auto overflow-x-hidden">
                   <div
                     className="relative w-full"
                     style={{ height: `${totalHeight}px`, minHeight: '100%' }}
@@ -343,7 +276,7 @@ export function TrashDrawer() {
                   </div>
                 </div>
 
-                {/* Large Wire-Mesh Basket SVG */}
+                {/* Large Wire-Mesh Basket SVG (neutral metallic wire, never yellow) */}
                 <svg
                   viewBox="0 0 300 320"
                   preserveAspectRatio="none"
@@ -359,14 +292,14 @@ export function TrashDrawer() {
                     rx="132"
                     ry="10"
                     fill="rgba(28, 22, 18, 0.55)"
-                    stroke={isTargetHighlighted ? '#fbbf24' : '#78716c'}
+                    stroke="#78716c"
                     strokeWidth="3"
                   />
                   {/* Basket body translucent mesh */}
                   <path
                     d="M18 16 L40 302 C43 312 257 312 260 302 L282 16 Z"
                     fill="rgba(36, 30, 26, 0.54)"
-                    stroke={isTargetHighlighted ? '#fbbf24' : '#a8a29e'}
+                    stroke="#a8a29e"
                     strokeWidth="3.5"
                     strokeLinejoin="round"
                   />
@@ -384,7 +317,7 @@ export function TrashDrawer() {
                   {/* Front rim */}
                   <path
                     d="M16 14 C16 26 284 26 284 14"
-                    stroke={isTargetHighlighted ? '#fde68a' : '#e7e5e4'}
+                    stroke="#e7e5e4"
                     strokeWidth="4.5"
                     strokeLinecap="round"
                   />
@@ -433,26 +366,113 @@ export function TrashDrawer() {
             </div>
           )}
 
-          {/* Bottom Physical Drawer ("fizyczna szuflada") with >> close button */}
-          <div className="trash-drawer-physical-base flex items-center justify-between px-4 py-3">
-            <div className="flex items-center gap-2">
-              <div className="h-2.5 w-14 rounded-full border border-amber-200/30 bg-gradient-to-b from-amber-300/70 to-amber-700/80 shadow-inner" />
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-amber-100/70">
-                Szuflada
-              </span>
-            </div>
-
+          {/* Side-View Physical Wooden Drawer (opaque side wall + left front + brass handle) */}
+          <div className="trash-drawer-box relative z-30 flex h-[138px] w-full items-stretch">
+            {/* Left Drawer Front + Brass Handle (clicking either closes the drawer) */}
             <button
               type="button"
               data-testid="btn-close-trash-drawer"
               onClick={handleClose}
               aria-label="Schowaj szufladę kosza"
               title="Schowaj szufladę"
-              className="inline-flex items-center gap-1 rounded-lg border border-amber-200/35 bg-amber-900/70 px-3 py-1.5 text-xs font-bold text-amber-50 shadow transition-colors hover:bg-amber-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+              className="trash-drawer-front group relative flex w-[30px] shrink-0 cursor-pointer flex-col items-center justify-center gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
             >
-              <span>Schowaj</span>
-              <ChevronsRight className="h-4 w-4" aria-hidden="true" />
+              {/* Brass Drawer Handle protruding to the left */}
+              <span className="trash-drawer-handle pointer-events-none" aria-hidden="true">
+                <svg
+                  viewBox="0 0 22 64"
+                  className="h-14 w-5 drop-shadow-[0_3px_4px_rgba(0,0,0,0.55)]"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  {/* Top & bottom mounting plates */}
+                  <rect x="16" y="6" width="6" height="10" rx="1.5" fill="#b45309" stroke="#fde68a" strokeOpacity="0.45" strokeWidth="1" />
+                  <rect x="16" y="48" width="6" height="10" rx="1.5" fill="#b45309" stroke="#fde68a" strokeOpacity="0.45" strokeWidth="1" />
+                  {/* Curved brass pull bar */}
+                  <path
+                    d="M17 11 H8 C4.5 11 3 13 3 16.5 V47.5 C3 51 4.5 53 8 53 H17"
+                    stroke="url(#brassPull)"
+                    strokeWidth="5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <defs>
+                    <linearGradient id="brassPull" x1="3" y1="11" x2="17" y2="53" gradientUnits="userSpaceOnUse">
+                      <stop offset="0%" stopColor="#fde68a" />
+                      <stop offset="45%" stopColor="#d97706" />
+                      <stop offset="100%" stopColor="#78350f" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+              </span>
+
+              {/* 3 vertically arranged '>' chevrons on the drawer front */}
+              <ChevronRight
+                className="h-4 w-4 text-amber-100/85 transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-amber-50"
+                strokeWidth={2.8}
+                aria-hidden="true"
+              />
+              <ChevronRight
+                className="h-4 w-4 text-amber-100/85 transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-amber-50"
+                strokeWidth={2.8}
+                aria-hidden="true"
+              />
+              <ChevronRight
+                className="h-4 w-4 text-amber-100/85 transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-amber-50"
+                strokeWidth={2.8}
+                aria-hidden="true"
+              />
             </button>
+
+            {/* Opaque Wooden Side Wall */}
+            <div className="trash-drawer-side flex flex-1 flex-col justify-between px-3.5 py-3">
+              {/* Brass/parchment label plate */}
+              <div className="flex items-center justify-between">
+                <div className="trash-drawer-label inline-flex items-center gap-1.5">
+                  <Trash2 className="h-3.5 w-3.5 text-amber-900" aria-hidden="true" />
+                  <span>Kosz · {inTrashTasks.length}</span>
+                </div>
+              </div>
+
+              {/* 3 action buttons styled as plaques on the side wall */}
+              <div className="grid grid-cols-3 gap-1.5">
+                <button
+                  type="button"
+                  data-testid="btn-sweep-floor"
+                  disabled={floorBallTasks.length === 0}
+                  onClick={handleSweepFloor}
+                  title="Zbierz kulki z podłogi do kosza"
+                  className="trash-drawer-btn trash-drawer-btn--amber"
+                >
+                  <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <span className="truncate">Zbierz ({floorBallTasks.length})</span>
+                </button>
+
+                <button
+                  type="button"
+                  data-testid="btn-take-all-out"
+                  disabled={inTrashTasks.length === 0}
+                  onClick={handleTakeAllOut}
+                  title="Wyjmij wszystkie kulki na podłogę"
+                  className="trash-drawer-btn trash-drawer-btn--wood"
+                >
+                  <PackageOpen className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <span className="truncate">Wyjmij</span>
+                </button>
+
+                <button
+                  type="button"
+                  data-testid="btn-empty-trash"
+                  disabled={inTrashTasks.length === 0}
+                  onClick={handleOpenEmptySummary}
+                  title="Opróżnij kosz i zarchiwizuj"
+                  className="trash-drawer-btn trash-drawer-btn--danger"
+                >
+                  <Archive className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <span className="truncate">Opróżnij</span>
+                </button>
+              </div>
+            </div>
           </div>
         </motion.aside>
       )}
