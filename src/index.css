@@ -427,7 +427,7 @@
 /* 6. Prominent Rotated Red Rubber Stamp "PO TERMINIE" */
 .postit-overdue-stamp {
   position: absolute;
-  top: 26px;
+  bottom: 10px;
   right: 8px;
   z-index: 4;
   padding: 2px 6px;
@@ -437,7 +437,7 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-stamp-red);
-  background-color: rgba(255, 245, 245, 0.72);
+  background-color: transparent;
   border: 2px solid var(--color-stamp-red);
   border-radius: 3px;
   transform: rotate(-11deg);
@@ -495,7 +495,9 @@
   border-radius: 9999px;
   border-width: 1px;
   border-style: solid;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  box-shadow:
+    0 3px 5px rgba(0, 0, 0, 0.38),
+    inset 0 1px 1.5px rgba(255, 255, 255, 0.65);
   transition: transform 140ms ease;
   pointer-events: none;
 }
@@ -511,7 +513,7 @@
   width: 4px;
   height: 4px;
   border-radius: 9999px;
-  background-color: rgba(255, 255, 255, 0.65);
+  background-color: rgba(255, 255, 255, 0.78);
   pointer-events: none;
 }
 
@@ -522,7 +524,7 @@
   width: 6px;
   height: 4px;
   border-radius: 9999px;
-  background-color: rgba(0, 0, 0, 0.28);
+  background-color: rgba(0, 0, 0, 0.35);
   transform: translateX(-50%);
   pointer-events: none;
 }
@@ -543,7 +545,7 @@
   width: 5px;
   height: 5px;
   border-radius: 9999px;
-  background-color: rgba(24, 15, 8, 0.55);
+  background-color: rgba(24, 15, 8, 0.65);
   pointer-events: none;
 }
 
@@ -553,7 +555,8 @@
   width: 3px;
   height: 11px;
   border-radius: 2px;
-  background-color: #94a3b8;
+  background: linear-gradient(90deg, #f8fafc 0%, #94a3b8 50%, #334155 100%);
+  box-shadow: 1px 2px 3px rgba(0, 0, 0, 0.42);
   transform: rotate(8deg);
   pointer-events: none;
 }
@@ -564,7 +567,7 @@
   width: 5px;
   height: 4px;
   border-radius: 9999px;
-  background-color: #cbd5e1;
+  background: radial-gradient(circle at 35% 35%, #ffffff 0%, #cbd5e1 55%, #475569 100%);
   border: 1px solid #334155;
   transform: translateX(0.5px);
   pointer-events: none;
