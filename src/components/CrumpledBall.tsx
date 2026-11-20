@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { Priority } from '../types/task';
 
 export interface CrumpledBallProps {
@@ -83,7 +84,7 @@ function getVariantIndex(taskId: number): number {
   return hash % SILHOUETTES.length;
 }
 
-export function CrumpledBall({
+export const CrumpledBall = memo(function CrumpledBall({
   priority,
   taskId,
   size = 48,
@@ -103,10 +104,10 @@ export function CrumpledBall({
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
       className={`select-none ${className}`}
-      style={{
-        filter: 'drop-shadow(0 3px 4px rgba(0, 0, 0, 0.35))',
-      }}
     >
+      {/* Lightweight baked SVG shadow (avoids per-ball WebRender drop-shadow blur) */}
+      <ellipse cx="24" cy="44" rx="14" ry="2.8" fill="rgba(0, 0, 0, 0.24)" />
+
       {/* Outer crumpled paper silhouette */}
       <path
         d={outerPath}
@@ -149,4 +150,4 @@ export function CrumpledBall({
       ))}
     </svg>
   );
-}
+});

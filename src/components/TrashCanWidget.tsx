@@ -2,61 +2,8 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import { useTasks } from '../context/TaskContext';
 import { playPinClickSound } from '../utils/sound';
+import { getSmallBasketTextures } from '../utils/basketTextures';
 import { CrumpledBall } from './CrumpledBall';
-
-const buildSmallBackSrc = (highlighted: boolean) =>
-  `data:image/svg+xml;utf8,${encodeURIComponent(`<svg viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="si" x1="44" y1="14" x2="44" y2="80" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#14110f" stop-opacity="0.9"/>
-      <stop offset="60%" stop-color="#26211e" stop-opacity="0.8"/>
-      <stop offset="100%" stop-color="#0f0c0b" stop-opacity="0.94"/>
-    </linearGradient>
-    <pattern id="smb" width="7.5" height="7.5" patternUnits="userSpaceOnUse">
-      <path d="M0 0 L7.5 7.5 M7.5 0 L0 7.5" stroke="#57534e" stroke-width="0.7" opacity="0.45"/>
-    </pattern>
-    <clipPath id="scb">
-      <path d="M15 19 C15 13 73 13 73 19 L65 76 C64 80 24 80 23 76 Z"/>
-    </clipPath>
-  </defs>
-  <g clip-path="url(#scb)">
-    <rect width="88" height="88" fill="url(#si)"/>
-    <rect width="88" height="88" fill="url(#smb)"/>
-  </g>
-  <path d="M14 19 C14 13 74 13 74 19" stroke="${highlighted ? '#fbbf24' : '#57534e'}" stroke-width="2.5" stroke-linecap="round"/>
-</svg>`)}`;
-
-const buildSmallFrontSrc = (highlighted: boolean) =>
-  `data:image/svg+xml;utf8,${encodeURIComponent(`<svg viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <pattern id="smf" width="7.5" height="7.5" patternUnits="userSpaceOnUse">
-      <path d="M0 0 L7.5 7.5 M7.5 0 L0 7.5" stroke="#d6d3d1" stroke-width="0.75" opacity="0.56"/>
-    </pattern>
-    <linearGradient id="scs" x1="15" y1="0" x2="73" y2="0" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#0c0a09" stop-opacity="0.42"/>
-      <stop offset="24%" stop-color="#ffffff" stop-opacity="0.12"/>
-      <stop offset="55%" stop-color="#78716c" stop-opacity="0.05"/>
-      <stop offset="100%" stop-color="#0c0a09" stop-opacity="0.42"/>
-    </linearGradient>
-    <clipPath id="scf">
-      <path d="M15 20 L23 76 C24 80 64 80 65 76 L73 20 C73 24 15 24 15 20 Z"/>
-    </clipPath>
-  </defs>
-  <g clip-path="url(#scf)">
-    <rect width="88" height="88" fill="url(#smf)"/>
-    <rect width="88" height="88" fill="url(#scs)"/>
-  </g>
-  <path d="M15 20 L23 76 C24 80 64 80 65 76 L73 20" stroke="${highlighted ? '#fbbf24' : '#a8a29e'}" stroke-width="1.5" stroke-linejoin="round"/>
-  <path d="M23 76 C24 80 64 80 65 76" stroke="#57534e" stroke-width="1.8" stroke-linecap="round"/>
-  <path d="M13.5 19 C13.5 24.5 74.5 24.5 74.5 19" stroke="#292524" stroke-width="3.2" stroke-linecap="round"/>
-  <path d="M13.5 19 C13.5 24.5 74.5 24.5 74.5 19" stroke="${highlighted ? '#fbbf24' : '#8b8580'}" stroke-width="2.2" stroke-linecap="round"/>
-  <path d="M14.5 18.7 C14.5 23.7 73.5 23.7 73.5 18.7" stroke="${highlighted ? '#fde68a' : '#e7e5e4'}" stroke-width="0.9" stroke-linecap="round"/>
-</svg>`)}`;
-
-const SMALL_BACK_NEUTRAL = buildSmallBackSrc(false);
-const SMALL_BACK_HIGHLIGHT = buildSmallBackSrc(true);
-const SMALL_FRONT_NEUTRAL = buildSmallFrontSrc(false);
-const SMALL_FRONT_HIGHLIGHT = buildSmallFrontSrc(true);
 
 export function TrashCanWidget() {
   const {
@@ -75,6 +22,7 @@ export function TrashCanWidget() {
     state.draggingFloorBallId !== null || state.ballInFlight || isDragOverNote;
 
   const previewBalls = inTrashTasks.slice(-8);
+  const { backSrc, frontSrc } = getSmallBasketTextures(isEnlarged || isHovered);
 
   const handleOpenTrash = () => {
     playPinClickSound(state.muted);
@@ -132,14 +80,20 @@ export function TrashCanWidget() {
           damping: 22,
         }}
         style={{ transformOrigin: 'bottom right' }}
-        className={`relative flex h-24 w-24 cursor-pointer items-end justify-center rounded-2xl p-1 transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 ${
-          isEnlarged
-            ? 'drop-shadow-[0_12px_22px_rgba(251,191,36,0.5)]'
-            : isHovered
-              ? 'drop-shadow-[0_10px_18px_rgba(251,191,36,0.38)]'
-              : 'drop-shadow-[0_8px_14px_rgba(0,0,0,0.45)]'
-        }`}
+        className="relative flex h-24 w-24 cursor-pointer items-end justify-center rounded-2xl p-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
       >
+        {/* Lightweight static shadow/glow behind basket (avoids CSS filter: drop-shadow during animation) */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-3 bottom-1 h-4 rounded-full transition-colors duration-150"
+          style={{
+            background:
+              isEnlarged || isHovered
+                ? 'radial-gradient(ellipse at center, rgba(251,191,36,0.45) 0%, rgba(0,0,0,0) 72%)'
+                : 'radial-gradient(ellipse at center, rgba(0,0,0,0.42) 0%, rgba(0,0,0,0) 72%)',
+          }}
+        />
+
         <motion.div
           key={state.trashBounceCount}
           initial={state.trashBounceCount > 0 ? { scale: 1.16, y: 4 } : false}
@@ -147,9 +101,9 @@ export function TrashCanWidget() {
           transition={{ type: 'spring', stiffness: 420, damping: 16 }}
           className="relative flex h-full w-full items-center justify-center"
         >
-          {/* Layer 1 (Back): Pre-baked dark recessed interior, back oval rim, and back diamond mesh */}
+          {/* Layer 1 (Back): Pre-baked 2x PNG recessed interior, back oval rim, and back diamond mesh */}
           <img
-            src={isEnlarged || isHovered ? SMALL_BACK_HIGHLIGHT : SMALL_BACK_NEUTRAL}
+            src={backSrc}
             alt=""
             aria-hidden="true"
             draggable={false}
@@ -179,9 +133,9 @@ export function TrashCanWidget() {
             ))}
           </div>
 
-          {/* Layer 3 (Front): Pre-baked front diamond wire mesh, cylindrical sheen & rolled rim */}
+          {/* Layer 3 (Front): Pre-baked 2x PNG front diamond wire mesh, cylindrical sheen & rolled rim */}
           <img
-            src={isEnlarged || isHovered ? SMALL_FRONT_HIGHLIGHT : SMALL_FRONT_NEUTRAL}
+            src={frontSrc}
             alt=""
             aria-hidden="true"
             draggable={false}
