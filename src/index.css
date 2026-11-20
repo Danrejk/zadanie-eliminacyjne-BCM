@@ -67,60 +67,27 @@
 
 /* === M2: Corkboard texture, wood frame, Post-it cards & overdue stamp styles appended below === */
 
-/* 1. Beveled Wooden Corkboard Frame */
+/* 1. Wooden Corkboard Frame */
 .corkboard-wood-frame {
   position: relative;
   z-index: var(--z-corkboard);
-  border-radius: 18px;
-  padding: 16px;
+  border-radius: 16px;
+  padding: 14px;
   background-color: var(--color-wood-frame);
-  background-image:
-    linear-gradient(
-      145deg,
-      rgba(255, 255, 255, 0.14) 0%,
-      rgba(255, 255, 255, 0) 35%,
-      rgba(0, 0, 0, 0.24) 100%
-    ),
-    repeating-linear-gradient(
-      90deg,
-      var(--color-wood-frame) 0px,
-      var(--color-wood-highlight) 28px,
-      var(--color-wood-dark) 56px,
-      var(--color-wood-frame) 84px
-    );
   border: 3px solid var(--color-wood-dark);
-  box-shadow:
-    0 22px 48px rgba(0, 0, 0, 0.6),
-    0 6px 16px rgba(0, 0, 0, 0.45),
-    inset 0 2px 3px rgba(255, 235, 205, 0.28),
-    inset 0 -3px 6px rgba(24, 12, 4, 0.65);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
 }
 
-/* Corner brass joints on wooden frame */
-.corkboard-wood-frame::before {
-  content: "";
-  position: absolute;
-  inset: 6px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 224, 178, 0.16);
-  pointer-events: none;
-}
-
-/* 2. Layered Tactile Cork Surface (Ready for static tile texture via --cork-texture-image) */
+/* 2. Cork Surface (Ready for static tile texture via --cork-texture-image) */
 .corkboard-surface {
   --cork-texture-image: none;
   position: relative;
   border-radius: 10px;
   background-color: var(--color-cork-base);
-  background-image:
-    var(--cork-texture-image),
-    linear-gradient(135deg, var(--color-cork-light) 0%, var(--color-cork-base) 52%, var(--color-cork-dark) 100%);
-  background-size: 256px 256px, 100% 100%;
-  background-repeat: repeat, no-repeat;
+  background-image: var(--cork-texture-image);
+  background-size: 256px 256px;
+  background-repeat: repeat;
   border: 2px solid var(--color-wood-dark);
-  box-shadow:
-    inset 0 5px 16px rgba(36, 20, 8, 0.58),
-    inset 0 0 38px rgba(56, 32, 14, 0.36);
   overflow-x: auto;
 }
 
@@ -254,39 +221,13 @@
   font-family: var(--font-note);
   color: var(--color-ink);
   background-color: var(--note-bg);
-  background-image: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.24) 0%,
-    rgba(255, 255, 255, 0) 45%,
-    rgba(0, 0, 0, 0.04) 100%
-  );
   border: 1px solid var(--note-border);
-  border-radius: 3px 3px 14px 3px;
-  box-shadow:
-    0 5px 10px rgba(28, 17, 9, 0.28),
-    0 1px 3px rgba(28, 17, 9, 0.2);
+  border-radius: 6px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
   transform: rotate(var(--note-rotation, 0deg));
-  will-change: transform;
-  transition:
-    transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 180ms ease;
+  transition: transform 140ms ease, opacity 140ms ease;
   cursor: grab;
   user-select: none;
-}
-
-/* Pre-rasterized elevated hover shadow composited via opacity only (zero box-shadow repaint) */
-.postit-card::after {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  box-shadow:
-    0 14px 24px rgba(24, 14, 7, 0.38),
-    0 4px 8px rgba(24, 14, 7, 0.24);
-  opacity: 0;
-  transition: opacity 180ms ease;
-  pointer-events: none;
-  z-index: -1;
 }
 
 .postit-card:active {
@@ -356,13 +297,9 @@
   --note-border: var(--color-note-low-border);
 }
 
-/* Hover Lift Effect (composited transform + ::after opacity) */
+/* Hover Lift Effect */
 .postit-card:hover {
-  transform: translateY(-4px) rotate(0deg) scale(1.025);
-}
-
-.postit-card:hover::after {
-  opacity: 1;
+  transform: translateY(-3px) rotate(0deg);
 }
 
 /* Dragging Source Feedback */
@@ -373,32 +310,16 @@
 
 /* Highlight Mode Dimmed State */
 .postit-card[data-dimmed="true"] {
-  opacity: 0.25;
-  filter: saturate(0.45) contrast(0.92);
+  opacity: 0.3;
 }
 
 .postit-card[data-dimmed="true"]:hover {
-  opacity: 0.55;
-  filter: saturate(0.75);
+  opacity: 0.6;
 }
 
-/* Folded Bottom-Right Corner Curl */
+/* Subtle bottom-right fold indicator (hidden once custom images are applied) */
 .postit-corner-fold {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  width: 18px;
-  height: 18px;
-  background: linear-gradient(
-    135deg,
-    var(--note-fold) 0%,
-    var(--note-fold) 50%,
-    rgba(46, 32, 24, 0.18) 52%,
-    transparent 56%
-  );
-  border-top-left-radius: 3px;
-  box-shadow: -1px -1px 2px rgba(0, 0, 0, 0.12);
-  pointer-events: none;
+  display: none;
 }
 
 /* Post-it Typography & Body */
@@ -469,7 +390,6 @@
   line-height: 1.3;
   border-radius: 9999px;
   border: 1px solid transparent;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -489,12 +409,9 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-stamp-red);
-  background-color: rgba(255, 245, 245, 0.52);
+  background-color: rgba(255, 245, 245, 0.72);
   border: 2px solid var(--color-stamp-red);
   border-radius: 3px;
-  box-shadow:
-    inset 0 0 0 1px rgba(198, 40, 40, 0.35),
-    0 1px 2px rgba(0, 0, 0, 0.12);
   transform: rotate(-11deg);
   pointer-events: none;
   user-select: none;
@@ -550,9 +467,7 @@
   border-radius: 9999px;
   border-width: 1px;
   border-style: solid;
-  box-shadow:
-    0 3px 5px rgba(0, 0, 0, 0.38),
-    inset 0 1px 1.5px rgba(255, 255, 255, 0.65);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
   transition: transform 140ms ease;
   pointer-events: none;
 }
@@ -568,7 +483,7 @@
   width: 4px;
   height: 4px;
   border-radius: 9999px;
-  background-color: rgba(255, 255, 255, 0.78);
+  background-color: rgba(255, 255, 255, 0.65);
   pointer-events: none;
 }
 
@@ -579,7 +494,7 @@
   width: 6px;
   height: 4px;
   border-radius: 9999px;
-  background-color: rgba(0, 0, 0, 0.35);
+  background-color: rgba(0, 0, 0, 0.28);
   transform: translateX(-50%);
   pointer-events: none;
 }
@@ -600,7 +515,7 @@
   width: 5px;
   height: 5px;
   border-radius: 9999px;
-  background-color: rgba(24, 15, 8, 0.65);
+  background-color: rgba(24, 15, 8, 0.55);
   pointer-events: none;
 }
 
@@ -610,8 +525,7 @@
   width: 3px;
   height: 11px;
   border-radius: 2px;
-  background: linear-gradient(90deg, #f8fafc 0%, #94a3b8 50%, #334155 100%);
-  box-shadow: 1px 2px 3px rgba(0, 0, 0, 0.42);
+  background-color: #94a3b8;
   transform: rotate(8deg);
   pointer-events: none;
 }
@@ -622,7 +536,7 @@
   width: 5px;
   height: 4px;
   border-radius: 9999px;
-  background: radial-gradient(circle at 35% 35%, #ffffff 0%, #cbd5e1 55%, #475569 100%);
+  background-color: #cbd5e1;
   border: 1px solid #334155;
   transform: translateX(0.5px);
   pointer-events: none;

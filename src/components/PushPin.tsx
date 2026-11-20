@@ -85,7 +85,7 @@ function PushPinComponent({ taskId, tags }: PushPinProps) {
               <span
                 className="pushpin-sphere"
                 style={{
-                  background: `radial-gradient(circle at 32% 30%, ${color.light} 0%, ${color.bg} 55%, ${color.dark} 100%)`,
+                  backgroundColor: color.bg,
                   borderColor: color.dark,
                 }}
                 aria-hidden="true"
