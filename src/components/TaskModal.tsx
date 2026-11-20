@@ -1,9 +1,7 @@
 import {
   useState,
-  useEffect,
   type FormEvent,
   type KeyboardEvent,
-  type MouseEvent,
 } from 'react';
 import {
   X,
@@ -32,6 +30,7 @@ import {
 } from '../utils/dateBuckets';
 import { getTagColor, normalizeTag } from '../utils/tagColors';
 import { playPinClickSound } from '../utils/sound';
+import { NotebookModal } from './NotebookModal';
 
 interface InitialDeadlineState {
   noDeadline: boolean;
@@ -264,55 +263,58 @@ function TaskModalForm({
   const currentPriorityVars = PRIORITY_STYLE_VARS[priority];
 
   return (
-    <div
-      className="relative w-full max-w-lg rounded-xl border-2 shadow-2xl overflow-hidden"
-      style={{
-        backgroundColor: '#fdf8ee',
-        borderColor: 'var(--color-wood-highlight)',
-        color: 'var(--color-ink)',
-      }}
-    >
-      {/* Top Priority Accent Strip */}
-      <div
-        className="h-2.5 w-full transition-colors"
-        style={{
-          backgroundColor: currentPriorityVars.fold,
-          borderBottom: `1px solid ${currentPriorityVars.border}`,
-        }}
-      />
-
-      {/* Modal Header */}
-      <div
-        className="flex items-center justify-between border-b px-5 py-3.5"
-        style={{
-          borderBottomColor: 'rgba(166, 124, 82, 0.35)',
-          backgroundColor: 'rgba(215, 177, 130, 0.18)',
-        }}
-      >
-        <div className="flex items-center gap-2">
-          <Pin
-            className="h-5 w-5 text-red-600 -rotate-12 shrink-0"
-            aria-hidden="true"
-          />
-          <h2
-            id="task-modal-heading"
-            className="text-lg font-bold tracking-tight"
+    <NotebookModal
+      isOpen
+      onClose={onClose}
+      testId="task-modal"
+      labelledBy="task-modal-heading"
+      maxWidthClass="max-w-lg"
+      icon={
+        <Pin
+          className="h-5 w-5 text-red-600 -rotate-12 shrink-0"
+          aria-hidden="true"
+        />
+      }
+      title={mode === 'create' ? 'Nowe zadanie' : 'Edytuj zadanie'}
+      closeAriaLabel="Zamknij okno zadania"
+      topAccent={
+        <div
+          className="h-2.5 w-full transition-colors"
+          style={{
+            backgroundColor: currentPriorityVars.fold,
+            borderBottom: `1px solid ${currentPriorityVars.border}`,
+          }}
+        />
+      }
+      onSubmit={handleSubmit}
+      footer={
+        <>
+          <button
+            type="button"
+            data-testid="task-btn-cancel"
+            onClick={onClose}
+            className="notebook-surface rounded-lg border px-4 py-2 text-sm font-semibold transition-colors hover:bg-amber-900/10 cursor-pointer"
+            style={{
+              color: 'var(--color-ink)',
+            }}
           >
-            {mode === 'create' ? 'Nowe zadanie' : 'Edytuj zadanie'}
-          </h2>
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Zamknij okno zadania"
-          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-amber-900/70 hover:bg-amber-900/10 hover:text-amber-950 transition-colors cursor-pointer"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-
-      {/* Modal Form */}
-      <form noValidate onSubmit={handleSubmit} className="p-5 space-y-4">
+            Anuluj
+          </button>
+          <button
+            type="submit"
+            data-testid="task-btn-save"
+            className="rounded-lg border px-5 py-2 text-sm font-bold text-amber-50 shadow-sm transition-all hover:brightness-110 active:scale-95 cursor-pointer"
+            style={{
+              backgroundColor: 'var(--color-wood-frame)',
+              borderColor: 'var(--color-wood-dark)',
+            }}
+          >
+            {mode === 'create' ? 'Dodaj zadanie' : 'Zapisz zmiany'}
+          </button>
+        </>
+      }
+    >
+      <div className="space-y-4">
         {/* Title Field */}
         <div>
           <label
@@ -336,12 +338,11 @@ function TaskModalForm({
             placeholder="Np. Oddać sprawozdanie z laboratorium fizyki"
             autoFocus
             aria-invalid={titleError !== null}
-            className="w-full rounded-lg border px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-600/50"
+            className="notebook-surface w-full rounded-lg border px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-600/50"
             style={{
-              backgroundColor: '#ffffff',
               borderColor: titleError
                 ? 'var(--color-stamp-red)'
-                : 'var(--color-cork-dark)',
+                : undefined,
               color: 'var(--color-ink)',
             }}
           />
@@ -374,10 +375,8 @@ function TaskModalForm({
             value={desc}
             onChange={(e) => setDesc(e.target.value)}
             placeholder="Dodatkowe szczegóły, notatki, linki lub sala..."
-            className="w-full rounded-lg border px-3 py-2 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-amber-600/50"
+            className="notebook-surface w-full rounded-lg border px-3 py-2 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-amber-600/50"
             style={{
-              backgroundColor: '#ffffff',
-              borderColor: 'var(--color-cork-dark)',
               color: 'var(--color-ink)',
             }}
           />
@@ -407,24 +406,24 @@ function TaskModalForm({
                 }
               }}
               aria-invalid={dateError !== null}
-              className="flex-1 min-w-[170px] rounded-lg border px-3 py-1.5 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-amber-600/50"
+              className={`${
+                noDeadline ? 'notebook-surface-muted' : 'notebook-surface'
+              } flex-1 min-w-[170px] rounded-lg border px-3 py-1.5 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-amber-600/50`}
               style={{
-                backgroundColor: noDeadline ? '#f3ece0' : '#ffffff',
                 borderColor: dateError
                   ? 'var(--color-stamp-red)'
-                  : 'var(--color-cork-dark)',
+                  : undefined,
                 color: 'var(--color-ink)',
               }}
             />
 
             <label
               htmlFor="task-checkbox-no-deadline"
-              className="inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium select-none cursor-pointer transition-colors"
+              className="notebook-surface inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium select-none cursor-pointer transition-colors"
               style={{
                 backgroundColor: noDeadline
                   ? 'rgba(200, 157, 108, 0.28)'
-                  : '#ffffff',
-                borderColor: 'var(--color-cork-dark)',
+                  : undefined,
                 color: 'var(--color-ink)',
               }}
             >
@@ -514,10 +513,8 @@ function TaskModalForm({
               onChange={(e) => setTagInput(e.target.value)}
               onKeyDown={handleTagInputKeyDown}
               placeholder="Dodaj tag (np. studia, egzamin) i naciśnij Enter..."
-              className="flex-1 rounded-lg border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-600/50"
+              className="notebook-surface flex-1 rounded-lg border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-600/50"
               style={{
-                backgroundColor: '#ffffff',
-                borderColor: 'var(--color-cork-dark)',
                 color: 'var(--color-ink)',
               }}
             />
@@ -586,39 +583,8 @@ function TaskModalForm({
             )}
           </div>
         </div>
-
-        {/* Footer Actions: Cancel & Save */}
-        <div
-          className="flex items-center justify-end gap-2.5 border-t pt-4 mt-2"
-          style={{ borderTopColor: 'rgba(166, 124, 82, 0.35)' }}
-        >
-          <button
-            type="button"
-            data-testid="task-btn-cancel"
-            onClick={onClose}
-            className="rounded-lg border px-4 py-2 text-sm font-semibold transition-colors hover:bg-amber-900/10 cursor-pointer"
-            style={{
-              backgroundColor: 'transparent',
-              borderColor: 'var(--color-cork-dark)',
-              color: 'var(--color-ink)',
-            }}
-          >
-            Anuluj
-          </button>
-          <button
-            type="submit"
-            data-testid="task-btn-save"
-            className="rounded-lg border px-5 py-2 text-sm font-bold text-amber-50 shadow-sm transition-all hover:brightness-110 active:scale-95 cursor-pointer"
-            style={{
-              backgroundColor: 'var(--color-wood-frame)',
-              borderColor: 'var(--color-wood-dark)',
-            }}
-          >
-            {mode === 'create' ? 'Dodaj zadanie' : 'Zapisz zmiany'}
-          </button>
-        </div>
-      </form>
-    </div>
+      </div>
+    </NotebookModal>
   );
 }
 
@@ -632,51 +598,45 @@ function TaskModalView({ task, onClose, onEdit }: TaskModalViewProps) {
   const priorityVars = PRIORITY_STYLE_VARS[task.priorytet];
 
   return (
-    <div
-      className="relative w-full max-w-lg rounded-xl border-2 shadow-2xl overflow-hidden"
-      style={{
-        backgroundColor: '#fdf8ee',
-        borderColor: 'var(--color-wood-highlight)',
-        color: 'var(--color-ink)',
-      }}
-    >
-      <div
-        className="h-2.5 w-full"
-        style={{
-          backgroundColor: priorityVars.fold,
-          borderBottom: `1px solid ${priorityVars.border}`,
-        }}
-      />
-      <div
-        className="flex items-center justify-between border-b px-5 py-3.5"
-        style={{
-          borderBottomColor: 'rgba(166, 124, 82, 0.35)',
-          backgroundColor: 'rgba(215, 177, 130, 0.18)',
-        }}
-      >
-        <div className="flex items-center gap-2">
-          <Pin
-            className="h-5 w-5 text-red-600 -rotate-12 shrink-0"
-            aria-hidden="true"
-          />
-          <h2
-            id="task-modal-heading"
-            className="text-lg font-bold tracking-tight"
-          >
-            Podgląd zadania
-          </h2>
-        </div>
+    <NotebookModal
+      isOpen
+      onClose={onClose}
+      testId="task-modal"
+      labelledBy="task-modal-heading"
+      maxWidthClass="max-w-lg"
+      icon={
+        <Pin
+          className="h-5 w-5 text-red-600 -rotate-12 shrink-0"
+          aria-hidden="true"
+        />
+      }
+      title="Podgląd zadania"
+      closeAriaLabel="Zamknij okno zadania"
+      topAccent={
+        <div
+          className="h-2.5 w-full"
+          style={{
+            backgroundColor: priorityVars.fold,
+            borderBottom: `1px solid ${priorityVars.border}`,
+          }}
+        />
+      }
+      footer={
         <button
           type="button"
-          onClick={onClose}
-          aria-label="Zamknij okno zadania"
-          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-amber-900/70 hover:bg-amber-900/10 hover:text-amber-950 transition-colors cursor-pointer"
+          data-testid="task-btn-edit"
+          onClick={onEdit}
+          className="rounded-xs border px-5 py-2 text-sm font-bold text-amber-50 shadow-sm transition-all hover:brightness-110 active:scale-95 cursor-pointer"
+          style={{
+            backgroundColor: 'var(--color-wood-frame)',
+            borderColor: 'var(--color-wood-dark)',
+          }}
         >
-          <X className="h-4 w-4" />
+          Edytuj
         </button>
-      </div>
-
-      <div className="p-5 space-y-4">
+      }
+    >
+      <div className="space-y-4">
         <section>
           <h3
             className="text-xs font-bold uppercase tracking-wider mb-1"
@@ -771,26 +731,8 @@ function TaskModalView({ task, onClose, onEdit }: TaskModalViewProps) {
             </p>
           )}
         </section>
-
-        <div
-          className="flex justify-end border-t pt-4 mt-2"
-          style={{ borderTopColor: 'rgba(166, 124, 82, 0.35)' }}
-        >
-          <button
-            type="button"
-            data-testid="task-btn-edit"
-            onClick={onEdit}
-            className="rounded-lg border px-5 py-2 text-sm font-bold text-amber-50 shadow-sm transition-all hover:brightness-110 active:scale-95 cursor-pointer"
-            style={{
-              backgroundColor: 'var(--color-wood-frame)',
-              borderColor: 'var(--color-wood-dark)',
-            }}
-          >
-            Edytuj
-          </button>
-        </div>
       </div>
-    </div>
+    </NotebookModal>
   );
 }
 
@@ -808,22 +750,6 @@ export function TaskModal() {
       ? state.tasks.find((t) => t.id === activeModal.taskId)
       : undefined;
 
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-    const handleKeyDown = (e: globalThis.KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        dispatch({ type: 'CLOSE_MODAL' });
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isOpen, dispatch]);
-
   if (!isOpen) {
     return null;
   }
@@ -840,60 +766,43 @@ export function TaskModal() {
     dispatch({ type: 'CLOSE_MODAL' });
   };
 
-  const handleBackdropClick = (e: MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget) {
-      handleClose();
-    }
-  };
-
   const modalKey =
     activeModal.type === 'create'
       ? `create-${activeModal.defaultPriority ?? 'sredni'}-${activeModal.defaultZone ?? 'default'}`
       : `${activeModal.type}-${targetTask!.id}`;
 
+  if (activeModal.type === 'view') {
+    return (
+      <TaskModalView
+        key={modalKey}
+        task={targetTask!}
+        onClose={handleClose}
+        onEdit={() =>
+          dispatch({
+            type: 'OPEN_MODAL',
+            payload: { type: 'edit', taskId: targetTask!.id },
+          })
+        }
+      />
+    );
+  }
+
   return (
-    <div
-      data-testid="task-modal"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="task-modal-heading"
-      onClick={handleBackdropClick}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
-      style={{
-        zIndex: 'var(--z-modal)',
-        backgroundColor: 'rgba(46, 32, 24, 0.65)',
-      }}
-    >
-      {activeModal.type === 'view' ? (
-        <TaskModalView
-          key={modalKey}
-          task={targetTask!}
-          onClose={handleClose}
-          onEdit={() =>
-            dispatch({
-              type: 'OPEN_MODAL',
-              payload: { type: 'edit', taskId: targetTask!.id },
-            })
-          }
-        />
-      ) : (
-        <TaskModalForm
-          key={modalKey}
-          mode={activeModal.type}
-          editingTask={targetTask}
-          defaultPriority={
-            activeModal.type === 'create'
-              ? activeModal.defaultPriority
-              : undefined
-          }
-          defaultZone={
-            activeModal.type === 'create' ? activeModal.defaultZone : undefined
-          }
-          muted={state.muted}
-          onClose={handleClose}
-        />
-      )}
-    </div>
+    <TaskModalForm
+      key={modalKey}
+      mode={activeModal.type}
+      editingTask={targetTask}
+      defaultPriority={
+        activeModal.type === 'create'
+          ? activeModal.defaultPriority
+          : undefined
+      }
+      defaultZone={
+        activeModal.type === 'create' ? activeModal.defaultZone : undefined
+      }
+      muted={state.muted}
+      onClose={handleClose}
+    />
   );
 }
 

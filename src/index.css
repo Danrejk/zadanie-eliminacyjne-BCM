@@ -710,3 +710,136 @@
   background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%);
 }
 
+/* === Reusable Notebook Paper Modal (zero blur(), GPU-friendly) === */
+.notebook-sheet {
+  --notebook-margin-x: 42px;
+  --notebook-paper-bg: #fcf8ee;
+  --notebook-line-color: rgba(116, 154, 198, 0.28);
+  --notebook-margin-color: rgba(210, 82, 82, 0.42);
+  --notebook-border: #d8ccb8;
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: 88vh;
+  overflow: hidden;
+  border-radius: 3px;
+  border: 1px solid var(--notebook-border);
+  background-color: var(--notebook-paper-bg);
+  color: var(--color-ink);
+  box-shadow:
+    3px 3px 0 #f2ead8,
+    4px 4px 0 #cbbca2,
+    7px 7px 0 #e7decb,
+    8px 8px 0 #bcae94,
+    0 14px 28px rgba(0, 0, 0, 0.42);
+}
+
+@media (min-width: 640px) {
+  .notebook-sheet {
+    --notebook-margin-x: 52px;
+  }
+}
+
+/* Vertical red left margin line running top-to-bottom */
+.notebook-sheet::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--notebook-margin-x);
+  width: 1px;
+  background-color: var(--notebook-margin-color);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* 3 binder punch holes along the left edge */
+.notebook-holes {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: var(--notebook-margin-x);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-around;
+  padding: 28px 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.notebook-hole {
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  background-color: rgba(46, 32, 24, 0.72);
+  border: 1px solid rgba(139, 115, 85, 0.45);
+  box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.45);
+}
+
+/* Blank unlined top notebook header margin */
+.notebook-header {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px 12px calc(var(--notebook-margin-x) + 16px);
+  background-color: var(--notebook-paper-bg);
+  border-bottom: 1.5px solid rgba(116, 154, 198, 0.45);
+}
+
+.notebook-header--danger {
+  background-color: #fdf0ee;
+  border-bottom-color: rgba(210, 82, 82, 0.35);
+}
+
+/* Scrollable body wrapper + GPU-composited lined inner sheet */
+.notebook-body-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.notebook-body-lined {
+  min-height: 100%;
+  padding: 16px 20px 18px calc(var(--notebook-margin-x) + 16px);
+  background-color: var(--notebook-paper-bg);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 27px,
+    var(--notebook-line-color) 27px,
+    var(--notebook-line-color) 28px
+  );
+  background-position: 0 12px;
+}
+
+/* Clean paper footer */
+.notebook-footer {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px 14px calc(var(--notebook-margin-x) + 16px);
+  background-color: #f7f1e3;
+  border-top: 1px solid rgba(116, 154, 198, 0.35);
+}
+
+/* Paper-blended inner surfaces (no blur()) */
+.notebook-surface {
+  background-color: rgba(255, 253, 248, 0.68);
+  border-color: rgba(166, 124, 82, 0.45);
+}
+
+.notebook-surface-muted {
+  background-color: rgba(243, 236, 222, 0.68);
+  border-color: rgba(166, 124, 82, 0.4);
+}
+
+
