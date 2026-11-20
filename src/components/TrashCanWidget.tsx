@@ -1,9 +1,54 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { useTasks } from '../context/TaskContext';
 import { playPinClickSound } from '../utils/sound';
 import { getSmallBasketTextures } from '../utils/basketTextures';
+import type { Task } from '../types/task';
 import { CrumpledBall } from './CrumpledBall';
+
+const SMALL_PREVIEW_CAP = 14;
+const SMALL_ROW_CAPACITIES = [3, 4, 4, 3] as const;
+
+interface SmallPreviewSlot {
+  task: Task;
+  offsetX: number;
+  bottom: number;
+  rotate: number;
+  opacity: number;
+}
+
+function computeSmallPreviewSlots(tasks: Task[]): SmallPreviewSlot[] {
+  const visible = tasks.slice(-SMALL_PREVIEW_CAP);
+  const colStep = 11.5;
+  const rowStep = 10.5;
+  const slots: SmallPreviewSlot[] = [];
+
+  let idx = 0;
+  for (let row = 0; row < SMALL_ROW_CAPACITIES.length && idx < visible.length; row++) {
+    const capacity = SMALL_ROW_CAPACITIES[row];
+    const count = Math.min(capacity, visible.length - idx);
+    const rowWidth = (count - 1) * colStep;
+    const isOddRow = row % 2 === 1;
+
+    for (let c = 0; c < count; c++) {
+      const task = visible[idx];
+      const jitterX = (((task.id * 13 + idx * 7) % 3) - 1) * 0.9;
+      const offsetX =
+        -rowWidth / 2 +
+        c * colStep +
+        (isOddRow && count < capacity ? colStep * 0.25 : 0) +
+        jitterX;
+      const bottom = 11 + row * rowStep;
+      const rotate = ((task.id * 31 + idx * 17) % 70) - 35;
+      const opacity = Math.min(1, 0.85 + row * 0.05);
+
+      slots.push({ task, offsetX, bottom, rotate, opacity });
+      idx += 1;
+    }
+  }
+
+  return slots;
+}
 
 export function TrashCanWidget() {
   const {
@@ -21,7 +66,10 @@ export function TrashCanWidget() {
   const isEnlarged =
     state.draggingFloorBallId !== null || state.ballInFlight || isDragOverNote;
 
-  const previewBalls = inTrashTasks.slice(-8);
+  const previewSlots = useMemo(
+    () => computeSmallPreviewSlots(inTrashTasks),
+    [inTrashTasks],
+  );
   const { backSrc, frontSrc } = getSmallBasketTextures(isEnlarged || isHovered);
 
   const handleOpenTrash = () => {
@@ -110,24 +158,29 @@ export function TrashCanWidget() {
             className="pointer-events-none absolute inset-0 z-0 h-full w-full"
           />
 
-          {/* Layer 2 (Middle): Mini crumpled paper balls resting inside */}
+          {/* Layer 2 (Middle): Tapered honeycomb pile clipped strictly inside basket walls (max 14 balls) */}
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-x-4 bottom-3 z-10 flex flex-wrap-reverse items-end justify-center gap-0.5 overflow-hidden"
-            style={{ maxHeight: '46px' }}
+            className="pointer-events-none absolute inset-0 z-10 overflow-hidden"
+            style={{
+              clipPath: 'polygon(18% 22%, 82% 22%, 73% 86%, 27% 86%)',
+            }}
           >
-            {previewBalls.map((task, idx) => (
+            {previewSlots.map(({ task, offsetX, bottom, rotate, opacity }) => (
               <div
                 key={task.id}
-                className="-m-1"
                 style={{
-                  transform: `rotate(${((task.id * 31 + idx * 17) % 60) - 30}deg)`,
+                  position: 'absolute',
+                  left: '50%',
+                  bottom: `${bottom}px`,
+                  opacity,
+                  transform: `translateX(calc(-50% + ${offsetX}px)) rotate(${rotate}deg)`,
                 }}
               >
                 <CrumpledBall
                   priority={task.priorytet}
                   taskId={task.id}
-                  size={20}
+                  size={16}
                 />
               </div>
             ))}
