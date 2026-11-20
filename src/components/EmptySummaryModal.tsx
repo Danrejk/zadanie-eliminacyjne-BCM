@@ -18,7 +18,7 @@ export function EmptySummaryModal() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
-        dispatch({ type: 'OPEN_MODAL', payload: { type: 'trash' } });
+        dispatch({ type: 'CLOSE_MODAL' });
       }
     };
 
@@ -72,7 +72,7 @@ export function EmptySummaryModal() {
   }
 
   const handleCancel = () => {
-    dispatch({ type: 'OPEN_MODAL', payload: { type: 'trash' } });
+    dispatch({ type: 'CLOSE_MODAL' });
   };
 
   const handleConfirm = () => {

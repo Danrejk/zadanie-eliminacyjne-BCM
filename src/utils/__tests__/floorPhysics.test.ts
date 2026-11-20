@@ -380,5 +380,51 @@ describe('floorPhysics', () => {
       expect(res.newlyHitTrashIds).toEqual([]);
       expect(ball.enteringTrash).toBe(false);
     });
+
+    it('bounces balls off solid sides when expandedTrash is active and scores only through top hoop', () => {
+      const expandedTrash = {
+        hoopRect: { left: 1000, top: 400, right: 1200, bottom: 430 },
+        bodyRect: { left: 990, top: 430, right: 1210, bottom: 680 },
+      };
+
+      // Side impact: ball moving right into the left wall of bodyRect bounces left, does not score
+      const sideBall = createFloorBall(
+        { taskId: 30, originX: 960, originY: 540, spawnedAt: 0, vx: 600, vy: 0 },
+        VIEWPORT,
+      );
+      expect(sideBall.vx).toBe(600);
+      sideBall.canScoreTrash = true;
+
+      const sideRes = stepFloorPhysics(
+        [sideBall],
+        1 / 60,
+        VIEWPORT,
+        null,
+        1000,
+        expandedTrash,
+      );
+      expect(sideRes.newlyHitTrashIds).toEqual([]);
+      expect(sideBall.enteringTrash).toBe(false);
+      expect(sideBall.vx).toBeLessThan(0);
+      expect(sideBall.x).toBeLessThanOrEqual(expandedTrash.bodyRect.left - sideBall.radius + 0.01);
+
+      // Top hoop impact: ball falling downward into hoopRect scores
+      const hoopBall = createFloorBall(
+        { taskId: 31, originX: 1100, originY: 390, spawnedAt: 0, vx: 0, vy: 400 },
+        VIEWPORT,
+      );
+      hoopBall.canScoreTrash = true;
+
+      const hoopRes = stepFloorPhysics(
+        [hoopBall],
+        1 / 60,
+        VIEWPORT,
+        null,
+        1000,
+        expandedTrash,
+      );
+      expect(hoopRes.newlyHitTrashIds).toEqual([31]);
+      expect(hoopBall.enteringTrash).toBe(true);
+    });
   });
 });

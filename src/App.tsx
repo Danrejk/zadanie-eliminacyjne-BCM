@@ -2,9 +2,10 @@ import { TaskProvider } from './context/TaskContext';
 import { TopBar } from './components/TopBar';
 import { Corkboard } from './components/Corkboard';
 import { TrashCanWidget } from './components/TrashCanWidget';
+import { TrashDrawer } from './components/TrashDrawer';
 import { FloorPhysicsLayer } from './components/FloorPhysicsLayer';
+import { NoteDragOverlay } from './components/NoteDragOverlay';
 import { TaskModal } from './components/TaskModal';
-import { TrashModal } from './components/TrashModal';
 import { EmptySummaryModal } from './components/EmptySummaryModal';
 import { ArchiveModal } from './components/ArchiveModal';
 import { ContextMenu } from './components/ContextMenu';
@@ -15,13 +16,14 @@ export default function App() {
     <TaskProvider>
       <div className="min-h-screen flex flex-col">
         <TopBar />
-        <main className="flex-1 px-3 py-4 pb-28 sm:px-6">
+        <main className="flex-1 px-3 py-4 pb-28 sm:px-6 overflow-x-clip">
           <Corkboard />
         </main>
         <TrashCanWidget />
+        <TrashDrawer />
         <FloorPhysicsLayer />
+        <NoteDragOverlay />
         <TaskModal />
-        <TrashModal />
         <EmptySummaryModal />
         <ArchiveModal />
         <ContextMenu />

@@ -58,13 +58,15 @@ function createMockDataTransfer(
 }
 
 function dragNoteToCell(noteEl: HTMLElement, targetCellEl: HTMLElement) {
-  const dataTransfer = createMockDataTransfer();
-  fireEvent.dragStart(noteEl, { dataTransfer });
-  fireEvent.dragEnter(targetCellEl, { dataTransfer });
-  fireEvent.dragOver(targetCellEl, { dataTransfer });
-  fireEvent.drop(targetCellEl, { dataTransfer });
-  fireEvent.dragEnd(noteEl, { dataTransfer });
-  return dataTransfer;
+  const originalElementsFromPoint = document.elementsFromPoint;
+  document.elementsFromPoint = vi.fn(() => [targetCellEl]);
+  try {
+    fireEvent.pointerDown(noteEl, { button: 0, clientX: 10, clientY: 10 });
+    fireEvent.pointerMove(window, { clientX: 200, clientY: 200 });
+    fireEvent.pointerUp(window, { clientX: 200, clientY: 200 });
+  } finally {
+    document.elementsFromPoint = originalElementsFromPoint;
+  }
 }
 
 describe('Milestone M2 — Corkboard 3x5, PostItNote & PushPin', () => {
@@ -163,7 +165,6 @@ describe('Milestone M2 — Corkboard 3x5, PostItNote & PushPin', () => {
         expect(note).toHaveAttribute('data-priority', priority);
         expect(note).toHaveAttribute('data-zone', zone);
         expect(note).toHaveAttribute('data-dimmed', 'false');
-        expect(note).toHaveAttribute('draggable', 'true');
       }
 
       // 4 completed tasks (#17..#20) must NOT appear on the corkboard
@@ -459,12 +460,12 @@ describe('Milestone M2 — Corkboard 3x5, PostItNote & PushPin', () => {
       const harness = renderCorkboard();
 
       const note4 = screen.getByTestId('postit-note-4');
-      const dataTransfer = createMockDataTransfer();
 
-      fireEvent.dragStart(note4, { dataTransfer });
-      fireEvent.dragEnd(note4, { dataTransfer });
+      fireEvent.pointerDown(note4, { button: 0, clientX: 10, clientY: 10 });
+      fireEvent.pointerMove(window, { clientX: 60, clientY: 60 });
+      fireEvent.pointerUp(window, { clientX: 60, clientY: 60 });
 
-      // Synthetic trailing click immediately after dragEnd (within 50ms)
+      // Synthetic trailing click immediately after pointerUp (within 50ms)
       fireEvent.click(note4, { detail: 1 });
       act(() => {
         vi.advanceTimersByTime(300);
@@ -551,17 +552,20 @@ describe('Milestone M2 — Corkboard 3x5, PostItNote & PushPin', () => {
       // Task #4 is due today (2026-11-19, todayTomorrow) - NOT overdue
       const note4 = screen.getByTestId('postit-note-4');
       const overdueCell = screen.getByTestId('zone-cell-niski-overdue');
-      const dataTransfer = createMockDataTransfer();
+      const originalElementsFromPoint = document.elementsFromPoint;
+      document.elementsFromPoint = vi.fn(() => [overdueCell]);
 
-      fireEvent.dragStart(note4, { dataTransfer });
-      fireEvent.dragEnter(overdueCell, { dataTransfer });
-      fireEvent.dragOver(overdueCell, { dataTransfer });
+      try {
+        fireEvent.pointerDown(note4, { button: 0, clientX: 10, clientY: 10 });
+        fireEvent.pointerMove(window, { clientX: 80, clientY: 80 });
 
-      // Cell shows blocked visual cue
-      expect(overdueCell).toHaveAttribute('data-drop-state', 'blocked');
+        // Cell shows blocked visual cue
+        expect(overdueCell).toHaveAttribute('data-drop-state', 'blocked');
 
-      fireEvent.drop(overdueCell, { dataTransfer });
-      fireEvent.dragEnd(note4, { dataTransfer });
+        fireEvent.pointerUp(window, { clientX: 80, clientY: 80 });
+      } finally {
+        document.elementsFromPoint = originalElementsFromPoint;
+      }
 
       // Task #4 remains untouched in (wysoki, todayTomorrow) and no sound plays
       expect(pinSoundSpy).not.toHaveBeenCalled();
@@ -582,17 +586,20 @@ describe('Milestone M2 — Corkboard 3x5, PostItNote & PushPin', () => {
       // Task #3 is already overdue (niski, 2026-11-16)
       const note3 = screen.getByTestId('postit-note-3');
       const highOverdueCell = screen.getByTestId('zone-cell-wysoki-overdue');
-      const dataTransfer = createMockDataTransfer();
+      const originalElementsFromPoint = document.elementsFromPoint;
+      document.elementsFromPoint = vi.fn(() => [highOverdueCell]);
 
-      fireEvent.dragStart(note3, { dataTransfer });
-      fireEvent.dragEnter(highOverdueCell, { dataTransfer });
-      fireEvent.dragOver(highOverdueCell, { dataTransfer });
+      try {
+        fireEvent.pointerDown(note3, { button: 0, clientX: 10, clientY: 10 });
+        fireEvent.pointerMove(window, { clientX: 200, clientY: 80 });
 
-      // Cell shows valid drop state because task #3 is already overdue
-      expect(highOverdueCell).toHaveAttribute('data-drop-state', 'valid');
+        // Cell shows valid drop state because task #3 is already overdue
+        expect(highOverdueCell).toHaveAttribute('data-drop-state', 'valid');
 
-      fireEvent.drop(highOverdueCell, { dataTransfer });
-      fireEvent.dragEnd(note3, { dataTransfer });
+        fireEvent.pointerUp(window, { clientX: 200, clientY: 80 });
+      } finally {
+        document.elementsFromPoint = originalElementsFromPoint;
+      }
 
       expect(pinSoundSpy).toHaveBeenCalledTimes(1);
       const task3 = harness.ctx.state.tasks.find((t) => t.id === 3);
@@ -928,7 +935,6 @@ describe('Milestone M2 — Corkboard 3x5, PostItNote & PushPin', () => {
     it('cancels pending single-click timer on detail >= 2 even without dblclick and cleans up timers/rAF on unmount', () => {
       vi.useFakeTimers();
 
-      const cancelRafSpy = vi.spyOn(window, 'cancelAnimationFrame');
       let latestCtx!: TaskContextValue;
       function Probe() {
         latestCtx = useTasks();
@@ -954,15 +960,13 @@ describe('Milestone M2 — Corkboard 3x5, PostItNote & PushPin', () => {
       });
       expect(latestCtx.state.activeModal).toEqual({ type: 'none' });
 
-      // 2. Arm click timer + dragStart rAF + dragEnd reset timer, then unmount Corkboard before they fire
+      // 2. Arm click timer + pointer drag + reset timer, then unmount Corkboard before they fire
       const note4 = screen.getByTestId('postit-note-4');
-      const dt = createMockDataTransfer();
-      fireEvent.dragStart(note4, { dataTransfer: dt });
-      fireEvent.dragEnd(note4, { dataTransfer: dt });
+      fireEvent.pointerDown(note4, { button: 0, clientX: 10, clientY: 10 });
+      fireEvent.pointerMove(window, { clientX: 80, clientY: 80 });
+      fireEvent.pointerUp(window, { clientX: 80, clientY: 80 });
 
-      // Schedule a fresh rAF on note2 and a click timer on note3
-      const note2 = screen.getByTestId('postit-note-2');
-      fireEvent.dragStart(note2, { dataTransfer: createMockDataTransfer() });
+      // Schedule a click timer on note3
       const note3 = screen.getByTestId('postit-note-3');
       fireEvent.click(note3, { detail: 1 });
 
@@ -977,7 +981,6 @@ describe('Milestone M2 — Corkboard 3x5, PostItNote & PushPin', () => {
         vi.advanceTimersByTime(1000);
       });
 
-      expect(cancelRafSpy).toHaveBeenCalled();
       expect(latestCtx.state.activeModal).toEqual({ type: 'none' });
       expect(latestCtx.state.draggingNoteId).toBeNull();
     });
@@ -1000,18 +1003,18 @@ describe('Milestone M2 — Corkboard 3x5, PostItNote & PushPin', () => {
       const note1 = screen.getByTestId('postit-note-1');
       fireEvent.click(note1, { detail: 1 });
 
-      // Within < 230ms, another modal (e.g. trash) opens
+      // Within < 230ms, another modal (e.g. archive) opens
       act(() => {
         vi.advanceTimersByTime(50);
-        latestCtx.dispatch({ type: 'OPEN_MODAL', payload: { type: 'trash' } });
+        latestCtx.dispatch({ type: 'OPEN_MODAL', payload: { type: 'archive' } });
       });
-      expect(latestCtx.state.activeModal).toEqual({ type: 'trash' });
+      expect(latestCtx.state.activeModal).toEqual({ type: 'archive' });
 
-      // After 230ms elapses, activeModal must remain 'trash' (not overwritten with 'edit')
+      // After 230ms elapses, activeModal must remain 'archive' (not overwritten with 'edit')
       act(() => {
         vi.advanceTimersByTime(CLICK_DELAY_MS + 50);
       });
-      expect(latestCtx.state.activeModal).toEqual({ type: 'trash' });
+      expect(latestCtx.state.activeModal).toEqual({ type: 'archive' });
     });
   });
 });

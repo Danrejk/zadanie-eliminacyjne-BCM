@@ -181,7 +181,7 @@ const CorkboardCell = React.memo(function CorkboardCell({
 });
 
 export function Corkboard({ todayStr }: CorkboardProps) {
-  const { state, dispatch, activeTasks, matchingTaskIds } = useTasks();
+  const { state, dispatch, activeTasks, matchingTaskIds, noteDrag } = useTasks();
   const effectiveToday = todayStr ?? getTodayDateString();
 
   const [hoveredCell, setHoveredCell] = useState<{
@@ -423,8 +423,11 @@ export function Corkboard({ todayStr }: CorkboardProps) {
   return (
     <section
       data-testid="corkboard"
+      data-drawer-open={state.trashDrawerOpen ? 'true' : 'false'}
       aria-label="Tablica korkowa zadań 3x5"
-      className="w-full max-w-[1640px] mx-auto px-3 sm:px-6 pt-3 pb-28"
+      className={`corkboard-shift-wrapper w-full max-w-[1640px] mx-auto px-3 sm:px-6 pt-3 pb-28 ${
+        state.trashDrawerOpen ? 'corkboard-shift-wrapper--drawer-open' : ''
+      }`}
     >
       <div className="corkboard-wood-frame">
         <div className="corkboard-surface">
@@ -528,8 +531,10 @@ export function Corkboard({ todayStr }: CorkboardProps) {
                 {TIME_ZONES.map((zone) => {
                   const cellTasks = cellsMap[priority][zone];
                   const isHovered =
-                    hoveredCell?.priority === priority &&
-                    hoveredCell?.zone === zone;
+                    (hoveredCell?.priority === priority &&
+                      hoveredCell?.zone === zone) ||
+                    (noteDrag?.hoveredCell?.priority === priority &&
+                      noteDrag?.hoveredCell?.zone === zone);
 
                   const cellDraggedTask =
                     activeDraggedTask ??
@@ -569,7 +574,9 @@ export function Corkboard({ todayStr }: CorkboardProps) {
                       isHighlightMode={isHighlightMode}
                       matchingTaskIds={matchingTaskIds}
                       draggingNoteId={cellDraggingNoteId}
-                      isModalOpen={state.activeModal.type !== 'none'}
+                      isModalOpen={
+                        state.activeModal.type !== 'none' || state.trashDrawerOpen
+                      }
                       muted={state.muted}
                       effectiveToday={effectiveToday}
                       dispatch={dispatch}

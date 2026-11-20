@@ -51,6 +51,17 @@ export interface FloorBallSpawn {
   originX: number; // viewport clientX (px)
   originY: number; // viewport clientY (px)
   spawnedAt: number; // Date.now()
+  vx?: number; // optional initial X velocity (px/s)
+  vy?: number; // optional initial Y velocity (px/s)
+}
+
+/** Active pointer-drag state for an unfinished Post-it note */
+export interface NoteDragState {
+  taskId: number;
+  clientX: number;
+  clientY: number;
+  isOverTrash: boolean;
+  hoveredCell: { priority: Priority; zone: TimeZone } | null;
 }
 
 /** Mutable 60fps 2D physics state owned by FloorPhysicsLayer via useRef (pure logic in floorPhysics.ts) */
@@ -111,6 +122,7 @@ export interface TaskState {
   draggingFloorBallId: number | null;
   ballInFlight: boolean;          // keeps TrashCanWidget enlarged while a thrown ball is airborne
   draggingNoteId: number | null;  // highlights board cells & trash direct-drop zone
+  trashDrawerOpen: boolean;       // expanded right-side trashcan drawer state
   trashBounceCount: number;       // monotonic counter to trigger catch-bounce in TrashCanWidget
   filters: FilterState;
   activeModal: ActiveModal;
@@ -136,6 +148,7 @@ export type TaskAction =
   | { type: 'COMPLETE_TO_TRASH'; payload: { id: number } }
   | { type: 'DROP_BALL_INTO_TRASH'; payload: { id: number } }
   | { type: 'SWEEP_FLOOR_TO_TRASH' }
+  | { type: 'SPILL_TRASH_TO_FLOOR'; payload: { originX: number; originY: number } }
   | { type: 'RESTORE_TASK'; payload: { id: number } }
   | { type: 'EMPTY_TRASH'; payload: { emptiedAt: string } }
   | { type: 'LOAD_TASKS_FILE'; payload: { file: TasksFile; sourceLabel?: string } }
@@ -143,6 +156,7 @@ export type TaskAction =
   | { type: 'SET_DRAGGING_FLOOR_BALL'; payload: { id: number | null } }
   | { type: 'SET_BALL_IN_FLIGHT'; payload: { inFlight: boolean } }
   | { type: 'SET_DRAGGING_NOTE'; payload: { id: number | null } }
+  | { type: 'SET_TRASH_DRAWER_OPEN'; payload: { open: boolean } }
   | { type: 'SET_SEARCH_QUERY'; payload: { query: string } }
   | { type: 'TOGGLE_TAG_FILTER'; payload: { tag: string } }
   | { type: 'SET_FILTER_MODE'; payload: { mode: FilterMode } }

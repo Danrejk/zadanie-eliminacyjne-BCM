@@ -1,7 +1,7 @@
-import { useState, type DragEvent } from 'react';
+import { useState } from 'react';
 import { motion } from 'motion/react';
 import { useTasks } from '../context/TaskContext';
-import { playPinClickSound, playTrashPlopSound } from '../utils/sound';
+import { playPinClickSound } from '../utils/sound';
 import { CrumpledBall } from './CrumpledBall';
 
 export function TrashCanWidget() {
@@ -11,70 +11,43 @@ export function TrashCanWidget() {
     completedTasks,
     inTrashTasks,
     trashHitboxRef,
+    noteDrag,
   } = useTasks();
 
-  const [isDragOverNote, setIsDragOverNote] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
+  const isDragOverNote = Boolean(noteDrag?.isOverTrash && !state.trashDrawerOpen);
   const isEnlarged =
     state.draggingFloorBallId !== null || state.ballInFlight || isDragOverNote;
 
   const previewBalls = inTrashTasks.slice(-8);
 
-  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    if (e.dataTransfer) {
-      e.dataTransfer.dropEffect = 'move';
-    }
-    if (!isDragOverNote) {
-      setIsDragOverNote(true);
-    }
-  };
-
-  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
-    if (e.currentTarget.contains(e.relatedTarget as Node | null)) {
-      return;
-    }
-    setIsDragOverNote(false);
-  };
-
-  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsDragOverNote(false);
-
-    const rawId = (
-      e.dataTransfer?.getData('application/x-smartapp-task-id') ||
-      e.dataTransfer?.getData('text/plain') ||
-      ''
-    ).trim();
-
-    if (!/^\d+$/.test(rawId)) {
-      return;
-    }
-
-    const parsedId = Number(rawId);
-    if (Number.isSafeInteger(parsedId) && parsedId >= 0) {
-      playTrashPlopSound(state.muted);
-      dispatch({ type: 'COMPLETE_TO_TRASH', payload: { id: parsedId } });
-    }
-  };
-
   const handleOpenTrash = () => {
     playPinClickSound(state.muted);
-    dispatch({ type: 'OPEN_MODAL', payload: { type: 'trash' } });
+    dispatch({ type: 'SET_TRASH_DRAWER_OPEN', payload: { open: true } });
   };
 
   return (
-    <div
+    <motion.div
       data-testid="trash-can-widget"
       data-enlarged={isEnlarged ? 'true' : 'false'}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
+      data-hovered={isHovered ? 'true' : 'false'}
+      animate={{
+        x: state.trashDrawerOpen ? 180 : 0,
+        opacity: state.trashDrawerOpen ? 0 : 1,
+      }}
+      transition={{
+        type: 'spring',
+        stiffness: 420,
+        damping: 32,
+        delay: state.trashDrawerOpen ? 0 : 0.14,
+      }}
       style={{
         position: 'fixed',
         right: '16px',
         bottom: '16px',
         zIndex: 'var(--z-trash)',
+        pointerEvents: state.trashDrawerOpen ? 'none' : 'auto',
       }}
       className="flex flex-col items-center select-none"
     >
@@ -84,9 +57,11 @@ export function TrashCanWidget() {
         }}
         data-testid="trash-hitbox"
         role="button"
-        tabIndex={0}
+        tabIndex={state.trashDrawerOpen ? -1 : 0}
         aria-label={`Kosz na ukończone zadania (${completedTasks.length})`}
         onClick={handleOpenTrash}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
@@ -94,7 +69,8 @@ export function TrashCanWidget() {
           }
         }}
         animate={{
-          scale: isEnlarged ? 1.45 : 1,
+          scale: isEnlarged ? 1.45 : isHovered ? 1.09 : 1,
+          rotate: isEnlarged ? -2 : isHovered ? -3 : 0,
         }}
         transition={{
           type: 'spring',
@@ -104,8 +80,10 @@ export function TrashCanWidget() {
         style={{ transformOrigin: 'bottom right' }}
         className={`relative flex h-24 w-24 cursor-pointer items-end justify-center rounded-2xl p-1 transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 ${
           isEnlarged
-            ? 'drop-shadow-[0_12px_22px_rgba(251,191,36,0.45)]'
-            : 'drop-shadow-[0_8px_14px_rgba(0,0,0,0.45)]'
+            ? 'drop-shadow-[0_12px_22px_rgba(251,191,36,0.5)]'
+            : isHovered
+              ? 'drop-shadow-[0_10px_18px_rgba(251,191,36,0.38)]'
+              : 'drop-shadow-[0_8px_14px_rgba(0,0,0,0.45)]'
         }`}
       >
         <motion.div
@@ -153,14 +131,14 @@ export function TrashCanWidget() {
               rx="30"
               ry="7"
               fill="rgba(30, 22, 16, 0.55)"
-              stroke={isEnlarged ? '#fbbf24' : '#78716c'}
+              stroke={isEnlarged || isHovered ? '#fbbf24' : '#78716c'}
               strokeWidth="2.5"
             />
             {/* Basket body translucent mesh */}
             <path
               d="M15 20 L23 76 C24 80 64 80 65 76 L73 20 Z"
               fill="rgba(41, 37, 36, 0.42)"
-              stroke={isEnlarged ? '#fbbf24' : '#a8a29e'}
+              stroke={isEnlarged || isHovered ? '#fbbf24' : '#a8a29e'}
               strokeWidth="2.2"
               strokeLinejoin="round"
             />
@@ -176,7 +154,7 @@ export function TrashCanWidget() {
             {/* Front top rim */}
             <path
               d="M14 18 C14 23 74 23 74 18"
-              stroke={isEnlarged ? '#fde68a' : '#e7e5e4'}
+              stroke={isEnlarged || isHovered ? '#fde68a' : '#e7e5e4'}
               strokeWidth="3"
               strokeLinecap="round"
             />
@@ -188,11 +166,12 @@ export function TrashCanWidget() {
       <button
         type="button"
         data-testid="completed-count-bar"
+        tabIndex={state.trashDrawerOpen ? -1 : 0}
         onClick={handleOpenTrash}
         className="mt-1.5 rounded-full border border-amber-900/40 bg-[#fdf8ee] px-3 py-1 text-xs font-semibold text-[#2b231d] shadow-md transition-colors hover:bg-amber-50"
       >
         Ukończone: {completedTasks.length}
       </button>
-    </div>
+    </motion.div>
   );
 }

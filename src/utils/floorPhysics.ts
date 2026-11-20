@@ -33,6 +33,11 @@ export interface ViewportSize {
   height: number;
 }
 
+export interface ExpandedTrashCollider {
+  hoopRect: RectLike;  // top hoop opening sensor
+  bodyRect: RectLike;  // solid left, right, and bottom walls of the expanded basket
+}
+
 export interface PhysicsStepResult {
   newlyHitTrashIds: number[];     // taskIds that collided with trash hitbox on this step
   finishedEnteringIds: number[];  // taskIds whose 200ms plop animation completed
@@ -84,11 +89,12 @@ export function createFloorBall(
   const y = Math.max(r, Math.min(floorY, safeOriginY));
 
   const absId = Number.isFinite(spawn.taskId) ? Math.abs(Math.trunc(spawn.taskId)) : 0;
-  const vx =
+  const defaultVx =
     safeOriginX > safeW - 220
       ? -160 - (absId % 5) * 18
       : ((absId * 37) % 140) - 70;
-  const vy = -120;
+  const vx = Number.isFinite(spawn.vx) ? (spawn.vx as number) : defaultVx;
+  const vy = Number.isFinite(spawn.vy) ? (spawn.vy as number) : -120;
   const rotation = (absId * 47) % 360;
   const vRot = Math.max(-720, Math.min(720, vx * 1.2));
 
@@ -289,6 +295,57 @@ export function clampBallsToViewport(balls: FloorBall[], viewport: ViewportSize)
   }
 }
 
+function resolveCircleRectBounce(ball: FloorBall, rect: RectLike): void {
+  const r = ball.radius;
+  const closestX = Math.max(rect.left, Math.min(ball.x, rect.right));
+  const closestY = Math.max(rect.top, Math.min(ball.y, rect.bottom));
+  const dx = ball.x - closestX;
+  const dy = ball.y - closestY;
+  const distSq = dx * dx + dy * dy;
+
+  if (distSq >= r * r) {
+    return;
+  }
+
+  if (distSq > 0.0001) {
+    const dist = Math.sqrt(distSq);
+    const nx = dx / dist;
+    const ny = dy / dist;
+    const overlap = r - dist;
+    ball.x += nx * overlap;
+    ball.y += ny * overlap;
+
+    const vn = ball.vx * nx + ball.vy * ny;
+    if (vn < 0) {
+      ball.vx -= (1 + WALL_RESTITUTION) * vn * nx;
+      ball.vy -= (1 + WALL_RESTITUTION) * vn * ny;
+      ball.vRot = Math.max(-720, Math.min(720, ball.vx * 0.45));
+    }
+    return;
+  }
+
+  // Ball center is inside the rect; push out along the shallowest side
+  const penLeft = Math.abs(ball.x - rect.left);
+  const penRight = Math.abs(rect.right - ball.x);
+  const penTop = Math.abs(ball.y - rect.top);
+  const penBottom = Math.abs(rect.bottom - ball.y);
+  const minPen = Math.min(penLeft, penRight, penTop, penBottom);
+
+  if (minPen === penLeft) {
+    ball.x = rect.left - r;
+    ball.vx = -Math.abs(ball.vx) * WALL_RESTITUTION;
+  } else if (minPen === penRight) {
+    ball.x = rect.right + r;
+    ball.vx = Math.abs(ball.vx) * WALL_RESTITUTION;
+  } else if (minPen === penTop) {
+    ball.y = rect.top - r;
+    ball.vy = -Math.abs(ball.vy) * WALL_RESTITUTION;
+  } else {
+    ball.y = rect.bottom + r;
+    ball.vy = Math.abs(ball.vy) * WALL_RESTITUTION;
+  }
+}
+
 /**
  * Advances all floor balls by one physics step (mutating in-place for 60fps ref-driven loops).
  */
@@ -298,11 +355,22 @@ export function stepFloorPhysics(
   viewport: ViewportSize,
   trashRect: RectLike | null,
   nowMs: number,
+  expandedTrash?: ExpandedTrashCollider | null,
 ): PhysicsStepResult {
   const dt = Number.isNaN(dtSeconds) ? 0 : Math.max(0, Math.min(dtSeconds, MAX_DT));
   const safeW = safeDimension(viewport.width);
   const safeH = safeDimension(viewport.height);
-  const validTrashRect = trashRect && isFiniteRect(trashRect) ? trashRect : null;
+  const validExpandedTrash =
+    expandedTrash &&
+    isFiniteRect(expandedTrash.hoopRect) &&
+    isFiniteRect(expandedTrash.bodyRect)
+      ? expandedTrash
+      : null;
+  const validTrashRect = validExpandedTrash
+    ? validExpandedTrash.hoopRect
+    : trashRect && isFiniteRect(trashRect)
+      ? trashRect
+      : null;
   const hasFiniteNow = Number.isFinite(nowMs);
   const newlyHitTrashIds: number[] = [];
   const finishedEnteringIds: number[] = [];
@@ -406,8 +474,34 @@ export function stepFloorPhysics(
     // Angular rotation
     ball.rotation = (ball.rotation + ball.vRot * dt) % 360;
 
-    // Swept trash hitbox check
-    if (
+    // Trashcan collision / scoring
+    if (validExpandedTrash) {
+      const scoredTopHoop =
+        couldScoreThisStep &&
+        ball.vy >= 0 &&
+        doesSegmentHitRect(
+          prevX,
+          prevY,
+          ball.x,
+          ball.y,
+          validExpandedTrash.hoopRect,
+          6,
+        );
+
+      if (scoredTopHoop) {
+        ball.enteringTrash = true;
+        ball.enterStartTime = hasFiniteNow ? nowMs : null;
+        ball.enterStartX = ball.x;
+        ball.enterStartY = ball.y;
+        ball.vx = 0;
+        ball.vy = 0;
+        ball.vRot = 0;
+        newlyHitTrashIds.push(ball.taskId);
+      } else {
+        // Solid sides & bottom bounce balls away
+        resolveCircleRectBounce(ball, validExpandedTrash.bodyRect);
+      }
+    } else if (
       couldScoreThisStep &&
       validTrashRect &&
       doesSegmentHitRect(prevX, prevY, ball.x, ball.y, validTrashRect, TRASH_HITBOX_PADDING)
