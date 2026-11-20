@@ -293,7 +293,7 @@ function TaskModalForm({
             type="button"
             data-testid="task-btn-cancel"
             onClick={onClose}
-            className="notebook-surface rounded-lg border px-4 py-2 text-sm font-semibold transition-colors hover:bg-amber-900/10 cursor-pointer"
+            className="notebook-pencil-box px-4 py-2 text-sm font-semibold transition-colors hover:bg-amber-900/10 cursor-pointer"
             style={{
               color: 'var(--color-ink)',
             }}
@@ -303,7 +303,7 @@ function TaskModalForm({
           <button
             type="submit"
             data-testid="task-btn-save"
-            className="rounded-lg border px-5 py-2 text-sm font-bold text-amber-50 shadow-sm transition-all hover:brightness-110 active:scale-95 cursor-pointer"
+            className="rounded-xs border px-5 py-2 text-sm font-bold text-amber-50 shadow-sm transition-all hover:brightness-110 active:scale-95 cursor-pointer"
             style={{
               backgroundColor: 'var(--color-wood-frame)',
               borderColor: 'var(--color-wood-dark)',
@@ -338,13 +338,7 @@ function TaskModalForm({
             placeholder="Np. Oddać sprawozdanie z laboratorium fizyki"
             autoFocus
             aria-invalid={titleError !== null}
-            className="notebook-surface w-full rounded-lg border px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-600/50"
-            style={{
-              borderColor: titleError
-                ? 'var(--color-stamp-red)'
-                : undefined,
-              color: 'var(--color-ink)',
-            }}
+            className="notebook-pencil-input w-full px-3 py-2 text-sm font-medium"
           />
           {titleError && (
             <p
@@ -375,10 +369,7 @@ function TaskModalForm({
             value={desc}
             onChange={(e) => setDesc(e.target.value)}
             placeholder="Dodatkowe szczegóły, notatki, linki lub sala..."
-            className="notebook-surface w-full rounded-lg border px-3 py-2 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-amber-600/50"
-            style={{
-              color: 'var(--color-ink)',
-            }}
+            className="notebook-pencil-input w-full px-3 py-2 text-sm resize-y"
           />
         </div>
 
@@ -406,25 +397,17 @@ function TaskModalForm({
                 }
               }}
               aria-invalid={dateError !== null}
-              className={`${
-                noDeadline ? 'notebook-surface-muted' : 'notebook-surface'
-              } flex-1 min-w-[170px] rounded-lg border px-3 py-1.5 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-amber-600/50`}
-              style={{
-                borderColor: dateError
-                  ? 'var(--color-stamp-red)'
-                  : undefined,
-                color: 'var(--color-ink)',
-              }}
+              className="notebook-pencil-input flex-1 min-w-[170px] px-3 py-1.5 text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed"
             />
 
             <label
               htmlFor="task-checkbox-no-deadline"
-              className="notebook-surface inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium select-none cursor-pointer transition-colors"
+              className="notebook-pencil-box inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium select-none cursor-pointer transition-colors"
               style={{
                 backgroundColor: noDeadline
                   ? 'rgba(200, 157, 108, 0.28)'
                   : undefined,
-                color: 'var(--color-ink)',
+                color: '#3a3733',
               }}
             >
               <input
@@ -433,7 +416,7 @@ function TaskModalForm({
                 data-testid="task-checkbox-no-deadline"
                 checked={noDeadline}
                 onChange={(e) => handleNoDeadlineToggle(e.target.checked)}
-                className="h-4 w-4 accent-amber-800 rounded cursor-pointer"
+                className="h-4 w-4 accent-amber-800 rounded-none cursor-pointer"
               />
               <span>Bez terminu</span>
             </label>
@@ -472,7 +455,7 @@ function TaskModalForm({
                   data-active={isSelected ? 'true' : 'false'}
                   aria-pressed={isSelected}
                   onClick={() => setPriority(p)}
-                  className="flex items-center justify-center gap-1.5 rounded-lg border-2 py-2 px-3 text-sm font-bold transition-all cursor-pointer"
+                  className="flex items-center justify-center gap-1.5 rounded-xs border-2 py-2 px-3 text-sm font-bold transition-all cursor-pointer"
                   style={{
                     backgroundColor: isSelected ? vars.fold : vars.bg,
                     borderColor: isSelected
@@ -480,7 +463,7 @@ function TaskModalForm({
                       : vars.border,
                     color: 'var(--color-ink)',
                     boxShadow: isSelected
-                      ? '0 0 0 2px rgba(74, 45, 22, 0.25)'
+                      ? '2px 2px 0 rgba(74, 45, 22, 0.35)'
                       : 'none',
                   }}
                 >
@@ -513,19 +496,15 @@ function TaskModalForm({
               onChange={(e) => setTagInput(e.target.value)}
               onKeyDown={handleTagInputKeyDown}
               placeholder="Dodaj tag (np. studia, egzamin) i naciśnij Enter..."
-              className="notebook-surface flex-1 rounded-lg border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-600/50"
-              style={{
-                color: 'var(--color-ink)',
-              }}
+              className="notebook-pencil-input flex-1 px-3 py-1.5 text-sm"
             />
             <button
               type="button"
               data-testid="task-btn-add-tag"
               onClick={handleAddTag}
-              className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-sm font-semibold transition-colors hover:brightness-95 cursor-pointer"
+              className="notebook-pencil-box inline-flex items-center gap-1 px-3 py-1.5 text-sm font-semibold transition-colors hover:brightness-95 cursor-pointer"
               style={{
-                backgroundColor: 'var(--color-cork-light)',
-                borderColor: 'var(--color-cork-dark)',
+                backgroundColor: 'rgba(215, 177, 130, 0.55)',
                 color: 'var(--color-ink)',
               }}
             >
