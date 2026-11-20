@@ -1,22 +1,32 @@
-import { TaskProvider, useTasks } from './context/TaskContext';
-
-function AppShell() {
-  const { activeTasks, completedTasks } = useTasks();
-
-  return (
-    <main className="min-h-screen flex flex-col items-center justify-center p-6 text-amber-50">
-      <h1 className="text-2xl font-bold tracking-tight">Tablica Korkowa</h1>
-      <p className="mt-2 text-sm text-amber-200/80">
-        Aktywne: {activeTasks.length} · Ukończone: {completedTasks.length}
-      </p>
-    </main>
-  );
-}
+import { TaskProvider } from './context/TaskContext';
+import { TopBar } from './components/TopBar';
+import { Corkboard } from './components/Corkboard';
+import { TrashCanWidget } from './components/TrashCanWidget';
+import { FloorPhysicsLayer } from './components/FloorPhysicsLayer';
+import { TaskModal } from './components/TaskModal';
+import { TrashModal } from './components/TrashModal';
+import { EmptySummaryModal } from './components/EmptySummaryModal';
+import { ArchiveModal } from './components/ArchiveModal';
+import { ContextMenu } from './components/ContextMenu';
+import { Toast } from './components/Toast';
 
 export default function App() {
   return (
     <TaskProvider>
-      <AppShell />
+      <div className="min-h-screen flex flex-col">
+        <TopBar />
+        <main className="flex-1 px-3 py-4 pb-28 sm:px-6">
+          <Corkboard />
+        </main>
+        <TrashCanWidget />
+        <FloorPhysicsLayer />
+        <TaskModal />
+        <TrashModal />
+        <EmptySummaryModal />
+        <ArchiveModal />
+        <ContextMenu />
+        <Toast />
+      </div>
     </TaskProvider>
   );
 }
