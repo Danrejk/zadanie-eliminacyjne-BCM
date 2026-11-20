@@ -577,5 +577,24 @@ describe('jsonIO', () => {
       // At least one task with empty opis
       expect(validated.data.zadania.some((t) => t.opis === '')).toBe(true);
     });
+
+    it('deduplicates case-insensitive duplicate tags on import while preserving first casing', () => {
+      const payload = JSON.stringify({
+        wersja: 1,
+        zadania: [
+          {
+            ...SAMPLE_TASK,
+            tagi: ['  Studia ', 'studia', 'STUDIA', '', 'Egzamin', 'egzamin'],
+          },
+        ],
+      });
+
+      const result = validateAndParseTasksJson(payload);
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.data.zadania[0].tagi).toEqual(['Studia', 'Egzamin']);
+        expect(result.warnings.length).toBeGreaterThanOrEqual(2);
+      }
+    });
   });
 });

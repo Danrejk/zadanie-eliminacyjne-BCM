@@ -981,5 +981,37 @@ describe('Milestone M2 — Corkboard 3x5, PostItNote & PushPin', () => {
       expect(latestCtx.state.activeModal).toEqual({ type: 'none' });
       expect(latestCtx.state.draggingNoteId).toBeNull();
     });
+
+    it('does not overwrite an already-open modal when 230ms single-click timer fires', () => {
+      vi.useFakeTimers();
+      let latestCtx!: ReturnType<typeof useTasks>;
+      function Probe() {
+        latestCtx = useTasks();
+        return null;
+      }
+
+      render(
+        <TaskProvider>
+          <Corkboard />
+          <Probe />
+        </TaskProvider>,
+      );
+
+      const note1 = screen.getByTestId('postit-note-1');
+      fireEvent.click(note1, { detail: 1 });
+
+      // Within < 230ms, another modal (e.g. trash) opens
+      act(() => {
+        vi.advanceTimersByTime(50);
+        latestCtx.dispatch({ type: 'OPEN_MODAL', payload: { type: 'trash' } });
+      });
+      expect(latestCtx.state.activeModal).toEqual({ type: 'trash' });
+
+      // After 230ms elapses, activeModal must remain 'trash' (not overwritten with 'edit')
+      act(() => {
+        vi.advanceTimersByTime(CLICK_DELAY_MS + 50);
+      });
+      expect(latestCtx.state.activeModal).toEqual({ type: 'trash' });
+    });
   });
 });

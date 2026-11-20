@@ -416,4 +416,161 @@ describe('Milestone M4 — TrashCanWidget, FloorPhysicsLayer & Archive Modals', 
       );
     });
   });
+
+  describe('Tier 5 Adversarial Hardening', () => {
+    it('keeps floor-ball tooltip upright (no rotate in ancestor transform) while inner ball wrapper rotates', () => {
+      let latestCtx!: TaskContextValue;
+      renderM4Harness({}, (ctx) => {
+        latestCtx = ctx;
+      });
+
+      // Task 1 has rotation = (1 * 47) % 360 = 47deg
+      act(() => {
+        latestCtx.dispatch({
+          type: 'COMPLETE_TO_FLOOR',
+          payload: { id: 1, originX: 200, originY: 180 },
+        });
+      });
+
+      const ballEl = screen.getByTestId('floor-ball-1');
+      expect(ballEl.style.transform).not.toContain('rotate(');
+
+      fireEvent.pointerEnter(ballEl);
+      const tooltip = screen.getByTestId('floor-ball-tooltip-1');
+      expect(tooltip).toBeInTheDocument();
+
+      // Walk ancestor chain up to floor-physics-layer and verify no rotate(...) transform
+      let curr: HTMLElement | null = tooltip;
+      while (curr && curr.dataset.testid !== 'floor-physics-layer') {
+        expect(curr.style.transform).not.toContain('rotate(');
+        curr = curr.parentElement;
+      }
+
+      // Inner wrapper around CrumpledBall carries the rotation
+      const innerWrapper = ballEl.firstElementChild as HTMLElement;
+      expect(innerWrapper.style.transform).toContain('rotate(47deg)');
+    });
+
+    it('resets draggingFloorBallId and data-enlarged on window blur and pointercancel', () => {
+      let latestCtx!: TaskContextValue;
+      renderM4Harness({}, (ctx) => {
+        latestCtx = ctx;
+      });
+
+      act(() => {
+        latestCtx.dispatch({
+          type: 'COMPLETE_TO_FLOOR',
+          payload: { id: 1, originX: 200, originY: 180 },
+        });
+      });
+
+      const ballEl = screen.getByTestId('floor-ball-1');
+      const widget = screen.getByTestId('trash-can-widget');
+
+      // 1. Grab ball -> window.blur cancels drag cleanly
+      fireEvent.pointerDown(ballEl, { button: 0, pointerId: 1, clientX: 200, clientY: 180 });
+      expect(latestCtx.state.draggingFloorBallId).toBe(1);
+      expect(widget).toHaveAttribute('data-enlarged', 'true');
+
+      act(() => {
+        window.dispatchEvent(new Event('blur'));
+      });
+      expect(latestCtx.state.draggingFloorBallId).toBeNull();
+      expect(widget).toHaveAttribute('data-enlarged', 'false');
+
+      // 2. Grab ball again -> pointercancel cancels without throwing
+      fireEvent.pointerDown(ballEl, { button: 0, pointerId: 2, clientX: 200, clientY: 180 });
+      fireEvent.pointerMove(ballEl, { pointerId: 2, clientX: 600, clientY: 50 });
+      expect(latestCtx.state.draggingFloorBallId).toBe(1);
+
+      fireEvent.pointerCancel(ballEl, { pointerId: 2 });
+      expect(latestCtx.state.draggingFloorBallId).toBeNull();
+      expect(latestCtx.state.ballInFlight).toBe(false);
+      expect(widget).toHaveAttribute('data-enlarged', 'false');
+    });
+
+    it('ignores pointerdown on a ball that is already enteringTrash', () => {
+      vi.useFakeTimers();
+      let nowMs = 1000;
+      vi.spyOn(performance, 'now').mockImplementation(() => nowMs);
+      const plopSpy = vi
+        .spyOn(soundUtils, 'playTrashPlopSound')
+        .mockImplementation(() => {});
+
+      let latestCtx!: TaskContextValue;
+      renderM4Harness({}, (ctx) => {
+        latestCtx = ctx;
+      });
+
+      act(() => {
+        latestCtx.dispatch({
+          type: 'COMPLETE_TO_FLOOR',
+          payload: { id: 1, originX: 200, originY: 180 },
+        });
+      });
+
+      const hitbox = screen.getByTestId('trash-hitbox');
+      vi.spyOn(hitbox, 'getBoundingClientRect').mockReturnValue({
+        left: 900,
+        top: 600,
+        right: 1000,
+        bottom: 700,
+        width: 100,
+        height: 100,
+        x: 900,
+        y: 600,
+        toJSON: () => ({}),
+      });
+
+      const ballEl = screen.getByTestId('floor-ball-1');
+      // Drop ball directly onto trash hitbox -> enters enteringTrash state
+      fireEvent.pointerDown(ballEl, { button: 0, pointerId: 1, clientX: 950, clientY: 650 });
+      fireEvent.pointerUp(ballEl, { button: 0, pointerId: 1, clientX: 950, clientY: 650 });
+      expect(plopSpy).toHaveBeenCalledTimes(1);
+      expect(latestCtx.state.draggingFloorBallId).toBeNull();
+
+      // Re-grabbing during 200ms plop animation must be ignored
+      nowMs = 1050;
+      fireEvent.pointerDown(ballEl, { button: 0, pointerId: 2, clientX: 950, clientY: 650 });
+      expect(latestCtx.state.draggingFloorBallId).toBeNull();
+      fireEvent.pointerUp(ballEl, { button: 0, pointerId: 2, clientX: 950, clientY: 650 });
+      expect(plopSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('rejects non-numeric dragged task IDs like "1abc" on TrashCanWidget drop', () => {
+      let latestCtx!: TaskContextValue;
+      renderM4Harness({}, (ctx) => {
+        latestCtx = ctx;
+      });
+
+      const hitbox = screen.getByTestId('trash-hitbox');
+      const dataTransfer = {
+        dropEffect: 'none',
+        getData: (type: string) => (type === 'text/plain' ? '1abc' : ''),
+      };
+
+      fireEvent.drop(hitbox, { dataTransfer });
+      expect(latestCtx.activeTasks.some((t) => t.id === 1)).toBe(true);
+      expect(latestCtx.inTrashTasks.some((t) => t.id === 1)).toBe(false);
+    });
+
+    it('dismisses ONLY ContextMenu when clicking outside onto ContextMenu backdrop while TrashModal is open', () => {
+      renderM4Harness();
+
+      fireEvent.click(screen.getByTestId('trash-hitbox'));
+      const trashModal = screen.getByTestId('trash-modal');
+      expect(trashModal).toBeInTheDocument();
+
+      fireEvent.contextMenu(within(trashModal).getByTestId('trash-ball-2'), {
+        clientX: 300,
+        clientY: 300,
+      });
+      expect(screen.getByTestId('context-menu')).toBeInTheDocument();
+
+      // Clicking the ContextMenu backdrop closes ContextMenu without closing TrashModal
+      fireEvent.click(screen.getByTestId('context-menu-backdrop'));
+      expect(screen.queryByTestId('context-menu')).not.toBeInTheDocument();
+      expect(screen.getByTestId('trash-modal')).toBeInTheDocument();
+    });
+  });
 });

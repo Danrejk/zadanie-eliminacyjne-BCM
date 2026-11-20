@@ -363,5 +363,22 @@ describe('floorPhysics', () => {
       );
       expect(resFinish.finishedEnteringIds).toEqual([21]);
     });
+
+    it('ignores zero-size 0x0 trashRect so collapsed/unmounted hitboxes cannot capture balls', () => {
+      const zeroRect: RectLike = { left: 0, top: 0, right: 0, bottom: 0 };
+      expect(doesSegmentHitRect(0, 0, 5, 5, zeroRect, TRASH_HITBOX_PADDING)).toBe(false);
+
+      const ball = createFloorBall(
+        { taskId: 22, originX: 5, originY: 5, spawnedAt: 0 },
+        VIEWPORT,
+      );
+      ball.vx = 0;
+      ball.vy = 0;
+      ball.canScoreTrash = true;
+
+      const res = stepFloorPhysics([ball], 1 / 60, VIEWPORT, zeroRect, 1000);
+      expect(res.newlyHitTrashIds).toEqual([]);
+      expect(ball.enteringTrash).toBe(false);
+    });
   });
 });
