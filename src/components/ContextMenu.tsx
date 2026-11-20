@@ -457,6 +457,17 @@ export function ContextMenu() {
           <button
             type="button"
             role="menuitem"
+            data-testid="context-menu-view"
+            onClick={handleView}
+            className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm font-medium hover:bg-amber-900/10 transition-colors cursor-pointer"
+          >
+            <Eye className="h-4 w-4 text-amber-800" aria-hidden="true" />
+            <span>Podgląd zadania</span>
+          </button>
+
+          <button
+            type="button"
+            role="menuitem"
             data-testid="context-menu-restore"
             onClick={handleRestore}
             className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm font-medium hover:bg-emerald-900/10 transition-colors cursor-pointer"

@@ -1000,7 +1000,7 @@ describe('Milestone M3 — TopBar, TaskModal, ContextMenu & Toast', () => {
       ).toBeUndefined();
     });
 
-    it('renders trashBall context menu items (restore & delete only) and executes actions cleanly', async () => {
+    it('renders trashBall context menu items (view, restore & delete) and executes actions cleanly', async () => {
       const user = userEvent.setup();
       const restoreSoundSpy = vi.spyOn(soundUtils, 'playRestoreSound');
 
@@ -1013,6 +1013,7 @@ describe('Milestone M3 — TopBar, TaskModal, ContextMenu & Toast', () => {
         ],
       });
 
+      expect(screen.getByTestId('context-menu-view')).toBeInTheDocument();
       expect(screen.getByTestId('context-menu-restore')).toBeInTheDocument();
       expect(screen.getByTestId('context-menu-delete')).toBeInTheDocument();
       expect(
@@ -1022,6 +1023,20 @@ describe('Milestone M3 — TopBar, TaskModal, ContextMenu & Toast', () => {
         screen.queryByTestId('context-menu-drop-trash'),
       ).not.toBeInTheDocument();
 
+      await user.click(screen.getByTestId('context-menu-view'));
+      expect(screen.getByTestId('task-modal')).toBeInTheDocument();
+      expect(screen.getByTestId('task-view-title')).toHaveTextContent(
+        getCtx().state.tasks.find((t) => t.id === 4)?.tytul ?? '',
+      );
+      fireEvent.keyDown(window, { key: 'Escape' });
+      expect(screen.queryByTestId('task-modal')).not.toBeInTheDocument();
+
+      act(() => {
+        getCtx().dispatch({
+          type: 'OPEN_CONTEXT_MENU',
+          payload: { kind: 'trashBall', taskId: 4, x: 500, y: 400 },
+        });
+      });
       await user.click(screen.getByTestId('context-menu-restore'));
       expect(restoreSoundSpy).toHaveBeenCalledTimes(1);
       expect(getCtx().state.tasks.find((t) => t.id === 4)?.wykonane).toBe(
