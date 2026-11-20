@@ -19,6 +19,7 @@ import {
   doesSegmentHitRect,
   getFloorY,
   stepFloorPhysics,
+  type ExpandedTrashCollider,
   type PointerSample,
   type ViewportSize,
 } from '../utils/floorPhysics';
@@ -96,7 +97,15 @@ function applyBallTransform(
 }
 
 export function FloorPhysicsLayer() {
-  const { state, dispatch, floorBallTasks, trashHitboxRef } = useTasks();
+  const {
+    state,
+    dispatch,
+    floorBallTasks,
+    trashHitboxRef,
+    trashHoopRef,
+    trashBodyRef,
+    trashDrawerBoxRef,
+  } = useTasks();
 
   const ballsRef = useRef<Map<number, FloorBall>>(new Map());
   const domRefs = useRef<Map<number, HTMLDivElement>>(new Map());
@@ -109,6 +118,7 @@ export function FloorPhysicsLayer() {
   const lastInFlightRef = useRef<boolean>(state.ballInFlight);
   const ballInFlightRef = useRef<boolean>(state.ballInFlight);
   const mutedRef = useRef<boolean>(state.muted);
+  const trashDrawerOpenRef = useRef<boolean>(state.trashDrawerOpen);
 
   const [hoveredBallId, setHoveredBallId] = useState<number | null>(null);
 
@@ -119,6 +129,11 @@ export function FloorPhysicsLayer() {
   useEffect(() => {
     mutedRef.current = state.muted;
   }, [state.muted]);
+
+  useEffect(() => {
+    trashDrawerOpenRef.current = state.trashDrawerOpen;
+    wakeLoopRef.current?.();
+  }, [state.trashDrawerOpen]);
 
   // Sync state.floorBalls spawns with mutable 60fps physics map
   useLayoutEffect(() => {
@@ -286,9 +301,25 @@ export function FloorPhysicsLayer() {
       const viewport = viewportRef.current;
       const trashRect =
         trashRectRef.current ?? trashHitboxRef.current?.getBoundingClientRect() ?? null;
+      let expandedTrash: ExpandedTrashCollider | null = null;
+      if (trashDrawerOpenRef.current) {
+        const hoopRect = trashHoopRef.current?.getBoundingClientRect() ?? null;
+        const bodyRect = trashBodyRef.current?.getBoundingClientRect() ?? null;
+        const drawerRect = trashDrawerBoxRef.current?.getBoundingClientRect() ?? null;
+        if (hoopRect && bodyRect) {
+          expandedTrash = { hoopRect, bodyRect, drawerRect };
+        }
+      }
       const balls = Array.from(ballsRef.current.values());
 
-      const result = stepFloorPhysics(balls, dt, viewport, trashRect, nowMs);
+      const result = stepFloorPhysics(
+        balls,
+        dt,
+        viewport,
+        trashRect,
+        nowMs,
+        expandedTrash,
+      );
 
       for (const ball of balls) {
         const el = domRefs.current.get(ball.taskId);
@@ -463,11 +494,22 @@ export function FloorPhysicsLayer() {
 
     dispatch({ type: 'SET_DRAGGING_FLOOR_BALL', payload: { id: null } });
 
-    const trashRect = trashHitboxRef.current?.getBoundingClientRect() ?? null;
-    trashRectRef.current = trashRect;
+    const targetRect = trashDrawerOpenRef.current
+      ? trashHoopRef.current?.getBoundingClientRect() ?? null
+      : trashHitboxRef.current?.getBoundingClientRect() ?? null;
+    if (!trashDrawerOpenRef.current) {
+      trashRectRef.current = targetRect;
+    }
     if (
-      trashRect &&
-      doesSegmentHitRect(ball.x, ball.y, ball.x, ball.y, trashRect)
+      targetRect &&
+      doesSegmentHitRect(
+        ball.x,
+        ball.y,
+        ball.x,
+        ball.y,
+        targetRect,
+        trashDrawerOpenRef.current ? 6 : undefined,
+      )
     ) {
       ball.enteringTrash = true;
       ball.enterStartTime = now;

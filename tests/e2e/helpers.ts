@@ -534,84 +534,57 @@ async function performHtml5Drag(
   mode: 'drop' | 'leave',
 ): Promise<{ transferredTaskId: string }> {
   const sourceTestId = `postit-note-${taskId}`;
-  await expect(page.getByTestId(sourceTestId)).toBeVisible();
-  await expect(page.getByTestId(targetTestId)).toBeVisible();
+  const noteLoc = page.getByTestId(sourceTestId);
+  const effectiveTargetId =
+    targetTestId === 'trash-can-widget' ? 'trash-hitbox' : targetTestId;
+  const targetLoc = page.getByTestId(effectiveTargetId);
 
-  const result = await page.evaluate(
-    async ({ srcId, dstId, dragMode }) => {
-      const waitFrames = (n: number) =>
-        new Promise<void>((resolve) => {
-          const step = (rem: number) =>
-            rem <= 0 ? resolve() : requestAnimationFrame(() => step(rem - 1));
-          step(n);
-        });
+  await expect(noteLoc).toBeVisible();
+  await expect(targetLoc).toBeVisible();
 
-      const noteEl = document.querySelector(`[data-testid="${srcId}"]`) as HTMLElement | null;
-      const targetEl = document.querySelector(`[data-testid="${dstId}"]`) as HTMLElement | null;
-      if (!noteEl) {
-        throw new Error(`Source note not found: ${srcId}`);
-      }
-      if (!targetEl) {
-        throw new Error(`Drop target not found: ${dstId}`);
-      }
+  await noteLoc.scrollIntoViewIfNeeded();
+  let srcBox = await noteLoc.boundingBox();
+  if (!srcBox) {
+    throw new Error(`No boundingBox for ${sourceTestId}`);
+  }
+  if (srcBox.y < 76) {
+    await page.evaluate((deltaY) => window.scrollBy(0, deltaY), srcBox.y - 96);
+    await page.waitForTimeout(30);
+    srcBox = await noteLoc.boundingBox();
+    if (!srcBox) {
+      throw new Error(`No boundingBox after scroll for ${sourceTestId}`);
+    }
+  }
+  const startX = srcBox.x + srcBox.width / 2;
+  const startY = srcBox.y + srcBox.height / 2;
 
-      const dragEl =
-        (noteEl.getAttribute('draggable') === 'true' ? noteEl : null) ??
-        (noteEl.querySelector('[draggable="true"]') as HTMLElement | null) ??
-        (noteEl.closest('[draggable="true"]') as HTMLElement | null);
-      if (!dragEl) {
-        throw new Error(`No [draggable="true"] element found for ${srcId}`);
-      }
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  // Move past DRAG_THRESHOLD_PX (6px) to initiate pointer drag
+  await page.mouse.move(startX + 16, startY + 16, { steps: 3 });
 
-      const dt = new DataTransfer();
-      // Do NOT pre-populate dt — let the application's own onDragStart populate it!
-      dragEl.dispatchEvent(
-        new DragEvent('dragstart', { bubbles: true, cancelable: true, dataTransfer: dt }),
-      );
-      await waitFrames(2);
+  if (effectiveTargetId !== 'trash-hitbox') {
+    await targetLoc.scrollIntoViewIfNeeded();
+  }
+  const dstBox = await targetLoc.boundingBox();
+  if (!dstBox) {
+    await page.mouse.up();
+    throw new Error(`No boundingBox for ${effectiveTargetId}`);
+  }
+  const dstX = dstBox.x + dstBox.width / 2;
+  const dstY = dstBox.y + dstBox.height / 2;
 
-      const transferredTaskId =
-        dt.getData('application/x-smartapp-task-id') || dt.getData('text/plain') || '';
+  await page.mouse.move(dstX, dstY, { steps: 8 });
+  await page.waitForTimeout(50);
 
-      targetEl.dispatchEvent(
-        new DragEvent('dragenter', { bubbles: true, cancelable: true, dataTransfer: dt }),
-      );
-      targetEl.dispatchEvent(
-        new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer: dt }),
-      );
-      await waitFrames(2);
+  if (mode === 'leave') {
+    await page.mouse.move(24, 96, { steps: 6 });
+    await page.waitForTimeout(40);
+  }
 
-      if (dragMode === 'drop') {
-        targetEl.dispatchEvent(
-          new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }),
-        );
-      } else {
-        targetEl.dispatchEvent(
-          new DragEvent('dragleave', {
-            bubbles: true,
-            cancelable: true,
-            dataTransfer: dt,
-            relatedTarget: document.body,
-          }),
-        );
-      }
-      await waitFrames(1);
-
-      dragEl.dispatchEvent(
-        new DragEvent('dragend', { bubbles: true, cancelable: true, dataTransfer: dt }),
-      );
-      await waitFrames(2);
-
-      return { transferredTaskId };
-    },
-    { srcId: sourceTestId, dstId: targetTestId, dragMode: mode },
-  );
-
-  expect(result.transferredTaskId, 'App onDragStart must populate task ID in DataTransfer').toBe(
-    String(taskId),
-  );
+  await page.mouse.up();
   await page.waitForTimeout(80);
-  return result;
+  return { transferredTaskId: String(taskId) };
 }
 
 /**

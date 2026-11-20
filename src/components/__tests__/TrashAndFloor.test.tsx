@@ -29,7 +29,9 @@ import * as soundUtils from '../../utils/sound';
 import * as jsonIO from '../../utils/jsonIO';
 import { TrashCanWidget } from '../TrashCanWidget';
 import { FloorPhysicsLayer } from '../FloorPhysicsLayer';
-import { TrashModal } from '../TrashModal';
+import { TrashDrawer } from '../TrashDrawer';
+import { NoteDragOverlay } from '../NoteDragOverlay';
+import { PostItNote } from '../PostItNote';
 import { EmptySummaryModal } from '../EmptySummaryModal';
 import { ArchiveModal } from '../ArchiveModal';
 import { ContextMenu } from '../ContextMenu';
@@ -97,7 +99,7 @@ function renderM4Harness(
       {onContext && <ContextObserver onContext={onContext} />}
       <TrashCanWidget />
       <FloorPhysicsLayer />
-      <TrashModal />
+      <TrashDrawer />
       <EmptySummaryModal />
       <ArchiveModal />
       <ContextMenu />
@@ -157,30 +159,76 @@ describe('Milestone M4 — TrashCanWidget, FloorPhysicsLayer & Archive Modals', 
       expect(widget).toHaveAttribute('data-enlarged', 'true');
     });
 
-    it('accepts direct HTML5 drop of an active task, dispatches COMPLETE_TO_TRASH, and plays plop sound', () => {
+    it('morphs dragged unfinished note into a crumpled ball over TrashCanWidget and completes only on drop', () => {
       const plopSpy = vi
         .spyOn(soundUtils, 'playTrashPlopSound')
         .mockImplementation(() => {});
       let latestCtx!: TaskContextValue;
-      renderM4Harness({}, (ctx) => {
-        latestCtx = ctx;
-      });
-
-      const hitbox = screen.getByTestId('trash-hitbox');
-      const dataTransfer = {
-        dropEffect: 'none',
-        getData: (type: string) =>
-          type === 'application/x-smartapp-task-id' ? '1' : '',
+      const seed: InitialStateSeed = {
+        wersja: 1,
+        tasks: createSeedTasks(),
+        archive: [],
+        muted: false,
       };
 
-      fireEvent.dragOver(hitbox, { dataTransfer });
+      function Wrapper() {
+        const ctx = useTasks();
+        latestCtx = ctx;
+        const task1 = ctx.activeTasks.find((t) => t.id === 1);
+        return (
+          <>
+            {task1 && (
+              <PostItNote
+                task={task1}
+                zone="todayTomorrow"
+                isDimmed={false}
+                isDragging={ctx.state.draggingNoteId === 1}
+                isModalOpen={false}
+                muted={false}
+                dispatch={ctx.dispatch}
+              />
+            )}
+            <TrashCanWidget />
+            <NoteDragOverlay />
+          </>
+        );
+      }
+
+      render(
+        <TaskProvider initialSeed={seed}>
+          <Wrapper />
+        </TaskProvider>,
+      );
+
+      const hitbox = screen.getByTestId('trash-hitbox');
+      vi.spyOn(hitbox, 'getBoundingClientRect').mockReturnValue({
+        left: 900,
+        top: 600,
+        right: 996,
+        bottom: 696,
+        width: 96,
+        height: 96,
+        x: 900,
+        y: 600,
+        toJSON: () => ({}),
+      });
+
+      const note1 = screen.getByTestId('postit-note-1');
+      fireEvent.pointerDown(note1, { button: 0, clientX: 100, clientY: 100 });
+      fireEvent.pointerMove(window, { clientX: 200, clientY: 200 });
+      expect(screen.getByTestId('drag-note-card-preview')).toBeInTheDocument();
+
+      // Hover over trashcan -> morphs into crumpled ball without completing task yet
+      fireEvent.pointerMove(window, { clientX: 940, clientY: 640 });
+      expect(screen.getByTestId('drag-note-crumpled-preview')).toBeInTheDocument();
       expect(screen.getByTestId('trash-can-widget')).toHaveAttribute(
         'data-enlarged',
         'true',
       );
+      expect(latestCtx.activeTasks.some((t) => t.id === 1)).toBe(true);
 
-      fireEvent.drop(hitbox, { dataTransfer });
-
+      // Release over trashcan -> completes to trash
+      fireEvent.pointerUp(window, { clientX: 940, clientY: 640 });
       expect(plopSpy).toHaveBeenCalledWith(false);
       expect(screen.getByTestId('completed-count-bar')).toHaveTextContent(
         /^Ukończone:\s*3$/,
@@ -320,8 +368,8 @@ describe('Milestone M4 — TrashCanWidget, FloorPhysicsLayer & Archive Modals', 
     });
   });
 
-  describe('TrashModal, EmptySummaryModal & ArchiveModal', () => {
-    it('opens TrashModal, restores a task via context menu, and sweeps floor balls', () => {
+  describe('TrashDrawer, EmptySummaryModal & ArchiveModal', () => {
+    it('opens TrashDrawer, restores a task via context menu, sweeps floor balls, and spills all balls back out', () => {
       const restoreSpy = vi
         .spyOn(soundUtils, 'playRestoreSound')
         .mockImplementation(() => {});
@@ -342,21 +390,21 @@ describe('Milestone M4 — TrashCanWidget, FloorPhysicsLayer & Archive Modals', 
         });
       });
 
-      // Open TrashModal by clicking completed-count-bar
+      // Open TrashDrawer by clicking completed-count-bar
       fireEvent.click(screen.getByTestId('completed-count-bar'));
-      const modal = screen.getByTestId('trash-modal');
-      expect(modal).toBeInTheDocument();
+      const drawer = screen.getByTestId('trash-drawer');
+      expect(drawer).toBeInTheDocument();
 
       // Sweep floor balls into trash
-      const sweepBtn = within(modal).getByTestId('btn-sweep-floor');
+      const sweepBtn = within(drawer).getByTestId('btn-sweep-floor');
       expect(sweepBtn).not.toBeDisabled();
       fireEvent.click(sweepBtn);
       expect(plopSpy).toHaveBeenCalled();
       expect(latestCtx.floorBallTasks).toHaveLength(0);
-      expect(within(modal).getByTestId('trash-ball-1')).toBeInTheDocument();
+      expect(within(drawer).getByTestId('trash-ball-1')).toBeInTheDocument();
 
       // Click ball 2 to open trashBall context menu and restore it
-      fireEvent.click(within(modal).getByTestId('trash-ball-2'));
+      fireEvent.click(within(drawer).getByTestId('trash-ball-2'));
       const menu = screen.getByTestId('context-menu');
       expect(menu).toHaveAttribute('data-kind', 'trashBall');
 
@@ -365,6 +413,16 @@ describe('Milestone M4 — TrashCanWidget, FloorPhysicsLayer & Archive Modals', 
       expect(
         latestCtx.activeTasks.some((t) => t.id === 2),
       ).toBe(true);
+
+      // Take everything out puts remaining trashed balls (1 and 3) onto the floor
+      fireEvent.click(within(drawer).getByTestId('btn-take-all-out'));
+      expect(latestCtx.inTrashTasks).toHaveLength(0);
+      expect(latestCtx.floorBallTasks).toHaveLength(2);
+      expect(latestCtx.floorBallTasks.every((t) => t.wykonane)).toBe(true);
+
+      // Close drawer via bottom physical drawer button
+      fireEvent.click(within(drawer).getByTestId('btn-close-trash-drawer'));
+      expect(latestCtx.state.trashDrawerOpen).toBe(false);
     });
 
     it('summarizes trash, confirms empty to archive, views ArchiveModal, and exports archiwum_usunietych.json', () => {
@@ -537,40 +595,37 @@ describe('Milestone M4 — TrashCanWidget, FloorPhysicsLayer & Archive Modals', 
       expect(plopSpy).toHaveBeenCalledTimes(1);
     });
 
-    it('rejects non-numeric dragged task IDs like "1abc" on TrashCanWidget drop', () => {
-      let latestCtx!: TaskContextValue;
-      renderM4Harness({}, (ctx) => {
-        latestCtx = ctx;
-      });
+    it('shows hover visual feedback on TrashCanWidget when hovered', () => {
+      renderM4Harness();
 
+      const widget = screen.getByTestId('trash-can-widget');
       const hitbox = screen.getByTestId('trash-hitbox');
-      const dataTransfer = {
-        dropEffect: 'none',
-        getData: (type: string) => (type === 'text/plain' ? '1abc' : ''),
-      };
+      expect(widget).toHaveAttribute('data-hovered', 'false');
 
-      fireEvent.drop(hitbox, { dataTransfer });
-      expect(latestCtx.activeTasks.some((t) => t.id === 1)).toBe(true);
-      expect(latestCtx.inTrashTasks.some((t) => t.id === 1)).toBe(false);
+      fireEvent.mouseEnter(hitbox);
+      expect(widget).toHaveAttribute('data-hovered', 'true');
+
+      fireEvent.mouseLeave(hitbox);
+      expect(widget).toHaveAttribute('data-hovered', 'false');
     });
 
-    it('dismisses ONLY ContextMenu when clicking outside onto ContextMenu backdrop while TrashModal is open', () => {
+    it('dismisses ONLY ContextMenu when clicking outside onto ContextMenu backdrop while TrashDrawer is open', () => {
       renderM4Harness();
 
       fireEvent.click(screen.getByTestId('trash-hitbox'));
-      const trashModal = screen.getByTestId('trash-modal');
-      expect(trashModal).toBeInTheDocument();
+      const trashDrawer = screen.getByTestId('trash-drawer');
+      expect(trashDrawer).toBeInTheDocument();
 
-      fireEvent.contextMenu(within(trashModal).getByTestId('trash-ball-2'), {
+      fireEvent.contextMenu(within(trashDrawer).getByTestId('trash-ball-2'), {
         clientX: 300,
         clientY: 300,
       });
       expect(screen.getByTestId('context-menu')).toBeInTheDocument();
 
-      // Clicking the ContextMenu backdrop closes ContextMenu without closing TrashModal
+      // Clicking the ContextMenu backdrop closes ContextMenu without closing TrashDrawer
       fireEvent.click(screen.getByTestId('context-menu-backdrop'));
       expect(screen.queryByTestId('context-menu')).not.toBeInTheDocument();
-      expect(screen.getByTestId('trash-modal')).toBeInTheDocument();
+      expect(screen.getByTestId('trash-drawer')).toBeInTheDocument();
     });
   });
 });

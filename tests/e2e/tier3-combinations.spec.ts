@@ -146,7 +146,7 @@ test.describe('Tier 3 — Cross-Feature Pairwise Combinations', () => {
     await expect(page.getByTestId('trash-ball-1')).toBeVisible();
     await expect(page.getByTestId('trash-ball-6')).toBeVisible();
     await expect(page.getByTestId('trash-ball-2')).toHaveCount(0);
-    await page.getByTestId('btn-close-trash').click();
+    await page.getByTestId('btn-close-trash-drawer').click();
 
     const secondExport = await exportTasksJson(page, 1);
     expect(secondExport.data.zadania.find((t) => t.id === 1)?.wykonane).toBe(true);
@@ -181,8 +181,8 @@ test.describe('Tier 3 — Cross-Feature Pairwise Combinations', () => {
     await page.getByTestId('trash-can-widget').click();
     await page.getByTestId('btn-empty-trash').click();
     await page.getByTestId('btn-confirm-empty-trash').click();
-    if ((await page.getByTestId('trash-modal').count()) > 0) {
-      await page.getByTestId('btn-close-trash').click();
+    if ((await page.getByTestId('trash-drawer').count()) > 0) {
+      await page.getByTestId('btn-close-trash-drawer').click();
     }
     expect(await getCompletedCountFromBar(page)).toBe(0);
 
@@ -218,8 +218,8 @@ test.describe('Tier 3 — Cross-Feature Pairwise Combinations', () => {
     await page.getByTestId('trash-can-widget').click();
     await page.getByTestId('btn-empty-trash').click();
     await page.getByTestId('btn-confirm-empty-trash').click();
-    if ((await page.getByTestId('trash-modal').count()) > 0) {
-      await page.getByTestId('btn-close-trash').click();
+    if ((await page.getByTestId('trash-drawer').count()) > 0) {
+      await page.getByTestId('btn-close-trash-drawer').click();
     }
 
     await page.reload();
@@ -291,7 +291,7 @@ test.describe('Tier 3 — Cross-Feature Pairwise Combinations', () => {
     expect(await getCompletedCountFromBar(page)).toBe(6);
 
     await page.getByTestId('trash-can-widget').click();
-    await expect(page.getByTestId('trash-modal')).toBeVisible();
+    await expect(page.getByTestId('trash-drawer')).toBeVisible();
 
     // Sweep floor balls 1 & 4 into trash bin
     await page.getByTestId('btn-sweep-floor').click();
@@ -312,8 +312,8 @@ test.describe('Tier 3 — Cross-Feature Pairwise Combinations', () => {
     // Empty remaining 4 trash tasks (17..20) to archive
     await page.getByTestId('btn-empty-trash').click();
     await page.getByTestId('btn-confirm-empty-trash').click();
-    if ((await page.getByTestId('trash-modal').count()) > 0) {
-      await page.getByTestId('btn-close-trash').click();
+    if ((await page.getByTestId('trash-drawer').count()) > 0) {
+      await page.getByTestId('btn-close-trash-drawer').click();
     }
 
     await expect(page.getByTestId('postit-note-1')).toBeVisible();

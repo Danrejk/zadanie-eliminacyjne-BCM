@@ -95,10 +95,10 @@ test.describe('Tier 5 — Adversarial Hardening & Regression Guards', () => {
     await page.waitForTimeout(30);
     await page.getByTestId('trash-hitbox').click();
 
-    await expect(page.getByTestId('trash-modal')).toBeVisible();
+    await expect(page.getByTestId('trash-drawer')).toBeVisible();
     await page.waitForTimeout(320);
 
-    await expect(page.getByTestId('trash-modal')).toBeVisible();
+    await expect(page.getByTestId('trash-drawer')).toBeVisible();
     await expect(page.getByTestId('task-modal')).not.toBeVisible();
 
     guard.assertNoErrors();
@@ -156,7 +156,7 @@ test.describe('Tier 5 — Adversarial Hardening & Regression Guards', () => {
 
     // Open TrashModal
     await page.getByTestId('trash-hitbox').click();
-    await expect(page.getByTestId('trash-modal')).toBeVisible();
+    await expect(page.getByTestId('trash-drawer')).toBeVisible();
 
     const importedPayload: TasksFile = {
       wersja: 4,
@@ -175,7 +175,7 @@ test.describe('Tier 5 — Adversarial Hardening & Regression Guards', () => {
 
     await uploadTasksJsonPayload(page, 'zadania-v4.json', importedPayload);
 
-    await expect(page.getByTestId('trash-modal')).not.toBeVisible();
+    await expect(page.getByTestId('trash-drawer')).not.toBeVisible();
     await expect(page.getByTestId('floor-ball-1')).not.toBeVisible();
     await expect(page.getByTestId('floor-ball-4')).not.toBeVisible();
     await expect(page.getByTestId('postit-note-101')).toBeVisible();
@@ -260,7 +260,7 @@ test.describe('Tier 5 — Adversarial Hardening & Regression Guards', () => {
     await startFreshApp(page);
 
     await page.getByTestId('trash-hitbox').click();
-    const trashModal = page.getByTestId('trash-modal');
+    const trashModal = page.getByTestId('trash-drawer');
     await expect(trashModal).toBeVisible();
 
     const firstTrashBall = trashModal.locator('[data-testid^="trash-ball-"]').first();

@@ -48,12 +48,12 @@ test.describe('Tier 1 — Core Feature Coverage (F01–F31)', () => {
     expect(completedCount).toBe(4);
 
     await page.getByTestId('trash-can-widget').click();
-    await expect(page.getByTestId('trash-modal')).toBeVisible();
+    await expect(page.getByTestId('trash-drawer')).toBeVisible();
     for (const completedId of [17, 18, 19, 20]) {
       await expect(page.getByTestId(`trash-ball-${completedId}`)).toBeVisible();
     }
-    await page.getByTestId('btn-close-trash').click();
-    await expect(page.getByTestId('trash-modal')).toHaveCount(0);
+    await page.getByTestId('btn-close-trash-drawer').click();
+    await expect(page.getByTestId('trash-drawer')).toHaveCount(0);
 
     guard.assertNoErrors();
   });
@@ -352,9 +352,9 @@ test.describe('Tier 1 — Core Feature Coverage (F01–F31)', () => {
     expect(await getCompletedCountFromBar(page)).toBe(5);
 
     await page.getByTestId('trash-can-widget').click();
-    await expect(page.getByTestId('trash-modal')).toBeVisible();
+    await expect(page.getByTestId('trash-drawer')).toBeVisible();
     await expect(page.getByTestId('trash-ball-7')).toBeVisible();
-    await page.getByTestId('btn-close-trash').click();
+    await page.getByTestId('btn-close-trash-drawer').click();
 
     guard.assertNoErrors();
   });
@@ -427,9 +427,9 @@ test.describe('Tier 1 — Core Feature Coverage (F01–F31)', () => {
     expect(await getCompletedCountFromBar(page)).toBe(5);
 
     await page.getByTestId('trash-can-widget').click();
-    await expect(page.getByTestId('trash-modal')).toBeVisible();
+    await expect(page.getByTestId('trash-drawer')).toBeVisible();
     await expect(page.getByTestId('trash-ball-1')).toBeVisible();
-    await page.getByTestId('btn-close-trash').click();
+    await page.getByTestId('btn-close-trash-drawer').click();
 
     guard.assertNoErrors();
   });
@@ -442,12 +442,12 @@ test.describe('Tier 1 — Core Feature Coverage (F01–F31)', () => {
 
     // 1. Restore pre-completed task 17 from TrashModal
     await page.getByTestId('trash-can-widget').click();
-    await expect(page.getByTestId('trash-modal')).toBeVisible();
+    await expect(page.getByTestId('trash-drawer')).toBeVisible();
     await page.getByTestId('trash-ball-17').click({ button: 'right' });
     await expect(page.getByTestId('context-menu')).toBeVisible();
     await page.getByTestId('context-menu-restore').click();
     await expect(page.getByTestId('trash-ball-17')).toHaveCount(0);
-    await page.getByTestId('btn-close-trash').click();
+    await page.getByTestId('btn-close-trash-drawer').click();
 
     await expect(page.getByTestId('postit-note-17')).toBeVisible();
     await expect(page.getByTestId('postit-note-17')).toHaveAttribute('data-priority', 'wysoki');
@@ -481,7 +481,7 @@ test.describe('Tier 1 — Core Feature Coverage (F01–F31)', () => {
     expect(await getCompletedCountFromBar(page)).toBe(5);
 
     await page.getByTestId('trash-can-widget').click();
-    await expect(page.getByTestId('trash-modal')).toBeVisible();
+    await expect(page.getByTestId('trash-drawer')).toBeVisible();
 
     await page.getByTestId('trash-ball-18').hover();
 
@@ -496,8 +496,8 @@ test.describe('Tier 1 — Core Feature Coverage (F01–F31)', () => {
     await page.getByTestId('context-menu-delete').click();
     await expect(page.getByTestId('trash-ball-20')).toHaveCount(0);
 
-    await page.getByTestId('btn-close-trash').click();
-    await expect(page.getByTestId('trash-modal')).toHaveCount(0);
+    await page.getByTestId('btn-close-trash-drawer').click();
+    await expect(page.getByTestId('trash-drawer')).toHaveCount(0);
     expect(await getCompletedCountFromBar(page)).toBe(4);
 
     guard.assertNoErrors();
@@ -510,7 +510,7 @@ test.describe('Tier 1 — Core Feature Coverage (F01–F31)', () => {
     await startFreshApp(page);
 
     await page.getByTestId('trash-can-widget').click();
-    await expect(page.getByTestId('trash-modal')).toBeVisible();
+    await expect(page.getByTestId('trash-drawer')).toBeVisible();
 
     // Open EmptySummaryModal and test cancel first
     await page.getByTestId('btn-empty-trash').click();
@@ -521,7 +521,7 @@ test.describe('Tier 1 — Core Feature Coverage (F01–F31)', () => {
     expect(await getCompletedCountFromBar(page)).toBe(4);
 
     // Re-open EmptySummaryModal and confirm permanent empty to archive
-    if ((await page.getByTestId('trash-modal').count()) === 0) {
+    if ((await page.getByTestId('trash-drawer').count()) === 0) {
       await page.getByTestId('trash-can-widget').click();
     }
     await page.getByTestId('btn-empty-trash').click();
@@ -529,8 +529,8 @@ test.describe('Tier 1 — Core Feature Coverage (F01–F31)', () => {
     await page.getByTestId('btn-confirm-empty-trash').click();
     await expect(summaryModal).toHaveCount(0);
 
-    if ((await page.getByTestId('trash-modal').count()) > 0) {
-      await page.getByTestId('btn-close-trash').click();
+    if ((await page.getByTestId('trash-drawer').count()) > 0) {
+      await page.getByTestId('btn-close-trash-drawer').click();
     }
 
     expect(await getCompletedCountFromBar(page)).toBe(0);
@@ -622,6 +622,64 @@ test.describe('Tier 1 — Core Feature Coverage (F01–F31)', () => {
       'Zadanie sprawdzające zapis po odświeżeniu F5',
     );
     expect((await readPrefsFromLocalStorage(page)).muted).toBe(true);
+
+    guard.assertNoErrors();
+  });
+
+  test('T1-19: trashcan hover feedback, drawer expansion with corkboard shift, note-to-ball hover morph, and take-everything-out', async ({
+    page,
+  }) => {
+    const guard = attachErrorGuards(page);
+    await startFreshApp(page);
+
+    const widget = page.getByTestId('trash-can-widget');
+    const hitbox = page.getByTestId('trash-hitbox');
+    const corkboard = page.getByTestId('corkboard');
+
+    // 1. Hover feedback on collapsed trashcan
+    await expect(widget).toHaveAttribute('data-hovered', 'false');
+    await hitbox.hover();
+    await expect(widget).toHaveAttribute('data-hovered', 'true');
+
+    // 2. Drag unfinished note #7 over collapsed trashcan -> morphs to crumpled ball without completing yet
+    const note7 = page.getByTestId('postit-note-7');
+    await note7.scrollIntoViewIfNeeded();
+    const noteBox = (await note7.boundingBox())!;
+    const hitboxBox = (await hitbox.boundingBox())!;
+    await page.mouse.move(noteBox.x + noteBox.width / 2, noteBox.y + noteBox.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(noteBox.x + noteBox.width / 2 + 16, noteBox.y + noteBox.height / 2 + 16, { steps: 3 });
+    await expect(page.getByTestId('drag-note-card-preview')).toBeVisible();
+
+    await page.mouse.move(hitboxBox.x + hitboxBox.width / 2, hitboxBox.y + hitboxBox.height / 2, { steps: 8 });
+    await expect(page.getByTestId('drag-note-crumpled-preview')).toBeVisible();
+    expect(await getCompletedCountFromBar(page)).toBe(4); // Not completed yet!
+
+    // Move away and release -> still active on board
+    await page.mouse.move(24, 96, { steps: 6 });
+    await page.mouse.up();
+    await expect(page.getByTestId('postit-note-7')).toBeVisible();
+    expect(await getCompletedCountFromBar(page)).toBe(4);
+
+    // 3. Click trashcan -> opens drawer and shifts corkboard left
+    await hitbox.click();
+    const drawer = page.getByTestId('trash-drawer');
+    await expect(drawer).toBeVisible();
+    await expect(corkboard).toHaveAttribute('data-drawer-open', 'true');
+    await expect(page.getByTestId('trash-hoop')).toBeVisible();
+    await expect(page.getByTestId('trash-body')).toBeVisible();
+
+    // 4. Click "Wyjmij" (take everything out) -> puts all 4 trashed tasks onto the floor
+    await page.getByTestId('btn-take-all-out').click();
+    for (const id of [17, 18, 19, 20]) {
+      await expect(page.getByTestId(`floor-ball-${id}`)).toBeVisible();
+    }
+    expect(await getCompletedCountFromBar(page)).toBe(4);
+
+    // 5. Close drawer via >> button on physical drawer base
+    await page.getByTestId('btn-close-trash-drawer').click();
+    await expect(drawer).toHaveCount(0);
+    await expect(corkboard).toHaveAttribute('data-drawer-open', 'false');
 
     guard.assertNoErrors();
   });

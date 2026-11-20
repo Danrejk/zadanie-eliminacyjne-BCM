@@ -120,11 +120,11 @@ test.describe('Tier 4 — Real-World Student & Competition Judge Scenarios', () 
     expect(await getCompletedCountFromBar(page)).toBe(7);
 
     await page.getByTestId('trash-can-widget').click();
-    await expect(page.getByTestId('trash-modal')).toBeVisible();
+    await expect(page.getByTestId('trash-drawer')).toBeVisible();
     for (const trashId of [1, 2, 7, 17, 18, 19, 20]) {
       await expect(page.getByTestId(`trash-ball-${trashId}`)).toBeVisible();
     }
-    await page.getByTestId('btn-close-trash').click();
+    await page.getByTestId('btn-close-trash-drawer').click();
 
     guard.assertNoErrors();
   });
@@ -197,7 +197,7 @@ test.describe('Tier 4 — Real-World Student & Competition Judge Scenarios', () 
 
     // 2. Open TrashModal, sweep floor ball 8 into trash, and open EmptySummaryModal
     await page.getByTestId('trash-can-widget').click();
-    await expect(page.getByTestId('trash-modal')).toBeVisible();
+    await expect(page.getByTestId('trash-drawer')).toBeVisible();
     await page.getByTestId('btn-sweep-floor').click();
     await expect(page.getByTestId('trash-ball-8')).toBeVisible();
 
@@ -207,8 +207,8 @@ test.describe('Tier 4 — Real-World Student & Competition Judge Scenarios', () 
 
     // 3. Confirm emptying trash -> tasks move from main zadania to archive
     await page.getByTestId('btn-confirm-empty-trash').click();
-    if ((await page.getByTestId('trash-modal').count()) > 0) {
-      await page.getByTestId('btn-close-trash').click();
+    if ((await page.getByTestId('trash-drawer').count()) > 0) {
+      await page.getByTestId('btn-close-trash-drawer').click();
     }
 
     expect(await getCompletedCountFromBar(page)).toBe(0);

@@ -405,6 +405,22 @@ describe('taskReducer & selectors', () => {
       state = taskReducer(state, { type: 'SWEEP_FLOOR_TO_TRASH' });
       expect(state.floorBalls).toEqual([]);
       expect(selectInTrashTasks(state.tasks, selectFloorBallIds(state.floorBalls)).map((t) => t.id)).toEqual([2, 4]);
+
+      // Open and close trash drawer
+      state = taskReducer(state, { type: 'SET_TRASH_DRAWER_OPEN', payload: { open: true } });
+      expect(state.trashDrawerOpen).toBe(true);
+
+      // Spill all trashed balls (#2, #4) back onto the floor while keeping wykonane: true
+      state = taskReducer(state, {
+        type: 'SPILL_TRASH_TO_FLOOR',
+        payload: { originX: 900, originY: 360 },
+      });
+      expect(selectInTrashTasks(state.tasks, selectFloorBallIds(state.floorBalls))).toEqual([]);
+      expect(selectFloorBallIds(state.floorBalls)).toEqual(new Set([2, 4]));
+      expect(state.floorBalls.every((b) => typeof b.vx === 'number' && b.vx < 0)).toBe(true);
+
+      state = taskReducer(state, { type: 'SET_TRASH_DRAWER_OPEN', payload: { open: false } });
+      expect(state.trashDrawerOpen).toBe(false);
     });
 
     it('EMPTY_TRASH archives and removes ONLY inTrashTasks while keeping active and floor-ball tasks', () => {
@@ -507,8 +523,8 @@ describe('taskReducer & selectors', () => {
         type: 'OPEN_CONTEXT_MENU',
         payload: { kind: 'note', taskId: 1, x: 10, y: 20 },
       });
-      state = taskReducer(state, { type: 'OPEN_MODAL', payload: { type: 'trash' } });
-      expect(state.activeModal).toEqual({ type: 'trash' });
+      state = taskReducer(state, { type: 'OPEN_MODAL', payload: { type: 'archive' } });
+      expect(state.activeModal).toEqual({ type: 'archive' });
       expect(state.contextMenu).toBeNull();
 
       state = taskReducer(state, { type: 'SHOW_TOAST', payload: { type: 'info', text: 'Pierwszy' } });

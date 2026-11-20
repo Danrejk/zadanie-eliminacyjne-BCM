@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useEffect, useMemo, useReducer, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import sampleTasksRaw from '../data/sampleTasks.json';
-import type { Task, TaskAction, TasksFile, TaskState } from '../types/task';
+import type { NoteDragState, Task, TaskAction, TasksFile, TaskState } from '../types/task';
 import {
   loadArchiveFromStorage,
   loadMutedFromStorage,
@@ -35,6 +35,11 @@ export interface TaskContextValue {
   matchingTaskIds: Set<number>;
   allTags: string[];
   trashHitboxRef: React.MutableRefObject<HTMLElement | null>;
+  trashHoopRef: React.MutableRefObject<HTMLElement | null>;
+  trashBodyRef: React.MutableRefObject<HTMLElement | null>;
+  trashDrawerBoxRef: React.MutableRefObject<HTMLElement | null>;
+  noteDrag: NoteDragState | null;
+  setNoteDrag: React.Dispatch<React.SetStateAction<NoteDragState | null>>;
 }
 
 const TaskContext = createContext<TaskContextValue | null>(null);
@@ -66,6 +71,10 @@ export function TaskProvider({ children, initialSeed }: TaskProviderProps) {
   );
 
   const trashHitboxRef = useRef<HTMLElement | null>(null);
+  const trashHoopRef = useRef<HTMLElement | null>(null);
+  const trashBodyRef = useRef<HTMLElement | null>(null);
+  const trashDrawerBoxRef = useRef<HTMLElement | null>(null);
+  const [noteDrag, setNoteDrag] = useState<NoteDragState | null>(null);
 
   // Three isolated persistence effects — NEVER persist ephemeral UI or floorBalls state
   useEffect(() => {
@@ -112,6 +121,11 @@ export function TaskProvider({ children, initialSeed }: TaskProviderProps) {
       matchingTaskIds,
       allTags,
       trashHitboxRef,
+      trashHoopRef,
+      trashBodyRef,
+      trashDrawerBoxRef,
+      noteDrag,
+      setNoteDrag,
     }),
     [
       state,
@@ -122,6 +136,7 @@ export function TaskProvider({ children, initialSeed }: TaskProviderProps) {
       inTrashTasks,
       matchingTaskIds,
       allTags,
+      noteDrag,
     ],
   );
 

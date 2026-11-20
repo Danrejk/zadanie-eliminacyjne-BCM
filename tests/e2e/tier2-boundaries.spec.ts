@@ -105,9 +105,9 @@ test.describe('Tier 2 — Boundaries, Validation Errors & Edge Cases (E01–E28)
     expect(await getCompletedCountFromBar(page)).toBe(0);
 
     await page.getByTestId('trash-can-widget').click();
-    await expect(page.getByTestId('trash-modal')).toBeVisible();
+    await expect(page.getByTestId('trash-drawer')).toBeVisible();
     await expect(page.getByTestId('btn-empty-trash')).toBeDisabled();
-    await page.getByTestId('btn-close-trash').click();
+    await page.getByTestId('btn-close-trash-drawer').click();
 
     const exportedEmpty = await exportTasksJson(page, 2);
     expect(exportedEmpty.data).toEqual({ wersja: 2, zadania: [] });
@@ -158,7 +158,7 @@ test.describe('Tier 2 — Boundaries, Validation Errors & Edge Cases (E01–E28)
     await page.getByTestId('trash-can-widget').click();
     await expect(page.getByTestId('trash-ball-105')).toBeVisible();
     await expect(page.getByTestId('trash-ball-106')).toBeVisible();
-    await page.getByTestId('btn-close-trash').click();
+    await page.getByTestId('btn-close-trash-drawer').click();
 
     // Mutate state by deleting task 101, then re-import the exact same file path
     await page.getByTestId('postit-note-101').click({ button: 'right' });
@@ -443,11 +443,11 @@ test.describe('Tier 2 — Boundaries, Validation Errors & Edge Cases (E01–E28)
     expect(await getCompletedCountFromBar(page)).toBe(7);
 
     await page.getByTestId('trash-can-widget').click();
-    await expect(page.getByTestId('trash-modal')).toBeVisible();
+    await expect(page.getByTestId('trash-drawer')).toBeVisible();
     for (const id of [1, 2, 6, 17, 18, 19, 20]) {
       await expect(page.getByTestId(`trash-ball-${id}`)).toBeVisible();
     }
-    await page.getByTestId('btn-close-trash').click();
+    await page.getByTestId('btn-close-trash-drawer').click();
 
     guard.assertNoErrors();
   });
@@ -498,8 +498,8 @@ test.describe('Tier 2 — Boundaries, Validation Errors & Edge Cases (E01–E28)
     await page.getByTestId('trash-can-widget').click();
     await page.getByTestId('btn-empty-trash').click();
     await page.getByTestId('btn-confirm-empty-trash').click();
-    if ((await page.getByTestId('trash-modal').count()) > 0) {
-      await page.getByTestId('btn-close-trash').click();
+    if ((await page.getByTestId('trash-drawer').count()) > 0) {
+      await page.getByTestId('btn-close-trash-drawer').click();
     }
 
     await expect(page.getByTestId('floor-ball-1')).toBeVisible();
@@ -513,8 +513,8 @@ test.describe('Tier 2 — Boundaries, Validation Errors & Edge Cases (E01–E28)
 
     await page.getByTestId('btn-empty-trash').click();
     await page.getByTestId('btn-confirm-empty-trash').click();
-    if ((await page.getByTestId('trash-modal').count()) > 0) {
-      await page.getByTestId('btn-close-trash').click();
+    if ((await page.getByTestId('trash-drawer').count()) > 0) {
+      await page.getByTestId('btn-close-trash-drawer').click();
     }
 
     await expect(page.locator('[data-testid^="floor-ball-"]:not([data-testid^="floor-ball-tooltip-"])')).toHaveCount(0);

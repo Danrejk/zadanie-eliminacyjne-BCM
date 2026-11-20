@@ -88,6 +88,7 @@ export function createInitialState(seed: InitialStateSeed): TaskState {
     draggingFloorBallId: null,
     ballInFlight: false,
     draggingNoteId: null,
+    trashDrawerOpen: false,
     trashBounceCount: 0,
     filters: { ...DEFAULT_FILTERS, selectedTags: [] },
     activeModal: { type: 'none' },
@@ -411,6 +412,37 @@ export function taskReducer(state: TaskState, action: TaskAction): TaskState {
       };
     }
 
+    case 'SPILL_TRASH_TO_FLOOR': {
+      const floorIds = selectFloorBallIds(state.floorBalls);
+      const inTrash = selectInTrashTasks(state.tasks, floorIds);
+      if (inTrash.length === 0) {
+        return state;
+      }
+
+      const { originX, originY } = action.payload;
+      const now = Date.now();
+      const spilled: FloorBallSpawn[] = inTrash.map((task, idx) => {
+        const spread = idx % 7;
+        const row = Math.floor(idx / 7);
+        const vx = -210 - spread * 42 - (task.id % 4) * 20;
+        const vy = -260 - ((idx * 53) % 240) - row * 35;
+        return {
+          taskId: task.id,
+          originX: originX - (idx % 3) * 10,
+          originY: originY + ((idx % 4) - 1) * 8,
+          spawnedAt: now,
+          vx,
+          vy,
+        };
+      });
+
+      return {
+        ...state,
+        floorBalls: [...state.floorBalls, ...spilled],
+        contextMenu: state.contextMenu?.kind === 'trashBall' ? null : state.contextMenu,
+      };
+    }
+
     case 'RESTORE_TASK': {
       const { id } = action.payload;
       const existing = state.tasks.find((t) => t.id === id);
@@ -475,6 +507,7 @@ export function taskReducer(state: TaskState, action: TaskAction): TaskState {
         draggingFloorBallId: null,
         ballInFlight: false,
         draggingNoteId: null,
+        trashDrawerOpen: false,
         filters: { ...DEFAULT_FILTERS, selectedTags: [] },
         activeModal: { type: 'none' },
         contextMenu: null,
@@ -498,6 +531,7 @@ export function taskReducer(state: TaskState, action: TaskAction): TaskState {
         draggingFloorBallId: null,
         ballInFlight: false,
         draggingNoteId: null,
+        trashDrawerOpen: false,
         filters: { ...DEFAULT_FILTERS, selectedTags: [] },
         activeModal: { type: 'none' },
         contextMenu: null,
@@ -531,6 +565,20 @@ export function taskReducer(state: TaskState, action: TaskAction): TaskState {
       return {
         ...state,
         draggingNoteId: action.payload.id,
+      };
+    }
+
+    case 'SET_TRASH_DRAWER_OPEN': {
+      if (state.trashDrawerOpen === action.payload.open) {
+        return state;
+      }
+      return {
+        ...state,
+        trashDrawerOpen: action.payload.open,
+        contextMenu:
+          !action.payload.open && state.contextMenu?.kind === 'trashBall'
+            ? null
+            : state.contextMenu,
       };
     }
 
@@ -602,6 +650,13 @@ export function taskReducer(state: TaskState, action: TaskAction): TaskState {
     }
 
     case 'OPEN_MODAL': {
+      if (action.payload.type === 'trash') {
+        return {
+          ...state,
+          trashDrawerOpen: true,
+          contextMenu: null,
+        };
+      }
       return {
         ...state,
         activeModal: action.payload,

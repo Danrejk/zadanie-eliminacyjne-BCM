@@ -1,13 +1,21 @@
 import React, { useEffect, useRef } from 'react';
 import { Calendar } from 'lucide-react';
-import type { Task, TaskAction, TimeZone } from '../types/task';
-import { formatDisplayDate, isOverdue } from '../utils/dateBuckets';
+import type { Priority, Task, TaskAction, TimeZone } from '../types/task';
+import { useTasks } from '../context/TaskContext';
+import {
+  canDropIntoZone,
+  formatDisplayDate,
+  getTimeZone,
+  getTodayDateString,
+  isOverdue,
+} from '../utils/dateBuckets';
 import { getNoteRotation, getTagColor, normalizeTag } from '../utils/tagColors';
-import { playCrumpleSound } from '../utils/sound';
+import { playCrumpleSound, playPinClickSound, playTrashPlopSound } from '../utils/sound';
 import { PushPin } from './PushPin';
 
 export const CLICK_DELAY_MS = 230;
 export const DRAG_END_RESET_MS = 50;
+export const DRAG_THRESHOLD_PX = 6;
 
 export interface PostItNoteProps {
   task: Task;
@@ -20,6 +28,44 @@ export interface PostItNoteProps {
   todayStr?: string;
 }
 
+function isPointInRect(
+  x: number,
+  y: number,
+  rect: DOMRect | null | undefined,
+  padding = 0,
+): boolean {
+  if (!rect || rect.width <= 0 || rect.height <= 0) {
+    return false;
+  }
+  return (
+    x >= rect.left - padding &&
+    x <= rect.right + padding &&
+    y >= rect.top - padding &&
+    y <= rect.bottom + padding
+  );
+}
+
+function findCellAtPoint(
+  x: number,
+  y: number,
+): { priority: Priority; zone: TimeZone } | null {
+  if (typeof document === 'undefined' || typeof document.elementsFromPoint !== 'function') {
+    return null;
+  }
+  const els = document.elementsFromPoint(x, y);
+  for (let i = 0; i < els.length; i++) {
+    const cell = els[i].closest?.('[data-testid^="zone-cell-"]') as HTMLElement | null;
+    if (cell) {
+      const priority = cell.dataset.priority as Priority | undefined;
+      const zone = cell.dataset.zone as TimeZone | undefined;
+      if (priority && zone) {
+        return { priority, zone };
+      }
+    }
+  }
+  return null;
+}
+
 function PostItNoteComponent({
   task,
   zone,
@@ -30,12 +76,34 @@ function PostItNoteComponent({
   dispatch,
   todayStr,
 }: PostItNoteProps) {
+  const {
+    state,
+    trashHitboxRef,
+    trashHoopRef,
+    trashBodyRef,
+    setNoteDrag,
+  } = useTasks();
+
   const clickTimerRef = useRef<number | null>(null);
   const dragResetTimerRef = useRef<number | null>(null);
-  const rafIdRef = useRef<number | null>(null);
+  const cleanupListenersRef = useRef<(() => void) | null>(null);
   const wasDraggingRef = useRef<boolean>(false);
   const isCrumplingRef = useRef<boolean>(false);
   const isModalOpenRef = useRef<boolean>(isModalOpen);
+  const trashDrawerOpenRef = useRef<boolean>(state.trashDrawerOpen);
+  const mutedRef = useRef<boolean>(muted);
+
+  useEffect(() => {
+    trashDrawerOpenRef.current = state.trashDrawerOpen;
+    if (state.trashDrawerOpen && clickTimerRef.current !== null) {
+      window.clearTimeout(clickTimerRef.current);
+      clickTimerRef.current = null;
+    }
+  }, [state.trashDrawerOpen]);
+
+  useEffect(() => {
+    mutedRef.current = muted;
+  }, [muted]);
 
   useEffect(() => {
     isModalOpenRef.current = isModalOpen;
@@ -61,9 +129,9 @@ function PostItNoteComponent({
         window.clearTimeout(dragResetTimerRef.current);
         dragResetTimerRef.current = null;
       }
-      if (rafIdRef.current !== null) {
-        window.cancelAnimationFrame(rafIdRef.current);
-        rafIdRef.current = null;
+      if (cleanupListenersRef.current) {
+        cleanupListenersRef.current();
+        cleanupListenersRef.current = null;
       }
     };
   }, []);
@@ -131,53 +199,125 @@ function PostItNoteComponent({
     });
   };
 
-  const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
-    clearClickTimer();
-    if (dragResetTimerRef.current !== null) {
-      window.clearTimeout(dragResetTimerRef.current);
-      dragResetTimerRef.current = null;
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0 || isCrumplingRef.current || isModalOpenRef.current) {
+      return;
     }
-    wasDraggingRef.current = true;
 
-    if (e.dataTransfer) {
-      try {
-        e.dataTransfer.setData('application/x-smartapp-task-id', String(task.id));
-        e.dataTransfer.setData('text/plain', String(task.id));
-        e.dataTransfer.effectAllowed = 'move';
-      } catch {
-        // Safe fallback for partial or frozen synthetic DataTransfer objects in tests
+    const startX = e.clientX;
+    const startY = e.clientY;
+    let activeDrag = false;
+    let lastOverTrash = false;
+    let lastCell: { priority: Priority; zone: TimeZone } | null = null;
+
+    const checkOverTrash = (x: number, y: number): boolean => {
+      if (trashDrawerOpenRef.current) {
+        return (
+          isPointInRect(x, y, trashHoopRef.current?.getBoundingClientRect(), 12) ||
+          isPointInRect(x, y, trashBodyRef.current?.getBoundingClientRect(), 8)
+        );
       }
-    }
+      return isPointInRect(x, y, trashHitboxRef.current?.getBoundingClientRect(), 12);
+    };
 
-    if (rafIdRef.current !== null) {
-      window.cancelAnimationFrame(rafIdRef.current);
-      rafIdRef.current = null;
-    }
+    const cleanup = () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerCancel);
+      cleanupListenersRef.current = null;
+    };
 
-    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
-      rafIdRef.current = window.requestAnimationFrame(() => {
-        rafIdRef.current = null;
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      const cx = moveEvent.clientX;
+      const cy = moveEvent.clientY;
+
+      if (!activeDrag) {
+        if (Math.hypot(cx - startX, cy - startY) < DRAG_THRESHOLD_PX) {
+          return;
+        }
+        activeDrag = true;
+        clearClickTimer();
+        if (dragResetTimerRef.current !== null) {
+          window.clearTimeout(dragResetTimerRef.current);
+          dragResetTimerRef.current = null;
+        }
+        wasDraggingRef.current = true;
         dispatch({ type: 'SET_DRAGGING_NOTE', payload: { id: task.id } });
+      }
+
+      lastOverTrash = checkOverTrash(cx, cy);
+      lastCell = lastOverTrash ? null : findCellAtPoint(cx, cy);
+
+      setNoteDrag({
+        taskId: task.id,
+        clientX: cx,
+        clientY: cy,
+        isOverTrash: lastOverTrash,
+        hoveredCell: lastCell,
       });
-    } else {
-      dispatch({ type: 'SET_DRAGGING_NOTE', payload: { id: task.id } });
-    }
-  };
+    };
 
-  const handleDragEnd = () => {
-    if (rafIdRef.current !== null) {
-      window.cancelAnimationFrame(rafIdRef.current);
-      rafIdRef.current = null;
-    }
-    dispatch({ type: 'SET_DRAGGING_NOTE', payload: { id: null } });
+    const finishDrag = (commit: boolean, cx: number, cy: number) => {
+      cleanup();
+      if (!activeDrag) {
+        return;
+      }
 
-    if (dragResetTimerRef.current !== null) {
-      window.clearTimeout(dragResetTimerRef.current);
+      const finalOverTrash = commit ? checkOverTrash(cx, cy) : false;
+      const finalCell = commit && !finalOverTrash ? findCellAtPoint(cx, cy) : null;
+
+      setNoteDrag(null);
+      dispatch({ type: 'SET_DRAGGING_NOTE', payload: { id: null } });
+
+      if (commit) {
+        if (finalOverTrash) {
+          playTrashPlopSound(mutedRef.current);
+          dispatch({ type: 'COMPLETE_TO_TRASH', payload: { id: task.id } });
+        } else if (finalCell) {
+          const effectiveToday = todayStr ?? getTodayDateString();
+          const currentZone = getTimeZone(task.termin, effectiveToday);
+          if (
+            canDropIntoZone(task.termin, finalCell.zone, effectiveToday) &&
+            !(task.priorytet === finalCell.priority && currentZone === finalCell.zone)
+          ) {
+            playPinClickSound(mutedRef.current);
+            dispatch({
+              type: 'MOVE_TASK_TO_ZONE',
+              payload: {
+                id: task.id,
+                targetPriority: finalCell.priority,
+                targetZone: finalCell.zone,
+                todayStr: effectiveToday,
+              },
+            });
+          }
+        }
+      }
+
+      if (dragResetTimerRef.current !== null) {
+        window.clearTimeout(dragResetTimerRef.current);
+      }
+      dragResetTimerRef.current = window.setTimeout(() => {
+        dragResetTimerRef.current = null;
+        wasDraggingRef.current = false;
+      }, DRAG_END_RESET_MS);
+    };
+
+    const onPointerUp = (upEvent: PointerEvent) => {
+      finishDrag(true, upEvent.clientX, upEvent.clientY);
+    };
+
+    const onPointerCancel = () => {
+      finishDrag(false, startX, startY);
+    };
+
+    if (cleanupListenersRef.current) {
+      cleanupListenersRef.current();
     }
-    dragResetTimerRef.current = window.setTimeout(() => {
-      dragResetTimerRef.current = null;
-      wasDraggingRef.current = false;
-    }, DRAG_END_RESET_MS);
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerCancel);
+    cleanupListenersRef.current = cleanup;
   };
 
   const handleContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -210,13 +350,14 @@ function PostItNoteComponent({
         data-variant={variant}
         data-dimmed={isDimmed ? 'true' : 'false'}
         data-dragging={isDragging ? 'true' : 'false'}
-        draggable
+        onPointerDown={handlePointerDown}
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
         onContextMenu={handleContextMenu}
-        style={{ '--note-rotation': `${rotation}deg` } as React.CSSProperties}
+        style={{
+          '--note-rotation': `${rotation}deg`,
+          touchAction: 'none',
+        } as React.CSSProperties}
         className="postit-card"
       >
         <PushPin taskId={task.id} tags={task.tagi} />
