@@ -463,6 +463,10 @@ export function Corkboard({ todayStr }: CorkboardProps) {
                             task={task}
                             zone={zone}
                             isDimmed={isDimmed}
+                            isDragging={state.draggingNoteId === task.id}
+                            isModalOpen={state.activeModal.type !== 'none'}
+                            muted={state.muted}
+                            dispatch={dispatch}
                             todayStr={effectiveToday}
                           />
                         );

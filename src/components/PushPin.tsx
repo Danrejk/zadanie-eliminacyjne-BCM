@@ -1,4 +1,4 @@
-import { motion } from 'motion/react';
+import React from 'react';
 import { getTagColor, normalizeTag } from '../utils/tagColors';
 
 export interface PushPinProps {
@@ -19,7 +19,7 @@ export function computePinLeftPercent(index: number, count: number): number {
   return Math.round((edgePad + (index / (count - 1)) * span) * 100) / 100;
 }
 
-export function PushPin({ taskId, tags }: PushPinProps) {
+function PushPinComponent({ taskId, tags }: PushPinProps) {
   if (tags.length === 0) {
     return (
       <div
@@ -30,19 +30,16 @@ export function PushPin({ taskId, tags }: PushPinProps) {
           className="pushpin-anchor"
           style={{ left: '50%' }}
         >
-          <motion.div
+          <div
             data-testid={`nail-pin-${taskId}`}
             title="Gwoździk (brak tagów)"
             aria-label="Gwoździk (brak tagów)"
-            className="pushpin-nail"
-            initial={{ scale: 0.4, y: -5, opacity: 0 }}
-            animate={{ scale: 1, y: 0, opacity: 1 }}
-            transition={{ type: 'spring', stiffness: 440, damping: 22 }}
+            className="pushpin-nail pushpin-enter"
           >
             <span className="pushpin-nail-hole" aria-hidden="true" />
             <span className="pushpin-nail-shaft" aria-hidden="true" />
             <span className="pushpin-nail-head" aria-hidden="true" />
-          </motion.div>
+          </div>
         </div>
       </div>
     );
@@ -72,22 +69,14 @@ export function PushPin({ taskId, tags }: PushPinProps) {
             className="pushpin-anchor"
             style={{ left: `${leftPercent}%` }}
           >
-            <motion.div
+            <div
               data-testid={`pushpin-${taskId}-${index}`}
               data-tag={normalized}
               data-color={color.bg}
               title={tag}
               aria-label={`Tag: ${tag} (${color.name})`}
               aria-describedby={tooltipId}
-              className={`pushpin-item ${sizeClass}`}
-              initial={{ scale: 0.35, y: -6, opacity: 0 }}
-              animate={{ scale: 1, y: 0, opacity: 1 }}
-              transition={{
-                type: 'spring',
-                stiffness: 420,
-                damping: 22,
-                delay: Math.min(index * 0.03, 0.18),
-              }}
+              className={`pushpin-item pushpin-enter ${sizeClass}`}
             >
               <span
                 className="pushpin-needle-shadow"
@@ -115,7 +104,7 @@ export function PushPin({ taskId, tags }: PushPinProps) {
                 />
                 {tag}
               </span>
-            </motion.div>
+            </div>
           </div>
         );
       })}
@@ -123,4 +112,5 @@ export function PushPin({ taskId, tags }: PushPinProps) {
   );
 }
 
+export const PushPin = React.memo(PushPinComponent);
 export default PushPin;

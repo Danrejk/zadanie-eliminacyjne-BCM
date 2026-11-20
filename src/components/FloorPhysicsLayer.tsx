@@ -37,11 +37,20 @@ function getViewportSize(): ViewportSize {
   };
 }
 
+interface RenderedBallState {
+  x: number;
+  y: number;
+  rotation: number;
+  scale: number;
+  opacity: number;
+}
+
 function applyBallTransform(
   el: HTMLDivElement,
   visualEl: HTMLDivElement | undefined,
   ball: FloorBall,
   nowMs: number,
+  lastRenderedMap?: Map<number, RenderedBallState>,
 ): void {
   let scale = ball.isDragging ? 1.08 : 1;
   let opacity = 1;
@@ -52,6 +61,27 @@ function applyBallTransform(
     const t = Math.min(1, elapsed / TRASH_ENTER_DURATION_MS);
     scale = Math.max(0.25, 1 - 0.72 * t);
     opacity = Math.max(0, 1 - 0.85 * t);
+  }
+
+  if (lastRenderedMap) {
+    const prev = lastRenderedMap.get(ball.taskId);
+    if (
+      prev &&
+      prev.x === ball.x &&
+      prev.y === ball.y &&
+      prev.rotation === ball.rotation &&
+      prev.scale === scale &&
+      prev.opacity === opacity
+    ) {
+      return;
+    }
+    lastRenderedMap.set(ball.taskId, {
+      x: ball.x,
+      y: ball.y,
+      rotation: ball.rotation,
+      scale,
+      opacity,
+    });
   }
 
   el.style.transform = `translate3d(${ball.x - ball.radius}px, ${ball.y - ball.radius}px, 0)`;
@@ -67,7 +97,9 @@ export function FloorPhysicsLayer() {
   const ballsRef = useRef<Map<number, FloorBall>>(new Map());
   const domRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const ballVisualRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  const lastRenderedRef = useRef<Map<number, RenderedBallState>>(new Map());
   const samplesRef = useRef<Map<number, PointerSample[]>>(new Map());
+  const trashRectRef = useRef<DOMRect | null>(null);
   const lastInFlightRef = useRef<boolean>(state.ballInFlight);
   const ballInFlightRef = useRef<boolean>(state.ballInFlight);
   const mutedRef = useRef<boolean>(state.muted);
@@ -91,6 +123,7 @@ export function FloorPhysicsLayer() {
       if (!activeIds.has(id)) {
         ballsRef.current.delete(id);
         samplesRef.current.delete(id);
+        lastRenderedRef.current.delete(id);
       }
     }
 
@@ -104,7 +137,13 @@ export function FloorPhysicsLayer() {
     for (const [id, ball] of ballsRef.current.entries()) {
       const el = domRefs.current.get(id);
       if (el) {
-        applyBallTransform(el, ballVisualRefs.current.get(id), ball, nowMs);
+        applyBallTransform(
+          el,
+          ballVisualRefs.current.get(id),
+          ball,
+          nowMs,
+          lastRenderedRef.current,
+        );
       }
     }
 
@@ -113,9 +152,14 @@ export function FloorPhysicsLayer() {
     }
   }, [state.floorBalls, hoveredBallId]);
 
-  // Window resize clamping
+  // Window resize clamping & trash hitbox cache refresh
   useEffect(() => {
+    const refreshTrashRect = () => {
+      trashRectRef.current = trashHitboxRef.current?.getBoundingClientRect() ?? null;
+    };
+
     const handleResize = () => {
+      refreshTrashRect();
       const viewport = getViewportSize();
       const balls = Array.from(ballsRef.current.values());
       if (balls.length === 0) {
@@ -126,16 +170,24 @@ export function FloorPhysicsLayer() {
       for (const ball of balls) {
         const el = domRefs.current.get(ball.taskId);
         if (el) {
-          applyBallTransform(el, ballVisualRefs.current.get(ball.taskId), ball, nowMs);
+          applyBallTransform(
+            el,
+            ballVisualRefs.current.get(ball.taskId),
+            ball,
+            nowMs,
+            lastRenderedRef.current,
+          );
         }
       }
     };
 
     window.addEventListener('resize', handleResize);
+    window.addEventListener('scroll', refreshTrashRect, { passive: true });
     return () => {
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('scroll', refreshTrashRect);
     };
-  }, []);
+  }, [trashHitboxRef]);
 
   // Cancel active drag cleanly on window blur
   useEffect(() => {
@@ -151,7 +203,13 @@ export function FloorPhysicsLayer() {
           samplesRef.current.delete(ball.taskId);
           const el = domRefs.current.get(ball.taskId);
           if (el) {
-            applyBallTransform(el, ballVisualRefs.current.get(ball.taskId), ball, now);
+            applyBallTransform(
+              el,
+              ballVisualRefs.current.get(ball.taskId),
+              ball,
+              now,
+              lastRenderedRef.current,
+            );
           }
           hadDragging = true;
         }
@@ -177,6 +235,8 @@ export function FloorPhysicsLayer() {
       return;
     }
 
+    trashRectRef.current = trashHitboxRef.current?.getBoundingClientRect() ?? null;
+
     let rafId = 0;
     let lastTime: number | null = null;
     let cancelled = false;
@@ -190,7 +250,8 @@ export function FloorPhysicsLayer() {
       lastTime = nowMs;
 
       const viewport = getViewportSize();
-      const trashRect = trashHitboxRef.current?.getBoundingClientRect() ?? null;
+      const trashRect =
+        trashRectRef.current ?? trashHitboxRef.current?.getBoundingClientRect() ?? null;
       const balls = Array.from(ballsRef.current.values());
 
       const result = stepFloorPhysics(balls, dt, viewport, trashRect, nowMs);
@@ -198,7 +259,13 @@ export function FloorPhysicsLayer() {
       for (const ball of balls) {
         const el = domRefs.current.get(ball.taskId);
         if (el) {
-          applyBallTransform(el, ballVisualRefs.current.get(ball.taskId), ball, nowMs);
+          applyBallTransform(
+            el,
+            ballVisualRefs.current.get(ball.taskId),
+            ball,
+            nowMs,
+            lastRenderedRef.current,
+          );
         }
       }
 
