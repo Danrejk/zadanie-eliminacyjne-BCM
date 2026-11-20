@@ -476,17 +476,11 @@ export function stepFloorPhysics(
 
     // Trashcan collision / scoring
     if (validExpandedTrash) {
+      const { hoopRect, bodyRect } = validExpandedTrash;
       const scoredTopHoop =
         couldScoreThisStep &&
-        ball.vy >= 0 &&
-        doesSegmentHitRect(
-          prevX,
-          prevY,
-          ball.x,
-          ball.y,
-          validExpandedTrash.hoopRect,
-          6,
-        );
+        ball.vy >= -40 &&
+        doesSegmentHitRect(prevX, prevY, ball.x, ball.y, hoopRect, 10);
 
       if (scoredTopHoop) {
         ball.enteringTrash = true;
@@ -498,8 +492,14 @@ export function stepFloorPhysics(
         ball.vRot = 0;
         newlyHitTrashIds.push(ball.taskId);
       } else {
-        // Solid sides & bottom bounce balls away
-        resolveCircleRectBounce(ball, validExpandedTrash.bodyRect);
+        // Solid sides & bottom bounce balls away; extend right bound to viewport edge so balls never wedge behind the basket
+        const solidWallRect: RectLike = {
+          left: bodyRect.left,
+          top: Math.max(bodyRect.top + 8, hoopRect.bottom - 2),
+          right: Math.max(bodyRect.right, safeW),
+          bottom: bodyRect.bottom,
+        };
+        resolveCircleRectBounce(ball, solidWallRect);
       }
     } else if (
       couldScoreThisStep &&

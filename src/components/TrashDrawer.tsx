@@ -278,7 +278,7 @@ export function TrashDrawer() {
                 }}
                 data-testid="trash-hoop"
                 aria-hidden="true"
-                className="pointer-events-none relative z-20 -mb-4 h-7 w-[278px]"
+                className="pointer-events-none relative z-20 -mb-5 h-11 w-[280px]"
               />
 
               {/* Solid Basket Body (left/right/bottom walls bounce balls away) */}
