@@ -97,25 +97,25 @@ test.describe('Tier 4 — Real-World Student & Competition Judge Scenarios', () 
     for (const id of [1, 2, 6, 7]) {
       await waitForFloorBallSettled(page, id);
     }
-    await expect(page.locator('[data-testid^="floor-ball-"]')).toHaveCount(4);
+    await expect(page.locator('[data-testid^="floor-ball-"]:not([data-testid^="floor-ball-tooltip-"])')).toHaveCount(4);
     expect(await getCompletedCountFromBar(page)).toBe(8);
 
     // 2. Throw 2 balls into the enlarging trash can (1 direct drop, 1 airborne arc throw)
     await grabAndDropFloorBallIntoTrash(page, 1);
     await grabAndThrowFloorBallIntoTrashArc(page, 2);
-    await expect(page.locator('[data-testid^="floor-ball-"]')).toHaveCount(2);
+    await expect(page.locator('[data-testid^="floor-ball-"]:not([data-testid^="floor-ball-tooltip-"])')).toHaveCount(2);
 
     // 3. Restore ball 6 back to the corkboard via floor-ball right-click menu
     await page.getByTestId('floor-ball-6').click({ button: 'right' });
     await page.getByTestId('context-menu-restore').click();
     await expect(page.getByTestId('postit-note-6')).toBeVisible();
-    await expect(page.locator('[data-testid^="floor-ball-"]')).toHaveCount(1);
+    await expect(page.locator('[data-testid^="floor-ball-"]:not([data-testid^="floor-ball-tooltip-"])')).toHaveCount(1);
     expect(await getCompletedCountFromBar(page)).toBe(7);
 
     // 4. Leave floor-ball-7 on the floor and press F5 reload -> moves into trash
     await page.reload();
     await expect(page.getByTestId('corkboard')).toBeVisible();
-    await expect(page.locator('[data-testid^="floor-ball-"]')).toHaveCount(0);
+    await expect(page.locator('[data-testid^="floor-ball-"]:not([data-testid^="floor-ball-tooltip-"])')).toHaveCount(0);
     await expect(page.getByTestId('postit-note-6')).toBeVisible();
     expect(await getCompletedCountFromBar(page)).toBe(7);
 

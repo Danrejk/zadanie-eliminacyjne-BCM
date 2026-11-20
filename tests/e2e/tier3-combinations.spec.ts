@@ -138,7 +138,7 @@ test.describe('Tier 3 — Cross-Feature Pairwise Combinations', () => {
     // Reload page with ball 6 still sitting on floor -> ball 6 moves into trash
     await page.reload();
     await expect(page.getByTestId('corkboard')).toBeVisible();
-    await expect(page.locator('[data-testid^="floor-ball-"]')).toHaveCount(0);
+    await expect(page.locator('[data-testid^="floor-ball-"]:not([data-testid^="floor-ball-tooltip-"])')).toHaveCount(0);
     await expect(page.getByTestId('postit-note-2')).toBeVisible();
     expect(await getCompletedCountFromBar(page)).toBe(6);
 
@@ -295,7 +295,7 @@ test.describe('Tier 3 — Cross-Feature Pairwise Combinations', () => {
 
     // Sweep floor balls 1 & 4 into trash bin
     await page.getByTestId('btn-sweep-floor').click();
-    await expect(page.locator('[data-testid^="floor-ball-"]')).toHaveCount(0);
+    await expect(page.locator('[data-testid^="floor-ball-"]:not([data-testid^="floor-ball-tooltip-"])')).toHaveCount(0);
     await expect(page.getByTestId('trash-ball-1')).toBeVisible();
     await expect(page.getByTestId('trash-ball-4')).toBeVisible();
 

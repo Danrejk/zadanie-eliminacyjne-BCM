@@ -101,7 +101,7 @@ test.describe('Tier 2 — Boundaries, Validation Errors & Edge Cases (E01–E28)
     await uploadTasksJson(page, 'empty-tasks.json');
 
     await expect(page.locator('[data-testid^="postit-note-"]')).toHaveCount(0);
-    await expect(page.locator('[data-testid^="floor-ball-"]')).toHaveCount(0);
+    await expect(page.locator('[data-testid^="floor-ball-"]:not([data-testid^="floor-ball-tooltip-"])')).toHaveCount(0);
     expect(await getCompletedCountFromBar(page)).toBe(0);
 
     await page.getByTestId('trash-can-widget').click();
@@ -151,7 +151,7 @@ test.describe('Tier 2 — Boundaries, Validation Errors & Edge Cases (E01–E28)
     await uploadTasksJson(page, 'valid-v2.json');
 
     // Floor balls cleared and imported completed tasks routed directly to trash
-    await expect(page.locator('[data-testid^="floor-ball-"]')).toHaveCount(0);
+    await expect(page.locator('[data-testid^="floor-ball-"]:not([data-testid^="floor-ball-tooltip-"])')).toHaveCount(0);
     await expect(page.locator('[data-testid^="postit-note-"]')).toHaveCount(4);
     expect(await getCompletedCountFromBar(page)).toBe(2);
 
@@ -401,7 +401,7 @@ test.describe('Tier 2 — Boundaries, Validation Errors & Edge Cases (E01–E28)
 
     await expect(page.getByTestId('task-modal')).toHaveCount(0);
     await expect(page.getByTestId('floor-ball-1')).toHaveCount(1);
-    await expect(page.locator('[data-testid^="floor-ball-"]')).toHaveCount(1);
+    await expect(page.locator('[data-testid^="floor-ball-"]:not([data-testid^="floor-ball-tooltip-"])')).toHaveCount(1);
 
     // Drag note 4 across cells and verify edit modal does not open after dragend
     await dragPostItToCell(page, 4, 'sredni', 'thisWeek');
@@ -424,22 +424,22 @@ test.describe('Tier 2 — Boundaries, Validation Errors & Edge Cases (E01–E28)
     for (const id of [1, 2, 6]) {
       await waitForFloorBallSettled(page, id);
     }
-    await expect(page.locator('[data-testid^="floor-ball-"]')).toHaveCount(3);
+    await expect(page.locator('[data-testid^="floor-ball-"]:not([data-testid^="floor-ball-tooltip-"])')).toHaveCount(3);
     expect(await getCompletedCountFromBar(page)).toBe(7);
 
     // E18: Miss-throw ball 1 toward top-left -> bounces back to floor & trash shrinks back
     await grabAndMissThrowFloorBall(page, 1);
-    await expect(page.locator('[data-testid^="floor-ball-"]')).toHaveCount(3);
+    await expect(page.locator('[data-testid^="floor-ball-"]:not([data-testid^="floor-ball-tooltip-"])')).toHaveCount(3);
 
     // E19: Airborne arc throw ball 2 into enlarged trash hitbox -> captured in flight
     await grabAndThrowFloorBallIntoTrashArc(page, 2);
     await expect(page.getByTestId('floor-ball-2')).toHaveCount(0);
-    await expect(page.locator('[data-testid^="floor-ball-"]')).toHaveCount(2);
+    await expect(page.locator('[data-testid^="floor-ball-"]:not([data-testid^="floor-ball-tooltip-"])')).toHaveCount(2);
 
     // E17: Reload page (F5) -> remaining floor balls (1 & 6) move into trash bin
     await page.reload();
     await expect(page.getByTestId('corkboard')).toBeVisible();
-    await expect(page.locator('[data-testid^="floor-ball-"]')).toHaveCount(0);
+    await expect(page.locator('[data-testid^="floor-ball-"]:not([data-testid^="floor-ball-tooltip-"])')).toHaveCount(0);
     expect(await getCompletedCountFromBar(page)).toBe(7);
 
     await page.getByTestId('trash-can-widget').click();
@@ -517,7 +517,7 @@ test.describe('Tier 2 — Boundaries, Validation Errors & Edge Cases (E01–E28)
       await page.getByTestId('btn-close-trash').click();
     }
 
-    await expect(page.locator('[data-testid^="floor-ball-"]')).toHaveCount(0);
+    await expect(page.locator('[data-testid^="floor-ball-"]:not([data-testid^="floor-ball-tooltip-"])')).toHaveCount(0);
     expect(await getCompletedCountFromBar(page)).toBe(0);
 
     guard.assertNoErrors();

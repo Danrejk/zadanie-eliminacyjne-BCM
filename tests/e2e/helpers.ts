@@ -116,6 +116,27 @@ export async function startFreshApp(page: Page, seed?: SeedOptions): Promise<voi
   };
 
   await page.addInitScript((data) => {
+    const OriginalDate = window.Date;
+    const realStart = OriginalDate.now();
+    const fixedStart = new OriginalDate(2026, 10, 19, 12, 0, 0, 0).getTime();
+    const getPinnedNow = () => fixedStart + (OriginalDate.now() - realStart);
+
+    function PinnedDate(this: Date, ...args: unknown[]): Date | string {
+      if (!(this instanceof PinnedDate)) {
+        return new OriginalDate(getPinnedNow()).toString();
+      }
+      if (args.length === 0) {
+        return new OriginalDate(getPinnedNow());
+      }
+      // @ts-expect-error forwarding dynamic Date constructor args
+      return new OriginalDate(...args);
+    }
+    PinnedDate.prototype = OriginalDate.prototype;
+    PinnedDate.now = getPinnedNow;
+    PinnedDate.parse = OriginalDate.parse;
+    PinnedDate.UTC = OriginalDate.UTC;
+    window.Date = PinnedDate as unknown as DateConstructor;
+
     if (!window.sessionStorage.getItem('__smartapp_e2e_seeded__')) {
       window.localStorage.clear();
       if (data.tasks !== null) {
@@ -137,12 +158,11 @@ export async function startFreshApp(page: Page, seed?: SeedOptions): Promise<voi
 }
 
 /**
- * Formats a local calendar date offset from today as `YYYY-MM-DD`,
+ * Formats a local calendar date offset from the pinned E2E date (`2026-11-19`) as `YYYY-MM-DD`,
  * matching `dateBuckets.ts` local calendar day arithmetic.
  */
 export function formatLocalDateOffset(offsetDays: number): string {
-  const now = new Date();
-  const target = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offsetDays);
+  const target = new Date(2026, 10, 19 + offsetDays);
   const year = target.getFullYear();
   const month = String(target.getMonth() + 1).padStart(2, '0');
   const day = String(target.getDate()).padStart(2, '0');
@@ -777,7 +797,7 @@ export async function grabAndMissThrowFloorBall(page: Page, taskId: number): Pro
   await expect(page.getByTestId('trash-can-widget')).toHaveAttribute('data-enlarged', 'true');
 
   await page.mouse.move(360, 360, { steps: 6 });
-  await page.mouse.move(180, 220, { steps: 4 });
+  await page.mouse.move(300, 200, { steps: 6 });
   await page.mouse.up({ button: 'left' });
 
   await waitForFloorBallSettled(page, taskId, 5000);

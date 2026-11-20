@@ -42,7 +42,7 @@ test.describe('Tier 1 — Core Feature Coverage (F01–F31)', () => {
     await expect(page.getByTestId('postit-note-4')).toContainText('Oddać projekt z baz danych');
     await expect(page.getByTestId('postit-note-8')).toContainText('Zadanie eliminacyjne SmartApp');
 
-    await expect(page.locator('[data-testid^="floor-ball-"]')).toHaveCount(0);
+    await expect(page.locator('[data-testid^="floor-ball-"]:not([data-testid^="floor-ball-tooltip-"])')).toHaveCount(0);
 
     const completedCount = await getCompletedCountFromBar(page);
     expect(completedCount).toBe(4);
@@ -573,7 +573,7 @@ test.describe('Tier 1 — Core Feature Coverage (F01–F31)', () => {
     for (const activeId of [101, 102, 103, 104]) {
       await expect(page.getByTestId(`postit-note-${activeId}`)).toBeVisible();
     }
-    await expect(page.locator('[data-testid^="floor-ball-"]')).toHaveCount(0);
+    await expect(page.locator('[data-testid^="floor-ball-"]:not([data-testid^="floor-ball-tooltip-"])')).toHaveCount(0);
     expect(await getCompletedCountFromBar(page)).toBe(2);
 
     const stored = await readTasksFromLocalStorage(page);
