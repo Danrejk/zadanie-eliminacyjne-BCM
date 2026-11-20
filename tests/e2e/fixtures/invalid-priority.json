@@ -1,0 +1,14 @@
+{
+  "wersja": 1,
+  "zadania": [
+    {
+      "id": 1,
+      "tytul": "Zadanie z niepoprawnym priorytetem",
+      "opis": "Priorytet zawiera polskie znaki diakrytyczne zamiast klucza ze specyfikacji",
+      "termin": "2026-11-22",
+      "priorytet": "średni",
+      "wykonane": false,
+      "tagi": ["studia"]
+    }
+  ]
+}

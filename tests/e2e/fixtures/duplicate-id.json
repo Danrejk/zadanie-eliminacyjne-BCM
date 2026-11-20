@@ -1,0 +1,23 @@
+{
+  "wersja": 1,
+  "zadania": [
+    {
+      "id": 7,
+      "tytul": "Pierwsze zadanie o identyfikatorze 7",
+      "opis": "Poprawne zadanie",
+      "termin": "2026-11-20",
+      "priorytet": "wysoki",
+      "wykonane": false,
+      "tagi": ["studia"]
+    },
+    {
+      "id": 7,
+      "tytul": "Drugie zadanie ze zduplikowanym identyfikatorem 7",
+      "opis": "Powinno zostać odrzucone przez walidator",
+      "termin": "2026-11-25",
+      "priorytet": "niski",
+      "wykonane": false,
+      "tagi": ["projekt"]
+    }
+  ]
+}

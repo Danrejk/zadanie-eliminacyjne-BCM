@@ -1,0 +1,23 @@
+{
+  "wersja": 1,
+  "zadania": [
+    {
+      "id": 1,
+      "tytul": "Zadanie z nieistniejącą datą w kalendarzu",
+      "opis": "Luty nie ma 30 dni",
+      "termin": "2026-02-30",
+      "priorytet": "wysoki",
+      "wykonane": false,
+      "tagi": ["studia"]
+    },
+    {
+      "id": 2,
+      "tytul": "Zadanie z pustym tekstem zamiast null w terminie",
+      "opis": "",
+      "termin": "",
+      "priorytet": "niski",
+      "wykonane": false,
+      "tagi": []
+    }
+  ]
+}

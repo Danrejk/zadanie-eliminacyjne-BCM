@@ -1,0 +1,59 @@
+{
+  "wersja": 2,
+  "zadania": [
+    {
+      "id": 101,
+      "tytul": "Obrona projektu z inżynierii oprogramowania",
+      "opis": "Przygotować diagramy architektury i testy integracyjne",
+      "termin": "2026-11-22",
+      "priorytet": "wysoki",
+      "wykonane": false,
+      "tagi": ["studia", "projekt", "egzamin"]
+    },
+    {
+      "id": 102,
+      "tytul": "Rozwiązać zestaw zadań z analizy matematycznej",
+      "opis": "Całki oznaczone i szeregi potęgowe",
+      "termin": "2026-11-19",
+      "priorytet": "sredni",
+      "wykonane": false,
+      "tagi": ["studia", "ćwiczenia"]
+    },
+    {
+      "id": 103,
+      "tytul": "Oddać klucz do sali laboratoryjnej",
+      "opis": "",
+      "termin": "2026-11-15",
+      "priorytet": "wysoki",
+      "wykonane": false,
+      "tagi": []
+    },
+    {
+      "id": 104,
+      "tytul": "Kupić bilet kolejowy na powrót do domu",
+      "opis": "",
+      "termin": null,
+      "priorytet": "niski",
+      "wykonane": false,
+      "tagi": ["dom"]
+    },
+    {
+      "id": 105,
+      "tytul": "Kolokwium wejściowe z fizyki kwantowej",
+      "opis": "Zaliczone na pierwszym terminie",
+      "termin": "2026-11-14",
+      "priorytet": "wysoki",
+      "wykonane": true,
+      "tagi": ["studia", "egzamin"]
+    },
+    {
+      "id": 106,
+      "tytul": "Zarchiwizować notatki z poprzedniego semestru",
+      "opis": "",
+      "termin": null,
+      "priorytet": "niski",
+      "wykonane": true,
+      "tagi": []
+    }
+  ]
+}
