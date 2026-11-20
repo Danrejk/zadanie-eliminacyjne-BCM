@@ -883,9 +883,10 @@ export async function editTaskViaModal(
   } else {
     await note.click({ button: 'right' });
     await expect(page.getByTestId('context-menu')).toBeVisible();
-    await page.getByTestId('context-menu-edit').click();
+    await page.getByTestId('context-menu-view').click();
   }
 
+  await page.getByTestId('task-btn-edit').click();
   await fillTaskModalForm(page, updates, true);
 }
 

@@ -28,6 +28,7 @@ import {
   addDaysToDateString,
   isValidDateString,
   resolveDateForZoneDrop,
+  formatDisplayDate,
 } from '../utils/dateBuckets';
 import { getTagColor, normalizeTag } from '../utils/tagColors';
 import { playPinClickSound } from '../utils/sound';
@@ -621,15 +622,189 @@ function TaskModalForm({
   );
 }
 
+interface TaskModalViewProps {
+  task: Task;
+  onClose: () => void;
+  onEdit: () => void;
+}
+
+function TaskModalView({ task, onClose, onEdit }: TaskModalViewProps) {
+  const priorityVars = PRIORITY_STYLE_VARS[task.priorytet];
+
+  return (
+    <div
+      className="relative w-full max-w-lg rounded-xl border-2 shadow-2xl overflow-hidden"
+      style={{
+        backgroundColor: '#fdf8ee',
+        borderColor: 'var(--color-wood-highlight)',
+        color: 'var(--color-ink)',
+      }}
+    >
+      <div
+        className="h-2.5 w-full"
+        style={{
+          backgroundColor: priorityVars.fold,
+          borderBottom: `1px solid ${priorityVars.border}`,
+        }}
+      />
+      <div
+        className="flex items-center justify-between border-b px-5 py-3.5"
+        style={{
+          borderBottomColor: 'rgba(166, 124, 82, 0.35)',
+          backgroundColor: 'rgba(215, 177, 130, 0.18)',
+        }}
+      >
+        <div className="flex items-center gap-2">
+          <Pin
+            className="h-5 w-5 text-red-600 -rotate-12 shrink-0"
+            aria-hidden="true"
+          />
+          <h2
+            id="task-modal-heading"
+            className="text-lg font-bold tracking-tight"
+          >
+            Podgląd zadania
+          </h2>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Zamknij okno zadania"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-amber-900/70 hover:bg-amber-900/10 hover:text-amber-950 transition-colors cursor-pointer"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="p-5 space-y-4">
+        <section>
+          <h3
+            className="text-xs font-bold uppercase tracking-wider mb-1"
+            style={{ color: 'var(--color-ink-muted)' }}
+          >
+            Tytuł zadania
+          </h3>
+          <p data-testid="task-view-title" className="text-base font-semibold">
+            {task.tytul}
+          </p>
+        </section>
+
+        {task.opis.trim().length > 0 && (
+          <section>
+            <h3
+              className="text-xs font-bold uppercase tracking-wider mb-1"
+              style={{ color: 'var(--color-ink-muted)' }}
+            >
+              Opis
+            </h3>
+            <p data-testid="task-view-description" className="text-sm whitespace-pre-wrap">
+              {task.opis}
+            </p>
+          </section>
+        )}
+
+        <div className="grid grid-cols-2 gap-4">
+          <section>
+            <h3
+              className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider mb-1.5"
+              style={{ color: 'var(--color-ink-muted)' }}
+            >
+              <Calendar className="h-3.5 w-3.5" aria-hidden="true" />
+              Termin wykonania
+            </h3>
+            <p data-testid="task-view-deadline" className="text-sm font-semibold">
+              {formatDisplayDate(task.termin)}
+            </p>
+          </section>
+          <section>
+            <h3
+              className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider mb-1.5"
+              style={{ color: 'var(--color-ink-muted)' }}
+            >
+              <Flag className="h-3.5 w-3.5" aria-hidden="true" />
+              Priorytet
+            </h3>
+            <p
+              data-testid="task-view-priority"
+              className="inline-flex rounded-full border px-2.5 py-1 text-sm font-bold"
+              style={{
+                backgroundColor: priorityVars.bg,
+                borderColor: priorityVars.border,
+              }}
+            >
+              {PRIORITY_LABELS[task.priorytet]}
+            </p>
+          </section>
+        </div>
+
+        <section>
+          <h3
+            className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider mb-1.5"
+            style={{ color: 'var(--color-ink-muted)' }}
+          >
+            <Tag className="h-3.5 w-3.5" aria-hidden="true" />
+            Tagi
+          </h3>
+          {task.tagi.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {task.tagi.map((tag) => {
+                const color = getTagColor(normalizeTag(tag));
+                return (
+                  <span
+                    key={normalizeTag(tag)}
+                    data-testid={`task-view-tag-${normalizeTag(tag)}`}
+                    className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold"
+                    style={{
+                      backgroundColor: color.bg,
+                      borderColor: color.dark,
+                      color: color.text,
+                    }}
+                  >
+                    #{tag}
+                  </span>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-xs italic" style={{ color: 'var(--color-ink-muted)' }}>
+              Brak tagów
+            </p>
+          )}
+        </section>
+
+        <div
+          className="flex justify-end border-t pt-4 mt-2"
+          style={{ borderTopColor: 'rgba(166, 124, 82, 0.35)' }}
+        >
+          <button
+            type="button"
+            data-testid="task-btn-edit"
+            onClick={onEdit}
+            className="rounded-lg border px-5 py-2 text-sm font-bold text-amber-50 shadow-sm transition-all hover:brightness-110 active:scale-95 cursor-pointer"
+            style={{
+              backgroundColor: 'var(--color-wood-frame)',
+              borderColor: 'var(--color-wood-dark)',
+            }}
+          >
+            Edytuj
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function TaskModal() {
   const { state, dispatch } = useTasks();
   const { activeModal } = state;
 
   const isOpen =
-    activeModal.type === 'create' || activeModal.type === 'edit';
+    activeModal.type === 'create' ||
+    activeModal.type === 'view' ||
+    activeModal.type === 'edit';
 
-  const editingTask =
-    activeModal.type === 'edit'
+  const targetTask =
+    activeModal.type === 'edit' || activeModal.type === 'view'
       ? state.tasks.find((t) => t.id === activeModal.taskId)
       : undefined;
 
@@ -654,7 +829,10 @@ export function TaskModal() {
   }
 
   // Edit mode safety guard: if target task does not exist, safely render null without crashing
-  if (activeModal.type === 'edit' && !editingTask) {
+  if (
+    (activeModal.type === 'edit' || activeModal.type === 'view') &&
+    !targetTask
+  ) {
     return null;
   }
 
@@ -671,7 +849,7 @@ export function TaskModal() {
   const modalKey =
     activeModal.type === 'create'
       ? `create-${activeModal.defaultPriority ?? 'sredni'}-${activeModal.defaultZone ?? 'default'}`
-      : `edit-${editingTask!.id}`;
+      : `${activeModal.type}-${targetTask!.id}`;
 
   return (
     <div
@@ -686,21 +864,35 @@ export function TaskModal() {
         backgroundColor: 'rgba(46, 32, 24, 0.65)',
       }}
     >
-      <TaskModalForm
-        key={modalKey}
-        mode={activeModal.type}
-        editingTask={editingTask}
-        defaultPriority={
-          activeModal.type === 'create'
-            ? activeModal.defaultPriority
-            : undefined
-        }
-        defaultZone={
-          activeModal.type === 'create' ? activeModal.defaultZone : undefined
-        }
-        muted={state.muted}
-        onClose={handleClose}
-      />
+      {activeModal.type === 'view' ? (
+        <TaskModalView
+          key={modalKey}
+          task={targetTask!}
+          onClose={handleClose}
+          onEdit={() =>
+            dispatch({
+              type: 'OPEN_MODAL',
+              payload: { type: 'edit', taskId: targetTask!.id },
+            })
+          }
+        />
+      ) : (
+        <TaskModalForm
+          key={modalKey}
+          mode={activeModal.type}
+          editingTask={targetTask}
+          defaultPriority={
+            activeModal.type === 'create'
+              ? activeModal.defaultPriority
+              : undefined
+          }
+          defaultZone={
+            activeModal.type === 'create' ? activeModal.defaultZone : undefined
+          }
+          muted={state.muted}
+          onClose={handleClose}
+        />
+      )}
     </div>
   );
 }

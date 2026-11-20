@@ -542,6 +542,40 @@ describe('Milestone M3 — TopBar, TaskModal, ContextMenu & Toast', () => {
   // 2. TaskModal Tests
   // =========================================================================
   describe('TaskModal component', () => {
+    it('opens notes in read-only view and enters edit mode only after pressing Edytuj', async () => {
+      const user = userEvent.setup();
+      const { getCtx } = renderM3Harness({
+        initialActions: [
+          { type: 'OPEN_MODAL', payload: { type: 'view', taskId: 3 } },
+        ],
+      });
+
+      expect(screen.getByTestId('task-view-title')).toHaveTextContent(
+        'Przeczytać dokumentację React 19',
+      );
+      expect(screen.getByTestId('task-view-deadline')).toHaveTextContent(
+        'Bez terminu',
+      );
+      expect(screen.getByTestId('task-view-priority')).toHaveTextContent(
+        'Niski',
+      );
+      expect(screen.getByTestId('task-view-tag-studia')).toHaveTextContent(
+        '#studia',
+      );
+      expect(screen.getByTestId('task-view-tag-projekt')).toHaveTextContent(
+        '#projekt',
+      );
+      expect(screen.queryByTestId('task-input-title')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('task-btn-add-tag')).not.toBeInTheDocument();
+
+      await user.click(screen.getByTestId('task-btn-edit'));
+
+      expect(screen.getByTestId('task-input-title')).toHaveValue(
+        'Przeczytać dokumentację React 19',
+      );
+      expect(getCtx().state.activeModal).toEqual({ type: 'edit', taskId: 3 });
+    });
+
     it('validates empty/whitespace title and invalid date before saving, keeping modal open on error', async () => {
       const user = userEvent.setup();
       const { getCtx } = renderM3Harness({
@@ -828,7 +862,7 @@ describe('Milestone M3 — TopBar, TaskModal, ContextMenu & Toast', () => {
   // 3. ContextMenu Tests
   // =========================================================================
   describe('ContextMenu component', () => {
-    it('renders note context menu items, highlights current priority, changes priority with sound + closes menu, completes to floor, opens edit modal, and deletes task', async () => {
+    it('renders note context menu items, highlights current priority, changes priority with sound + closes menu, completes to floor, opens task preview, and deletes task', async () => {
       const user = userEvent.setup();
       const pinSoundSpy = vi.spyOn(soundUtils, 'playPinClickSound');
       const crumpleSoundSpy = vi.spyOn(soundUtils, 'playCrumpleSound');
@@ -879,9 +913,11 @@ describe('Milestone M3 — TopBar, TaskModal, ContextMenu & Toast', () => {
           payload: { kind: 'note', taskId: 2, x: 100, y: 100 },
         });
       });
-      await user.click(screen.getByTestId('context-menu-edit'));
+      await user.click(screen.getByTestId('context-menu-view'));
       expect(screen.queryByTestId('context-menu')).not.toBeInTheDocument();
       expect(screen.getByTestId('task-modal')).toBeInTheDocument();
+      expect(screen.queryByTestId('task-input-title')).not.toBeInTheDocument();
+      await user.click(screen.getByTestId('task-btn-edit'));
       expect(screen.getByTestId('task-input-title')).toHaveValue(
         'Kupić kawę do akademika',
       );

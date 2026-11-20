@@ -217,7 +217,7 @@ test.describe('Tier 1 — Core Feature Coverage (F01–F31)', () => {
       page.getByTestId('zone-cell-wysoki-todayTomorrow').getByTestId('postit-note-15'),
     ).toBeVisible();
 
-    // 2. Right-click PPM -> context-menu-edit on task 15
+    // 2. Right-click PPM -> open the note preview, then edit task 15
     await editTaskViaModal(
       page,
       15,
