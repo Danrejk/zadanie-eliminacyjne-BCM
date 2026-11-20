@@ -550,6 +550,8 @@ describe('Milestone M3 — TopBar, TaskModal, ContextMenu & Toast', () => {
         ],
       });
 
+      expect(screen.getByTestId('task-modal').querySelector('.notebook-sheet'))
+        .not.toBeNull();
       expect(screen.getByTestId('task-view-title')).toHaveTextContent(
         'Przeczytać dokumentację React 19',
       );
