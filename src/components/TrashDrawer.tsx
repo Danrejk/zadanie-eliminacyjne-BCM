@@ -20,6 +20,54 @@ interface HoneycombSlot {
   bottom: number;  // px from basket bottom
 }
 
+const LARGE_BASKET_BACK_SRC = `data:image/svg+xml;utf8,${encodeURIComponent(`<svg viewBox="0 0 280 296" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bi" x1="140" y1="8" x2="140" y2="288" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#14110f" stop-opacity="0.9"/>
+      <stop offset="55%" stop-color="#26211e" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#0f0c0b" stop-opacity="0.94"/>
+    </linearGradient>
+    <pattern id="mb" width="16" height="16" patternUnits="userSpaceOnUse">
+      <path d="M0 0 L16 16 M16 0 L0 16" stroke="#57534e" stroke-width="0.9" opacity="0.45"/>
+    </pattern>
+    <clipPath id="cb">
+      <path d="M20 18 C20 8 260 8 260 18 L234 276 C231 286 49 286 46 276 Z"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#cb)">
+    <rect width="280" height="296" fill="url(#bi)"/>
+    <rect width="280" height="296" fill="url(#mb)"/>
+  </g>
+  <path d="M18 18 C18 7 262 7 262 18" stroke="#57534e" stroke-width="4.5" stroke-linecap="round"/>
+  <path d="M20 18 C20 9 260 9 260 18" stroke="#a8a29e" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>
+</svg>`)}`;
+
+const LARGE_BASKET_FRONT_SRC = `data:image/svg+xml;utf8,${encodeURIComponent(`<svg viewBox="0 0 280 296" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="mf" width="16" height="16" patternUnits="userSpaceOnUse">
+      <path d="M0 0 L16 16 M16 0 L0 16" stroke="#d6d3d1" stroke-width="1.05" opacity="0.52"/>
+    </pattern>
+    <linearGradient id="cs" x1="20" y1="0" x2="260" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0c0a09" stop-opacity="0.45"/>
+      <stop offset="22%" stop-color="#ffffff" stop-opacity="0.1"/>
+      <stop offset="52%" stop-color="#78716c" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#0c0a09" stop-opacity="0.45"/>
+    </linearGradient>
+    <clipPath id="cf">
+      <path d="M20 18 L46 276 C49 286 231 286 234 276 L260 18 C260 28 20 28 20 18 Z"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#cf)">
+    <rect width="280" height="296" fill="url(#mf)"/>
+    <rect width="280" height="296" fill="url(#cs)"/>
+  </g>
+  <path d="M20 18 L46 276 C49 286 231 286 234 276 L260 18" stroke="#a8a29e" stroke-width="2.2" stroke-linejoin="round"/>
+  <path d="M46 276 C49 286 231 286 234 276" stroke="#57534e" stroke-width="3" stroke-linecap="round"/>
+  <path d="M16 18 C16 30 264 30 264 18" stroke="#292524" stroke-width="5.8" stroke-linecap="round"/>
+  <path d="M16 18 C16 30 264 30 264 18" stroke="#8b8580" stroke-width="3.8" stroke-linecap="round"/>
+  <path d="M18 17.5 C18 28.5 262 28.5 262 17.5" stroke="#e7e5e4" stroke-width="1.3" stroke-linecap="round" opacity="0.9"/>
+</svg>`)}`;
+
 /**
  * Packs trashed balls from the bottom up in a tight hexagonal (honeycomb) lattice
  * that tapers slightly at the bottom to match the wire-mesh basket silhouette.
@@ -223,50 +271,14 @@ export function TrashDrawer() {
                 data-testid="trash-body"
                 className="relative -mb-[34px] aspect-[280/296] w-full max-h-[340px]"
               >
-                {/* Layer 1 (Back): Recessed dark interior, back rim, and back diamond wire mesh */}
-                <svg
-                  viewBox="0 0 280 296"
-                  preserveAspectRatio="xMidYMax meet"
-                  className="pointer-events-none absolute inset-0 z-10 h-full w-full drop-shadow-[0_14px_22px_rgba(0,0,0,0.52)]"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
+                {/* Layer 1 (Back): Pre-baked recessed interior, back oval rim, and back diamond mesh */}
+                <img
+                  src={LARGE_BASKET_BACK_SRC}
+                  alt=""
                   aria-hidden="true"
-                >
-                  <defs>
-                    <linearGradient id="lgBasketInterior" x1="140" y1="10" x2="140" y2="288" gradientUnits="userSpaceOnUse">
-                      <stop offset="0%" stopColor="#14110f" stopOpacity="0.88" />
-                      <stop offset="55%" stopColor="#26211e" stopOpacity="0.78" />
-                      <stop offset="100%" stopColor="#0f0c0b" stopOpacity="0.92" />
-                    </linearGradient>
-                    <pattern id="lgMeshBack" width="16" height="16" patternUnits="userSpaceOnUse">
-                      <path d="M0 0 L16 16 M16 0 L0 16" stroke="#57534e" strokeWidth="0.9" opacity="0.45" />
-                    </pattern>
-                    <clipPath id="lgBasketBodyClipBack">
-                      <path d="M20 18 L46 276 C49 286 231 286 234 276 L260 18 Z" />
-                    </clipPath>
-                  </defs>
-
-                  {/* Dark recessed interior + back mesh */}
-                  <g clipPath="url(#lgBasketBodyClipBack)">
-                    <rect x="0" y="0" width="280" height="296" fill="url(#lgBasketInterior)" />
-                    <rect x="0" y="0" width="280" height="296" fill="url(#lgMeshBack)" />
-                  </g>
-
-                  {/* Back half of the rolled top rim */}
-                  <path
-                    d="M18 18 C18 7 262 7 262 18"
-                    stroke="#57534e"
-                    strokeWidth="4.5"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d="M20 18 C20 9 260 9 260 18"
-                    stroke="#a8a29e"
-                    strokeWidth="1.2"
-                    strokeLinecap="round"
-                    opacity="0.6"
-                  />
-                </svg>
+                  draggable={false}
+                  className="pointer-events-none absolute inset-0 z-10 h-full w-full"
+                />
 
                 {/* Layer 2 (Middle): Honeycomb-packed Crumpled Balls resting INSIDE the basket */}
                 <div className="absolute inset-x-9 top-6 bottom-6 z-20 overflow-y-auto overflow-x-hidden">
@@ -322,71 +334,14 @@ export function TrashDrawer() {
                   </div>
                 </div>
 
-                {/* Layer 3 (Front): Front diamond wire mesh, cylindrical sheen & rolled metallic rim */}
-                <svg
-                  viewBox="0 0 280 296"
-                  preserveAspectRatio="xMidYMax meet"
-                  className="pointer-events-none absolute inset-0 z-30 h-full w-full"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
+                {/* Layer 3 (Front): Pre-baked front diamond mesh, cylindrical sheen & rolled rim */}
+                <img
+                  src={LARGE_BASKET_FRONT_SRC}
+                  alt=""
                   aria-hidden="true"
-                >
-                  <defs>
-                    <pattern id="lgMeshFront" width="16" height="16" patternUnits="userSpaceOnUse">
-                      <path d="M0 0 L16 16 M16 0 L0 16" stroke="#d6d3d1" strokeWidth="1.05" opacity="0.52" />
-                    </pattern>
-                    <linearGradient id="lgCylinderSheen" x1="20" y1="0" x2="260" y2="0" gradientUnits="userSpaceOnUse">
-                      <stop offset="0%" stopColor="#0c0a09" stopOpacity="0.45" />
-                      <stop offset="22%" stopColor="#ffffff" stopOpacity="0.1" />
-                      <stop offset="52%" stopColor="#78716c" stopOpacity="0.06" />
-                      <stop offset="100%" stopColor="#0c0a09" stopOpacity="0.45" />
-                    </linearGradient>
-                    <clipPath id="lgBasketBodyClipFront">
-                      <path d="M20 18 L46 276 C49 286 231 286 234 276 L260 18 C260 28 20 28 20 18 Z" />
-                    </clipPath>
-                  </defs>
-
-                  {/* Front diamond mesh + 3D cylindrical sheen */}
-                  <g clipPath="url(#lgBasketBodyClipFront)">
-                    <rect x="0" y="0" width="280" height="296" fill="url(#lgMeshFront)" />
-                    <rect x="0" y="0" width="280" height="296" fill="url(#lgCylinderSheen)" />
-                  </g>
-
-                  {/* Crisp outer wireframe edges & base ring */}
-                  <path
-                    d="M20 18 L46 276 C49 286 231 286 234 276 L260 18"
-                    stroke="#a8a29e"
-                    strokeWidth="2.2"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M46 276 C49 286 231 286 234 276"
-                    stroke="#57534e"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                  />
-
-                  {/* Rolled metallic front rim with underside shadow and specular highlight */}
-                  <path
-                    d="M16 18 C16 30 264 30 264 18"
-                    stroke="#292524"
-                    strokeWidth="5.8"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d="M16 18 C16 30 264 30 264 18"
-                    stroke="#8b8580"
-                    strokeWidth="3.8"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d="M18 17.5 C18 28.5 262 28.5 262 17.5"
-                    stroke="#e7e5e4"
-                    strokeWidth="1.3"
-                    strokeLinecap="round"
-                    opacity="0.9"
-                  />
-                </svg>
+                  draggable={false}
+                  className="pointer-events-none absolute inset-0 z-30 h-full w-full"
+                />
               </div>
             </motion.div>
           </div>
