@@ -364,97 +364,52 @@ function resolveCircleRectBounce(ball: FloorBall, rect: RectLike): number {
   return impact > BOUNCE_SOUND_MIN_SPEED ? impact : 0;
 }
 
-interface Point2D {
-  x: number;
-  y: number;
-}
-
 /**
- * Resolves circle vs clockwise convex polygon collision (used for the tapered cone trashcan).
+ * Resolves circle vs thick line-segment collision (used for the left and right walls of the open-top trashcan).
  */
-function resolveCircleConvexPolyBounce(
+function resolveCircleSegmentBounce(
   ball: FloorBall,
-  poly: readonly Point2D[],
+  ax: number,
+  ay: number,
+  bx: number,
+  by: number,
+  halfThickness: number = 3,
 ): number {
-  const r = ball.radius;
-  let isInside = true;
-  let minDistSq = Infinity;
-  let bestClosestX = ball.x;
-  let bestClosestY = ball.y;
-  let bestOutNx = 0;
-  let bestOutNy = -1;
-
-  for (let i = 0; i < poly.length; i++) {
-    const a = poly[i];
-    const b = poly[(i + 1) % poly.length];
-    const ex = b.x - a.x;
-    const ey = b.y - a.y;
-    const edgeLenSq = ex * ex + ey * ey;
-    if (edgeLenSq <= 0.0001) {
-      continue;
-    }
-
-    // Clockwise in screen coords (+X right, +Y down): interior is on the right of each edge
-    const cross = ex * (ball.y - a.y) - ey * (ball.x - a.x);
-    if (cross < 0) {
-      isInside = false;
-    }
-
-    const t = Math.max(0, Math.min(1, ((ball.x - a.x) * ex + (ball.y - a.y) * ey) / edgeLenSq));
-    const cx = a.x + t * ex;
-    const cy = a.y + t * ey;
-    const dx = ball.x - cx;
-    const dy = ball.y - cy;
-    const distSq = dx * dx + dy * dy;
-
-    if (distSq < minDistSq) {
-      minDistSq = distSq;
-      bestClosestX = cx;
-      bestClosestY = cy;
-      const edgeLen = Math.sqrt(edgeLenSq);
-      // Outward normal for clockwise edge in screen coords
-      bestOutNx = ey / edgeLen;
-      bestOutNy = -ex / edgeLen;
-    }
+  const ex = bx - ax;
+  const ey = by - ay;
+  const lenSq = ex * ex + ey * ey;
+  if (lenSq <= 0.0001) {
+    return 0;
   }
 
-  if (!isInside) {
-    if (minDistSq >= r * r) {
-      return 0;
-    }
+  const t = Math.max(0, Math.min(1, ((ball.x - ax) * ex + (ball.y - ay) * ey) / lenSq));
+  const cx = ax + t * ex;
+  const cy = ay + t * ey;
+  const dx = ball.x - cx;
+  const dy = ball.y - cy;
+  const distSq = dx * dx + dy * dy;
+  const effectiveR = ball.radius + halfThickness;
 
-    if (minDistSq > 0.0001) {
-      const dist = Math.sqrt(minDistSq);
-      const nx = (ball.x - bestClosestX) / dist;
-      const ny = (ball.y - bestClosestY) / dist;
-      const overlap = r - dist;
-      ball.x += nx * overlap;
-      ball.y += ny * overlap;
-
-      const vn = ball.vx * nx + ball.vy * ny;
-      if (vn < 0) {
-        ball.vx -= (1 + WALL_RESTITUTION) * vn * nx;
-        ball.vy -= (1 + WALL_RESTITUTION) * vn * ny;
-        ball.vRot = Math.max(-720, Math.min(720, ball.vx * 0.45));
-        const impact = -vn;
-        return impact > BOUNCE_SOUND_MIN_SPEED ? impact : 0;
-      }
-      return 0;
-    }
+  if (distSq >= effectiveR * effectiveR || distSq <= 0.0001) {
+    return 0;
   }
 
-  // Ball center is inside (or right on) the polygon: push out along nearest edge's outward normal
-  ball.x = bestClosestX + bestOutNx * r;
-  ball.y = bestClosestY + bestOutNy * r;
+  const dist = Math.sqrt(distSq);
+  const nx = dx / dist;
+  const ny = dy / dist;
+  const overlap = effectiveR - dist;
+  ball.x += nx * overlap;
+  ball.y += ny * overlap;
 
-  const vn = ball.vx * bestOutNx + ball.vy * bestOutNy;
+  const vn = ball.vx * nx + ball.vy * ny;
   if (vn < 0) {
-    ball.vx -= (1 + WALL_RESTITUTION) * vn * bestOutNx;
-    ball.vy -= (1 + WALL_RESTITUTION) * vn * bestOutNy;
+    ball.vx -= (1 + WALL_RESTITUTION) * vn * nx;
+    ball.vy -= (1 + WALL_RESTITUTION) * vn * ny;
     ball.vRot = Math.max(-720, Math.min(720, ball.vx * 0.45));
     const impact = -vn;
     return impact > BOUNCE_SOUND_MIN_SPEED ? impact : 0;
   }
+
   return 0;
 }
 
@@ -613,13 +568,40 @@ export function stepFloorPhysics(
 
     // Trashcan collision / scoring
     if (validExpandedTrash) {
-      const { hoopRect, bodyRect } = validExpandedTrash;
-      const scoredTopHoop =
-        couldScoreThisStep &&
-        ball.vy > 0 &&
-        doesSegmentHitRect(prevX, prevY, ball.x, ball.y, hoopRect, 0);
+      const { bodyRect } = validExpandedTrash;
+      const bodyW = bodyRect.right - bodyRect.left;
+      const bodyH = bodyRect.bottom - bodyRect.top;
 
-      if (scoredTopHoop) {
+      // Tapered cone geometry matching basketTextures.ts (280x296: top x=20..260 at y=18, bottom x=46..234 at y=276)
+      const rimY = bodyRect.top + (18 / 296) * bodyH;
+      const bottomY = bodyRect.top + (276 / 296) * bodyH;
+      const leftTopX = bodyRect.left + (20 / 280) * bodyW;
+      const leftBottomX = bodyRect.left + (46 / 280) * bodyW;
+      const rightTopX = bodyRect.left + (260 / 280) * bodyW;
+      const rightBottomX = bodyRect.left + (234 / 280) * bodyW;
+
+      // Left and right angled basket walls (open top so balls can fall inside)
+      recordBounce(
+        resolveCircleSegmentBounce(ball, leftTopX, rimY, leftBottomX, bottomY),
+        'trashcan',
+      );
+      recordBounce(
+        resolveCircleSegmentBounce(ball, rightTopX, rimY, rightBottomX, bottomY),
+        'trashcan',
+      );
+
+      // Collection zone at the bottom interior of the basket
+      const collectionRect: RectLike = {
+        left: leftBottomX,
+        top: bodyRect.top + (210 / 296) * bodyH,
+        right: rightBottomX,
+        bottom: bodyRect.bottom,
+      };
+      const collectedAtBottom =
+        couldScoreThisStep &&
+        doesSegmentHitRect(prevX, prevY, ball.x, ball.y, collectionRect, 0);
+
+      if (collectedAtBottom) {
         ball.enteringTrash = true;
         ball.enterStartTime = hasFiniteNow ? nowMs : null;
         ball.enterStartX = ball.x;
@@ -628,36 +610,14 @@ export function stepFloorPhysics(
         ball.vy = 0;
         ball.vRot = 0;
         newlyHitTrashIds.push(ball.taskId);
-      } else {
-        // Tapered cone basket walls matching basketTextures.ts (280x296: top x=20..260 at y=18, bottom x=46..234 at y=276);
-        // extend right bound to viewport edge so balls never wedge behind the basket
-        const bodyW = bodyRect.right - bodyRect.left;
-        const bodyH = bodyRect.bottom - bodyRect.top;
-        const coneTopY = Math.max(bodyRect.top + (18 / 296) * bodyH, hoopRect.bottom - 2);
-        const coneBottomY = bodyRect.bottom;
-        const tTop = Math.max(0, Math.min(1, (coneTopY - bodyRect.top - (18 / 296) * bodyH) / ((258 / 296) * bodyH)));
-        const tBottom = Math.max(0, (coneBottomY - bodyRect.top - (18 / 296) * bodyH) / ((258 / 296) * bodyH));
-        const leftAtTop = bodyRect.left + ((20 + 26 * tTop) / 280) * bodyW;
-        const leftAtBottom = bodyRect.left + ((20 + 26 * tBottom) / 280) * bodyW;
-        const rightBound = Math.max(bodyRect.right, safeW);
-
-        const conePoly: Point2D[] = [
-          { x: leftAtTop, y: coneTopY },
-          { x: rightBound, y: coneTopY },
-          { x: rightBound, y: coneBottomY },
-          { x: leftAtBottom, y: coneBottomY },
-        ];
-        recordBounce(resolveCircleConvexPolyBounce(ball, conePoly), 'trashcan');
-
-        if (validExpandedTrash.drawerRect && isFiniteRect(validExpandedTrash.drawerRect)) {
-          const solidDrawerRect: RectLike = {
-            left: validExpandedTrash.drawerRect.left,
-            top: validExpandedTrash.drawerRect.top,
-            right: Math.max(validExpandedTrash.drawerRect.right, safeW),
-            bottom: validExpandedTrash.drawerRect.bottom,
-          };
-          recordBounce(resolveCircleRectBounce(ball, solidDrawerRect), 'drawer');
-        }
+      } else if (validExpandedTrash.drawerRect && isFiniteRect(validExpandedTrash.drawerRect)) {
+        const solidDrawerRect: RectLike = {
+          left: validExpandedTrash.drawerRect.left,
+          top: validExpandedTrash.drawerRect.top,
+          right: Math.max(validExpandedTrash.drawerRect.right, safeW),
+          bottom: validExpandedTrash.drawerRect.bottom,
+        };
+        recordBounce(resolveCircleRectBounce(ball, solidDrawerRect), 'drawer');
       }
     } else if (couldScoreThisStep && validTrashRect) {
       const w = validTrashRect.right - validTrashRect.left;

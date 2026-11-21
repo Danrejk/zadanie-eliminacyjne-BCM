@@ -523,20 +523,26 @@ export function FloorPhysicsLayer() {
     dispatch({ type: 'SET_DRAGGING_FLOOR_BALL', payload: { id: null } });
 
     const rawTargetRect = trashDrawerOpenRef.current
-      ? trashHoopRef.current?.getBoundingClientRect() ?? null
+      ? trashBodyRef.current?.getBoundingClientRect() ?? null
       : trashHitboxRef.current?.getBoundingClientRect() ?? null;
     if (!trashDrawerOpenRef.current) {
       trashRectRef.current = rawTargetRect;
     }
-    const targetRect =
-      rawTargetRect && !trashDrawerOpenRef.current
+    const targetRect = rawTargetRect
+      ? trashDrawerOpenRef.current
         ? {
+            left: rawTargetRect.left + rawTargetRect.width * (46 / 280),
+            top: rawTargetRect.top + rawTargetRect.height * (210 / 296),
+            right: rawTargetRect.left + rawTargetRect.width * (234 / 280),
+            bottom: rawTargetRect.bottom,
+          }
+        : {
             left: rawTargetRect.left + rawTargetRect.width * 0.16,
             top: rawTargetRect.top + rawTargetRect.height * 0.22,
             right: rawTargetRect.right - rawTargetRect.width * 0.16,
             bottom: rawTargetRect.bottom - rawTargetRect.height * 0.08,
           }
-        : rawTargetRect;
+      : null;
     if (
       targetRect &&
       doesSegmentHitRect(ball.x, ball.y, ball.x, ball.y, targetRect, 0)

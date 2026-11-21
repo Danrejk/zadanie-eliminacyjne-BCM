@@ -418,41 +418,58 @@ describe('floorPhysics', () => {
       expect(sideBall.vx).toBeLessThan(0);
       expect(sideBall.x).toBeLessThan(995);
 
-      // Ball flying just above the open hoop does not get vacuumed in
-      const aboveHoopBall = createFloorBall(
-        { taskId: 32, originX: 1100, originY: 394, spawnedAt: 0, vx: 200, vy: 0 },
+      // Ball passing through open top does NOT score at the top — it falls freely inside the basket
+      const topEntryBall = createFloorBall(
+        { taskId: 32, originX: 1100, originY: 425, spawnedAt: 0, vx: 0, vy: 300 },
         VIEWPORT,
       );
-      aboveHoopBall.canScoreTrash = true;
-      const aboveHoopRes = stepFloorPhysics(
-        [aboveHoopBall],
+      topEntryBall.canScoreTrash = true;
+      const topEntryRes = stepFloorPhysics(
+        [topEntryBall],
         1 / 60,
         VIEWPORT,
         null,
         1000,
         expandedTrash,
       );
-      expect(aboveHoopRes.newlyHitTrashIds).toEqual([]);
-      expect(aboveHoopBall.enteringTrash).toBe(false);
+      expect(topEntryRes.newlyHitTrashIds).toEqual([]);
+      expect(topEntryBall.enteringTrash).toBe(false);
+      expect(topEntryBall.y).toBeGreaterThan(425);
 
-      // Top hoop impact: ball falling downward into hoopRect scores
-      const hoopBall = createFloorBall(
-        { taskId: 31, originX: 1100, originY: 395, spawnedAt: 0, vx: 0, vy: 400 },
+      // Right wall inside the basket bounces balls back inward
+      const rightWallBall = createFloorBall(
+        { taskId: 33, originX: 1170, originY: 540, spawnedAt: 0, vx: 500, vy: 0 },
         VIEWPORT,
       );
-      hoopBall.canScoreTrash = true;
-
-      const hoopRes = stepFloorPhysics(
-        [hoopBall],
+      const rightWallRes = stepFloorPhysics(
+        [rightWallBall],
         1 / 60,
         VIEWPORT,
         null,
         1000,
         expandedTrash,
       );
-      expect(hoopRes.newlyHitTrashIds).toEqual([31]);
-      expect(hoopBall.enteringTrash).toBe(true);
-      expect(hoopRes.bouncedEvents).toEqual([]);
+      expect(rightWallRes.newlyHitTrashIds).toEqual([]);
+      expect(rightWallBall.vx).toBeLessThan(0);
+
+      // Bottom collection zone: ball falling to the bottom interior of the basket scores
+      const bottomBall = createFloorBall(
+        { taskId: 31, originX: 1100, originY: 620, spawnedAt: 0, vx: 0, vy: 400 },
+        VIEWPORT,
+      );
+      bottomBall.canScoreTrash = true;
+
+      const bottomRes = stepFloorPhysics(
+        [bottomBall],
+        1 / 60,
+        VIEWPORT,
+        null,
+        1000,
+        expandedTrash,
+      );
+      expect(bottomRes.newlyHitTrashIds).toEqual([31]);
+      expect(bottomBall.enteringTrash).toBe(true);
+      expect(bottomRes.bouncedEvents).toEqual([]);
     });
 
     it('emits bouncedEvents for floor, wall, ceiling, and solid basket impacts above threshold, and stays silent at rest', () => {
