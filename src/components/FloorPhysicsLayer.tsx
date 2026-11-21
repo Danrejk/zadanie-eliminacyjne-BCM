@@ -96,6 +96,45 @@ function applyBallTransform(
   }
 }
 
+function distPointToSegmentSq(
+  px: number,
+  py: number,
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+): number {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const lenSq = dx * dx + dy * dy;
+  if (lenSq === 0) {
+    return (px - x1) * (px - x1) + (py - y1) * (py - y1);
+  }
+  const t = Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / lenSq));
+  const projX = x1 + t * dx;
+  const projY = y1 + t * dy;
+  return (px - projX) * (px - projX) + (py - projY) * (py - projY);
+}
+
+const SWEEP_EXCLUDED_SELECTOR = [
+  '[data-testid^="floor-ball-"]',
+  '[data-testid^="postit-note-"]',
+  '[data-testid="trash-can-widget"]',
+  '[data-testid="trash-drawer"]',
+  '[data-testid="context-menu"]',
+  '[data-testid="context-menu-backdrop"]',
+  'header',
+  'button',
+  'a',
+  'input',
+  'textarea',
+  'select',
+  'label',
+  '[role="button"]',
+  '[role="menuitem"]',
+  '[contenteditable="true"]',
+].join(', ');
+
 export function FloorPhysicsLayer() {
   const {
     state,
@@ -105,6 +144,7 @@ export function FloorPhysicsLayer() {
     trashHoopRef,
     trashBodyRef,
     trashDrawerBoxRef,
+    noteDrag,
   } = useTasks();
 
   const ballsRef = useRef<Map<number, FloorBall>>(new Map());
@@ -120,6 +160,17 @@ export function FloorPhysicsLayer() {
   const ballInFlightRef = useRef<boolean>(state.ballInFlight);
   const mutedRef = useRef<boolean>(state.muted);
   const trashDrawerOpenRef = useRef<boolean>(state.trashDrawerOpen);
+  const draggingBallIdRef = useRef<number | null>(null);
+  const activePointerIdRef = useRef<number | null>(null);
+  const sweepPointerRef = useRef<{
+    pointerId: number | null;
+    x: number;
+    y: number;
+  } | null>(null);
+  const activeModalTypeRef = useRef(state.activeModal.type);
+  const contextMenuOpenRef = useRef(state.contextMenu !== null);
+  const draggingNoteIdRef = useRef(state.draggingNoteId);
+  const noteDragRef = useRef(noteDrag);
 
   const [hoveredBallId, setHoveredBallId] = useState<number | null>(null);
 
@@ -136,6 +187,22 @@ export function FloorPhysicsLayer() {
     wakeLoopRef.current?.();
   }, [state.trashDrawerOpen]);
 
+  useEffect(() => {
+    activeModalTypeRef.current = state.activeModal.type;
+  }, [state.activeModal.type]);
+
+  useEffect(() => {
+    contextMenuOpenRef.current = state.contextMenu !== null;
+  }, [state.contextMenu]);
+
+  useEffect(() => {
+    draggingNoteIdRef.current = state.draggingNoteId;
+  }, [state.draggingNoteId]);
+
+  useEffect(() => {
+    noteDragRef.current = noteDrag;
+  }, [noteDrag]);
+
   // Sync state.floorBalls spawns with mutable 60fps physics map
   useLayoutEffect(() => {
     const viewport = viewportRef.current;
@@ -147,6 +214,10 @@ export function FloorPhysicsLayer() {
         samplesRef.current.delete(id);
         lastBounceSoundMapRef.current.delete(id);
         lastRenderedRef.current.delete(id);
+        if (draggingBallIdRef.current === id) {
+          draggingBallIdRef.current = null;
+          activePointerIdRef.current = null;
+        }
       }
     }
 
@@ -223,6 +294,9 @@ export function FloorPhysicsLayer() {
   // Cancel active drag cleanly on window blur
   useEffect(() => {
     const handleWindowBlur = () => {
+      sweepPointerRef.current = null;
+      draggingBallIdRef.current = null;
+      activePointerIdRef.current = null;
       let hadDragging = false;
       const now = performance.now();
       for (const ball of ballsRef.current.values()) {
@@ -336,6 +410,21 @@ export function FloorPhysicsLayer() {
         }
       }
 
+      if (
+        sweepPointerRef.current !== null &&
+        draggingBallIdRef.current === null &&
+        activeModalTypeRef.current === 'none' &&
+        !contextMenuOpenRef.current &&
+        draggingNoteIdRef.current === null &&
+        noteDragRef.current === null
+      ) {
+        const sweep = sweepPointerRef.current;
+        const hitId = findSweepHitBallRef.current(sweep.x, sweep.y, sweep.x, sweep.y);
+        if (hitId !== null) {
+          grabBallRef.current(hitId, sweep.x, sweep.y, sweep.pointerId);
+        }
+      }
+
       if (result.bouncedEvents.length > 0) {
         let loudestBounce: (typeof result.bouncedEvents)[number] | null = null;
         for (const ev of result.bouncedEvents) {
@@ -407,24 +496,60 @@ export function FloorPhysicsLayer() {
     };
   }, [floorBallTasks.length, dispatch, trashHitboxRef]);
 
-  const handlePointerDown = (
+  const findSweepHitBall = (
+    prevX: number,
+    prevY: number,
+    currX: number,
+    currY: number,
+  ): number | null => {
+    let bestId: number | null = null;
+    let bestDistSq = Infinity;
+
+    for (const ball of ballsRef.current.values()) {
+      if (ball.enteringTrash || ball.isDragging) {
+        continue;
+      }
+      const r = ball.radius || BALL_RADIUS;
+      const segDistSq = distPointToSegmentSq(
+        ball.x,
+        ball.y,
+        prevX,
+        prevY,
+        currX,
+        currY,
+      );
+      if (segDistSq <= r * r) {
+        const endDistSq =
+          (ball.x - currX) * (ball.x - currX) + (ball.y - currY) * (ball.y - currY);
+        if (endDistSq < bestDistSq) {
+          bestDistSq = endDistSq;
+          bestId = ball.taskId;
+        }
+      }
+    }
+
+    return bestId;
+  };
+
+  const grabBall = (
     taskId: number,
-    e: ReactPointerEvent<HTMLDivElement>,
-  ) => {
-    if (e.button !== 0) {
-      return;
+    clientX: number,
+    clientY: number,
+    pointerId: number | null,
+  ): boolean => {
+    if (draggingBallIdRef.current !== null) {
+      return false;
     }
     const ball = ballsRef.current.get(taskId);
     if (!ball || ball.enteringTrash) {
-      return;
+      return false;
     }
 
-    e.preventDefault();
-    e.stopPropagation();
+    draggingBallIdRef.current = taskId;
+    activePointerIdRef.current = pointerId;
+    sweepPointerRef.current = null;
 
     unlockAudioContext(mutedRef.current);
-
-    e.currentTarget.setPointerCapture?.(e.pointerId);
 
     const viewport = viewportRef.current;
     const now = performance.now();
@@ -437,8 +562,8 @@ export function FloorPhysicsLayer() {
     ball.vx = 0;
     ball.vy = 0;
     ball.vRot = 0;
-    ball.x = Math.max(r, Math.min(maxX, e.clientX));
-    ball.y = Math.max(r, Math.min(floorY, e.clientY));
+    ball.x = Math.max(r, Math.min(maxX, clientX));
+    ball.y = Math.max(r, Math.min(floorY, clientY));
 
     const el = domRefs.current.get(taskId);
     if (el) {
@@ -451,15 +576,23 @@ export function FloorPhysicsLayer() {
       );
     }
 
-    samplesRef.current.set(taskId, [{ x: e.clientX, y: e.clientY, t: now }]);
+    samplesRef.current.set(taskId, [{ x: clientX, y: clientY, t: now }]);
     setHoveredBallId((prev) => (prev === taskId ? null : prev));
     dispatch({ type: 'SET_DRAGGING_FLOOR_BALL', payload: { id: taskId } });
     wakeLoopRef.current?.();
+    return true;
   };
 
-  const handlePointerMove = (
+  const findSweepHitBallRef = useRef(findSweepHitBall);
+  findSweepHitBallRef.current = findSweepHitBall;
+
+  const grabBallRef = useRef(grabBall);
+  grabBallRef.current = grabBall;
+
+  const moveDraggedBall = (
     taskId: number,
-    e: ReactPointerEvent<HTMLDivElement>,
+    clientX: number,
+    clientY: number,
   ) => {
     const ball = ballsRef.current.get(taskId);
     if (!ball || ball.enteringTrash || !ball.isDragging) {
@@ -471,8 +604,8 @@ export function FloorPhysicsLayer() {
     const maxX = Math.max(r, viewport.width - r);
     const maxY = Math.max(r, viewport.height - r);
 
-    const clampedX = Math.max(r, Math.min(maxX, e.clientX));
-    const clampedY = Math.max(r, Math.min(maxY, e.clientY));
+    const clampedX = Math.max(r, Math.min(maxX, clientX));
+    const clampedY = Math.max(r, Math.min(maxY, clientY));
     const now = performance.now();
 
     ball.x = clampedX;
@@ -496,17 +629,18 @@ export function FloorPhysicsLayer() {
     samplesRef.current.set(taskId, pruned.length >= 2 ? pruned : samples.slice(-2));
   };
 
-  const handlePointerRelease = (
-    taskId: number,
-    e: ReactPointerEvent<HTMLDivElement>,
-  ) => {
+  const releaseDraggedBall = (taskId: number, pointerId?: number) => {
     const ball = ballsRef.current.get(taskId);
+    draggingBallIdRef.current = null;
+    activePointerIdRef.current = null;
+
     if (!ball || ball.enteringTrash || !ball.isDragging) {
       return;
     }
 
-    if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
-      e.currentTarget.releasePointerCapture?.(e.pointerId);
+    const el = domRefs.current.get(taskId);
+    if (el && pointerId != null && el.hasPointerCapture?.(pointerId)) {
+      el.releasePointerCapture?.(pointerId);
     }
 
     unlockAudioContext(mutedRef.current);
@@ -555,7 +689,6 @@ export function FloorPhysicsLayer() {
       ball.vy = 0;
       ball.vRot = 0;
       playTrashPlopSound(mutedRef.current);
-      const el = domRefs.current.get(taskId);
       if (el) {
         applyBallTransform(
           el,
@@ -578,17 +711,18 @@ export function FloorPhysicsLayer() {
     }
   };
 
-  const handlePointerCancel = (
-    taskId: number,
-    e: ReactPointerEvent<HTMLDivElement>,
-  ) => {
+  const cancelDraggedBall = (taskId: number, pointerId?: number) => {
     const ball = ballsRef.current.get(taskId);
+    draggingBallIdRef.current = null;
+    activePointerIdRef.current = null;
+
     if (!ball || ball.enteringTrash || !ball.isDragging) {
       return;
     }
 
-    if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
-      e.currentTarget.releasePointerCapture?.(e.pointerId);
+    const el = domRefs.current.get(taskId);
+    if (el && pointerId != null && el.hasPointerCapture?.(pointerId)) {
+      el.releasePointerCapture?.(pointerId);
     }
 
     ball.isDragging = false;
@@ -598,12 +732,182 @@ export function FloorPhysicsLayer() {
     samplesRef.current.delete(taskId);
 
     const now = performance.now();
-    const el = domRefs.current.get(taskId);
     if (el) {
       applyBallTransform(el, ballVisualRefs.current.get(taskId), ball, now);
     }
 
     dispatch({ type: 'SET_DRAGGING_FLOOR_BALL', payload: { id: null } });
+  };
+
+  const dragHandlersRef = useRef({
+    moveDraggedBall,
+    releaseDraggedBall,
+    cancelDraggedBall,
+  });
+  dragHandlersRef.current = {
+    moveDraggedBall,
+    releaseDraggedBall,
+    cancelDraggedBall,
+  };
+
+  useEffect(() => {
+    const matchesPointerId = (
+      expectedId: number | null,
+      actualId: number | undefined,
+    ): boolean => {
+      if (expectedId === null || actualId == null) {
+        return true;
+      }
+      return expectedId === actualId;
+    };
+
+    const onWindowPointerDown = (e: PointerEvent) => {
+      if (e.button !== 0) {
+        return;
+      }
+      if (draggingBallIdRef.current !== null) {
+        return;
+      }
+      if (
+        activeModalTypeRef.current !== 'none' ||
+        contextMenuOpenRef.current ||
+        draggingNoteIdRef.current !== null ||
+        noteDragRef.current !== null
+      ) {
+        return;
+      }
+      if (
+        e.target instanceof Element &&
+        e.target.closest(SWEEP_EXCLUDED_SELECTOR)
+      ) {
+        return;
+      }
+
+      sweepPointerRef.current = {
+        pointerId: e.pointerId ?? null,
+        x: e.clientX,
+        y: e.clientY,
+      };
+    };
+
+    const onWindowPointerMove = (e: PointerEvent) => {
+      if (e.isTrusted && e.pointerType === 'mouse' && (e.buttons & 1) === 0) {
+        if (draggingBallIdRef.current !== null) {
+          dragHandlersRef.current.releaseDraggedBall(
+            draggingBallIdRef.current,
+            e.pointerId,
+          );
+        }
+        sweepPointerRef.current = null;
+        return;
+      }
+
+      if (draggingBallIdRef.current !== null) {
+        if (!matchesPointerId(activePointerIdRef.current, e.pointerId)) {
+          return;
+        }
+        dragHandlersRef.current.moveDraggedBall(
+          draggingBallIdRef.current,
+          e.clientX,
+          e.clientY,
+        );
+        return;
+      }
+
+      const sweep = sweepPointerRef.current;
+      if (!sweep || !matchesPointerId(sweep.pointerId, e.pointerId)) {
+        return;
+      }
+
+      if (
+        activeModalTypeRef.current !== 'none' ||
+        contextMenuOpenRef.current ||
+        draggingNoteIdRef.current !== null ||
+        noteDragRef.current !== null
+      ) {
+        sweepPointerRef.current = null;
+        return;
+      }
+
+      const hitId = findSweepHitBallRef.current(
+        sweep.x,
+        sweep.y,
+        e.clientX,
+        e.clientY,
+      );
+      if (hitId !== null) {
+        grabBallRef.current(hitId, e.clientX, e.clientY, sweep.pointerId);
+      } else {
+        sweep.x = e.clientX;
+        sweep.y = e.clientY;
+      }
+    };
+
+    const onWindowPointerUp = (e: PointerEvent) => {
+      if (
+        draggingBallIdRef.current !== null &&
+        matchesPointerId(activePointerIdRef.current, e.pointerId)
+      ) {
+        dragHandlersRef.current.releaseDraggedBall(
+          draggingBallIdRef.current,
+          e.pointerId,
+        );
+      }
+      if (
+        sweepPointerRef.current !== null &&
+        matchesPointerId(sweepPointerRef.current.pointerId, e.pointerId)
+      ) {
+        sweepPointerRef.current = null;
+      }
+    };
+
+    const onWindowPointerCancel = (e: PointerEvent) => {
+      if (
+        draggingBallIdRef.current !== null &&
+        matchesPointerId(activePointerIdRef.current, e.pointerId)
+      ) {
+        dragHandlersRef.current.cancelDraggedBall(
+          draggingBallIdRef.current,
+          e.pointerId,
+        );
+      }
+      if (
+        sweepPointerRef.current !== null &&
+        matchesPointerId(sweepPointerRef.current.pointerId, e.pointerId)
+      ) {
+        sweepPointerRef.current = null;
+      }
+    };
+
+    window.addEventListener('pointerdown', onWindowPointerDown);
+    window.addEventListener('pointermove', onWindowPointerMove);
+    window.addEventListener('pointerup', onWindowPointerUp);
+    window.addEventListener('pointercancel', onWindowPointerCancel);
+    return () => {
+      window.removeEventListener('pointerdown', onWindowPointerDown);
+      window.removeEventListener('pointermove', onWindowPointerMove);
+      window.removeEventListener('pointerup', onWindowPointerUp);
+      window.removeEventListener('pointercancel', onWindowPointerCancel);
+    };
+  }, []);
+
+  const handlePointerDown = (
+    taskId: number,
+    e: ReactPointerEvent<HTMLDivElement>,
+  ) => {
+    if (e.button !== 0 || draggingBallIdRef.current !== null) {
+      return;
+    }
+    const ball = ballsRef.current.get(taskId);
+    if (!ball || ball.enteringTrash) {
+      return;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    grabBall(taskId, e.clientX, e.clientY, e.pointerId ?? null);
   };
 
   const handleContextMenu = (
@@ -653,9 +957,6 @@ export function FloorPhysicsLayer() {
             tabIndex={0}
             aria-label={`Zgnieciona kulka: ${task.tytul}`}
             onPointerDown={(e) => handlePointerDown(task.id, e)}
-            onPointerMove={(e) => handlePointerMove(task.id, e)}
-            onPointerUp={(e) => handlePointerRelease(task.id, e)}
-            onPointerCancel={(e) => handlePointerCancel(task.id, e)}
             onPointerEnter={() => {
               if (!isDragging) {
                 setHoveredBallId(task.id);
