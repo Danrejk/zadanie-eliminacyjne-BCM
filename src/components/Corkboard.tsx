@@ -127,6 +127,21 @@ const CorkboardCell = React.memo(function CorkboardCell({
 }: CorkboardCellProps) {
   const isOverdueCol = zone === 'overdue';
 
+  const handleContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dispatch({
+      type: 'OPEN_CONTEXT_MENU',
+      payload: {
+        kind: 'cell',
+        priority,
+        zone,
+        x: e.clientX,
+        y: e.clientY,
+      },
+    });
+  };
+
   return (
     <div
       data-testid={`zone-cell-${priority}-${zone}`}
@@ -137,6 +152,7 @@ const CorkboardCell = React.memo(function CorkboardCell({
       onDragOver={(e) => onDragOverCell(priority, zone, e)}
       onDragLeave={(e) => onDragLeaveCell(priority, zone, e)}
       onDrop={(e) => onDropCell(priority, zone, e)}
+      onContextMenu={handleContextMenu}
       className={`corkboard-cell flex flex-wrap items-start justify-center content-start gap-3 ${
         isOverdueCol ? 'corkboard-cell--overdue' : ''
       } ${
