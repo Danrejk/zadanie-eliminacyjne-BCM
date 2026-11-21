@@ -25,7 +25,7 @@ import {
 } from '../utils/floorPhysics';
 import { formatDisplayDate } from '../utils/dateBuckets';
 import { getTagColor } from '../utils/tagColors';
-import { playTrashPlopSound } from '../utils/sound';
+import { playBallBounceSound, playTrashPlopSound, unlockAudioContext } from '../utils/sound';
 import { CrumpledBall } from './CrumpledBall';
 
 function getViewportSize(): ViewportSize {
@@ -112,6 +112,7 @@ export function FloorPhysicsLayer() {
   const ballVisualRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const lastRenderedRef = useRef<Map<number, RenderedBallState>>(new Map());
   const samplesRef = useRef<Map<number, PointerSample[]>>(new Map());
+  const lastBounceSoundMapRef = useRef<Map<number, number>>(new Map());
   const trashRectRef = useRef<DOMRect | null>(null);
   const viewportRef = useRef<ViewportSize>(getViewportSize());
   const wakeLoopRef = useRef<(() => void) | null>(null);
@@ -144,6 +145,7 @@ export function FloorPhysicsLayer() {
       if (!activeIds.has(id)) {
         ballsRef.current.delete(id);
         samplesRef.current.delete(id);
+        lastBounceSoundMapRef.current.delete(id);
         lastRenderedRef.current.delete(id);
       }
     }
@@ -334,6 +336,28 @@ export function FloorPhysicsLayer() {
         }
       }
 
+      if (result.bouncedEvents.length > 0) {
+        let loudestBounce: (typeof result.bouncedEvents)[number] | null = null;
+        for (const ev of result.bouncedEvents) {
+          const lastAt = lastBounceSoundMapRef.current.get(ev.taskId) ?? -Infinity;
+          if (nowMs - lastAt >= 45) {
+            if (!loudestBounce || ev.impactSpeed > loudestBounce.impactSpeed) {
+              loudestBounce = ev;
+            }
+          }
+        }
+        if (loudestBounce) {
+          for (const ev of result.bouncedEvents) {
+            lastBounceSoundMapRef.current.set(ev.taskId, nowMs);
+          }
+          playBallBounceSound(
+            mutedRef.current,
+            loudestBounce.impactSpeed,
+            loudestBounce.surface,
+          );
+        }
+      }
+
       if (result.newlyHitTrashIds.length > 0) {
         playTrashPlopSound(mutedRef.current);
       }
@@ -397,6 +421,8 @@ export function FloorPhysicsLayer() {
 
     e.preventDefault();
     e.stopPropagation();
+
+    unlockAudioContext(mutedRef.current);
 
     e.currentTarget.setPointerCapture?.(e.pointerId);
 
@@ -483,6 +509,8 @@ export function FloorPhysicsLayer() {
       e.currentTarget.releasePointerCapture?.(e.pointerId);
     }
 
+    unlockAudioContext(mutedRef.current);
+
     const samples = samplesRef.current.get(taskId) ?? [];
     const { vx, vy } = computeThrowVelocity(samples, MAX_THROW_SPEED);
     const now = performance.now();
@@ -494,22 +522,30 @@ export function FloorPhysicsLayer() {
 
     dispatch({ type: 'SET_DRAGGING_FLOOR_BALL', payload: { id: null } });
 
-    const targetRect = trashDrawerOpenRef.current
-      ? trashHoopRef.current?.getBoundingClientRect() ?? null
+    const rawTargetRect = trashDrawerOpenRef.current
+      ? trashBodyRef.current?.getBoundingClientRect() ?? null
       : trashHitboxRef.current?.getBoundingClientRect() ?? null;
     if (!trashDrawerOpenRef.current) {
-      trashRectRef.current = targetRect;
+      trashRectRef.current = rawTargetRect;
     }
+    const targetRect = rawTargetRect
+      ? trashDrawerOpenRef.current
+        ? {
+            left: rawTargetRect.left + rawTargetRect.width * (46 / 280),
+            top: rawTargetRect.top + rawTargetRect.height * (210 / 296),
+            right: rawTargetRect.left + rawTargetRect.width * (234 / 280),
+            bottom: rawTargetRect.bottom,
+          }
+        : {
+            left: rawTargetRect.left + rawTargetRect.width * 0.16,
+            top: rawTargetRect.top + rawTargetRect.height * 0.22,
+            right: rawTargetRect.right - rawTargetRect.width * 0.16,
+            bottom: rawTargetRect.bottom - rawTargetRect.height * 0.08,
+          }
+      : null;
     if (
       targetRect &&
-      doesSegmentHitRect(
-        ball.x,
-        ball.y,
-        ball.x,
-        ball.y,
-        targetRect,
-        trashDrawerOpenRef.current ? 6 : undefined,
-      )
+      doesSegmentHitRect(ball.x, ball.y, ball.x, ball.y, targetRect, 0)
     ) {
       ball.enteringTrash = true;
       ball.enterStartTime = now;

@@ -1,4 +1,5 @@
 import type { FloorBall, FloorBallSpawn } from '../types/task';
+import type { BounceSurface } from './sound';
 
 export const BALL_RADIUS = 24;               // 48x48px visual diameter
 export const GRAVITY = 1900;                 // px/s^2
@@ -9,6 +10,7 @@ export const AIR_DRAG_60HZ = 0.995;          // applied as Math.pow(0.995, dt * 
 export const MAX_DT = 0.033;                 // 33ms clamp (anti-tunneling after tab switch)
 export const MAX_THROW_SPEED = 2400;         // px/s vector magnitude clamp
 export const STOP_SPEED_EPS = 18;            // px/s rest threshold
+export const BOUNCE_SOUND_MIN_SPEED = STOP_SPEED_EPS * 2; // px/s minimum impact speed for audible bounce
 export const FLOOR_BOTTOM_MARGIN = 16;       // px below resting ball bottom edge
 export const TRASH_HITBOX_PADDING = 10;      // px forgiving expansion around trash rect
 export const TRASH_ENTER_DURATION_MS = 200;  // shrink-into-bin "plop" duration
@@ -39,9 +41,16 @@ export interface ExpandedTrashCollider {
   drawerRect?: RectLike | null; // solid side-view physical drawer box
 }
 
+export interface BounceEvent {
+  taskId: number;
+  impactSpeed: number;
+  surface: BounceSurface;
+}
+
 export interface PhysicsStepResult {
   newlyHitTrashIds: number[];     // taskIds that collided with trash hitbox on this step
   finishedEnteringIds: number[];  // taskIds whose 200ms plop animation completed
+  bouncedEvents: BounceEvent[];   // balls that bounced off floor, walls, ceiling, or solid basket surfaces
   hasBallInFlight: boolean;       // true while any non-dragging, non-entering ball has canScoreTrash
 }
 
@@ -296,7 +305,7 @@ export function clampBallsToViewport(balls: FloorBall[], viewport: ViewportSize)
   }
 }
 
-function resolveCircleRectBounce(ball: FloorBall, rect: RectLike): void {
+function resolveCircleRectBounce(ball: FloorBall, rect: RectLike): number {
   const r = ball.radius;
   const closestX = Math.max(rect.left, Math.min(ball.x, rect.right));
   const closestY = Math.max(rect.top, Math.min(ball.y, rect.bottom));
@@ -305,7 +314,7 @@ function resolveCircleRectBounce(ball: FloorBall, rect: RectLike): void {
   const distSq = dx * dx + dy * dy;
 
   if (distSq >= r * r) {
-    return;
+    return 0;
   }
 
   if (distSq > 0.0001) {
@@ -321,8 +330,10 @@ function resolveCircleRectBounce(ball: FloorBall, rect: RectLike): void {
       ball.vx -= (1 + WALL_RESTITUTION) * vn * nx;
       ball.vy -= (1 + WALL_RESTITUTION) * vn * ny;
       ball.vRot = Math.max(-720, Math.min(720, ball.vx * 0.45));
+      const impact = -vn;
+      return impact > BOUNCE_SOUND_MIN_SPEED ? impact : 0;
     }
-    return;
+    return 0;
   }
 
   // Ball center is inside the rect; push out along the shallowest side
@@ -332,19 +343,74 @@ function resolveCircleRectBounce(ball: FloorBall, rect: RectLike): void {
   const penBottom = Math.abs(rect.bottom - ball.y);
   const minPen = Math.min(penLeft, penRight, penTop, penBottom);
 
+  let impact = 0;
   if (minPen === penLeft) {
+    impact = ball.vx > 0 ? ball.vx : 0;
     ball.x = rect.left - r;
     ball.vx = -Math.abs(ball.vx) * WALL_RESTITUTION;
   } else if (minPen === penRight) {
+    impact = ball.vx < 0 ? -ball.vx : 0;
     ball.x = rect.right + r;
     ball.vx = Math.abs(ball.vx) * WALL_RESTITUTION;
   } else if (minPen === penTop) {
+    impact = ball.vy > 0 ? ball.vy : 0;
     ball.y = rect.top - r;
     ball.vy = -Math.abs(ball.vy) * WALL_RESTITUTION;
   } else {
+    impact = ball.vy < 0 ? -ball.vy : 0;
     ball.y = rect.bottom + r;
     ball.vy = Math.abs(ball.vy) * WALL_RESTITUTION;
   }
+  return impact > BOUNCE_SOUND_MIN_SPEED ? impact : 0;
+}
+
+/**
+ * Resolves circle vs thick line-segment collision (used for the left and right walls of the open-top trashcan).
+ */
+function resolveCircleSegmentBounce(
+  ball: FloorBall,
+  ax: number,
+  ay: number,
+  bx: number,
+  by: number,
+  halfThickness: number = 3,
+): number {
+  const ex = bx - ax;
+  const ey = by - ay;
+  const lenSq = ex * ex + ey * ey;
+  if (lenSq <= 0.0001) {
+    return 0;
+  }
+
+  const t = Math.max(0, Math.min(1, ((ball.x - ax) * ex + (ball.y - ay) * ey) / lenSq));
+  const cx = ax + t * ex;
+  const cy = ay + t * ey;
+  const dx = ball.x - cx;
+  const dy = ball.y - cy;
+  const distSq = dx * dx + dy * dy;
+  const effectiveR = ball.radius + halfThickness;
+
+  if (distSq >= effectiveR * effectiveR || distSq <= 0.0001) {
+    return 0;
+  }
+
+  const dist = Math.sqrt(distSq);
+  const nx = dx / dist;
+  const ny = dy / dist;
+  const overlap = effectiveR - dist;
+  ball.x += nx * overlap;
+  ball.y += ny * overlap;
+
+  const vn = ball.vx * nx + ball.vy * ny;
+  if (vn < 0) {
+    ball.vx -= (1 + WALL_RESTITUTION) * vn * nx;
+    ball.vy -= (1 + WALL_RESTITUTION) * vn * ny;
+    ball.vRot = Math.max(-720, Math.min(720, ball.vx * 0.45));
+    const impact = -vn;
+    return impact > BOUNCE_SOUND_MIN_SPEED ? impact : 0;
+  }
+
+  return 0;
 }
 
 /**
@@ -375,6 +441,7 @@ export function stepFloorPhysics(
   const hasFiniteNow = Number.isFinite(nowMs);
   const newlyHitTrashIds: number[] = [];
   const finishedEnteringIds: number[] = [];
+  const bouncedEvents: BounceEvent[] = [];
 
   // Pass 1: Entering-trash "plop" animations
   for (let i = 0; i < balls.length; i++) {
@@ -425,6 +492,14 @@ export function stepFloorPhysics(
     const prevX = ball.x;
     const prevY = ball.y;
     const couldScoreThisStep = ball.canScoreTrash;
+    let maxBounceSpeed = 0;
+    let bounceSurface: BounceSurface = 'floor';
+    const recordBounce = (impact: number, surface: BounceSurface) => {
+      if (impact > maxBounceSpeed) {
+        maxBounceSpeed = impact;
+        bounceSurface = surface;
+      }
+    };
 
     // Gravity & air drag
     ball.vy += GRAVITY * dt;
@@ -438,14 +513,26 @@ export function stepFloorPhysics(
 
     // Wall & ceiling collisions
     if (ball.x < minX) {
+      const impact = ball.vx < 0 ? -ball.vx : 0;
+      if (impact > BOUNCE_SOUND_MIN_SPEED) {
+        recordBounce(impact, 'floor');
+      }
       ball.x = minX;
       ball.vx = Math.abs(ball.vx) * WALL_RESTITUTION;
     } else if (ball.x > maxX) {
+      const impact = ball.vx > 0 ? ball.vx : 0;
+      if (impact > BOUNCE_SOUND_MIN_SPEED) {
+        recordBounce(impact, 'floor');
+      }
       ball.x = maxX;
       ball.vx = -Math.abs(ball.vx) * WALL_RESTITUTION;
     }
 
     if (ball.y < r) {
+      const impact = ball.vy < 0 ? -ball.vy : 0;
+      if (impact > BOUNCE_SOUND_MIN_SPEED) {
+        recordBounce(impact, 'floor');
+      }
       ball.y = r;
       ball.vy = Math.abs(ball.vy) * WALL_RESTITUTION;
     }
@@ -453,8 +540,12 @@ export function stepFloorPhysics(
     // Floor collision & settling
     if (ball.y >= floorY) {
       ball.y = floorY;
-      if (Math.abs(ball.vy) > STOP_SPEED_EPS * 2) {
-        ball.vy = -Math.abs(ball.vy) * BOUNCE_RESTITUTION;
+      const impact = Math.abs(ball.vy);
+      if (impact > BOUNCE_SOUND_MIN_SPEED) {
+        if (ball.vy > 0) {
+          recordBounce(impact, 'floor');
+        }
+        ball.vy = -impact * BOUNCE_RESTITUTION;
       } else {
         ball.vy = 0;
       }
@@ -477,13 +568,40 @@ export function stepFloorPhysics(
 
     // Trashcan collision / scoring
     if (validExpandedTrash) {
-      const { hoopRect, bodyRect } = validExpandedTrash;
-      const scoredTopHoop =
-        couldScoreThisStep &&
-        ball.vy >= -40 &&
-        doesSegmentHitRect(prevX, prevY, ball.x, ball.y, hoopRect, 10);
+      const { bodyRect } = validExpandedTrash;
+      const bodyW = bodyRect.right - bodyRect.left;
+      const bodyH = bodyRect.bottom - bodyRect.top;
 
-      if (scoredTopHoop) {
+      // Tapered cone geometry matching basketTextures.ts (280x296: top x=20..260 at y=18, bottom x=46..234 at y=276)
+      const rimY = bodyRect.top + (18 / 296) * bodyH;
+      const bottomY = bodyRect.top + (276 / 296) * bodyH;
+      const leftTopX = bodyRect.left + (20 / 280) * bodyW;
+      const leftBottomX = bodyRect.left + (46 / 280) * bodyW;
+      const rightTopX = bodyRect.left + (260 / 280) * bodyW;
+      const rightBottomX = bodyRect.left + (234 / 280) * bodyW;
+
+      // Left and right angled basket walls (open top so balls can fall inside)
+      recordBounce(
+        resolveCircleSegmentBounce(ball, leftTopX, rimY, leftBottomX, bottomY),
+        'trashcan',
+      );
+      recordBounce(
+        resolveCircleSegmentBounce(ball, rightTopX, rimY, rightBottomX, bottomY),
+        'trashcan',
+      );
+
+      // Collection zone at the bottom interior of the basket
+      const collectionRect: RectLike = {
+        left: leftBottomX,
+        top: bodyRect.top + (210 / 296) * bodyH,
+        right: rightBottomX,
+        bottom: bodyRect.bottom,
+      };
+      const collectedAtBottom =
+        couldScoreThisStep &&
+        doesSegmentHitRect(prevX, prevY, ball.x, ball.y, collectionRect, 0);
+
+      if (collectedAtBottom) {
         ball.enteringTrash = true;
         ball.enterStartTime = hasFiniteNow ? nowMs : null;
         ball.enterStartX = ball.x;
@@ -492,39 +610,42 @@ export function stepFloorPhysics(
         ball.vy = 0;
         ball.vRot = 0;
         newlyHitTrashIds.push(ball.taskId);
-      } else {
-        // Solid sides & bottom bounce balls away; extend right bound to viewport edge so balls never wedge behind the basket
-        const solidWallRect: RectLike = {
-          left: bodyRect.left,
-          top: Math.max(bodyRect.top + 8, hoopRect.bottom - 2),
-          right: Math.max(bodyRect.right, safeW),
-          bottom: bodyRect.bottom,
+      } else if (validExpandedTrash.drawerRect && isFiniteRect(validExpandedTrash.drawerRect)) {
+        const solidDrawerRect: RectLike = {
+          left: validExpandedTrash.drawerRect.left,
+          top: validExpandedTrash.drawerRect.top,
+          right: Math.max(validExpandedTrash.drawerRect.right, safeW),
+          bottom: validExpandedTrash.drawerRect.bottom,
         };
-        resolveCircleRectBounce(ball, solidWallRect);
-
-        if (validExpandedTrash.drawerRect && isFiniteRect(validExpandedTrash.drawerRect)) {
-          const solidDrawerRect: RectLike = {
-            left: validExpandedTrash.drawerRect.left,
-            top: validExpandedTrash.drawerRect.top,
-            right: Math.max(validExpandedTrash.drawerRect.right, safeW),
-            bottom: validExpandedTrash.drawerRect.bottom,
-          };
-          resolveCircleRectBounce(ball, solidDrawerRect);
-        }
+        recordBounce(resolveCircleRectBounce(ball, solidDrawerRect), 'drawer');
       }
-    } else if (
-      couldScoreThisStep &&
-      validTrashRect &&
-      doesSegmentHitRect(prevX, prevY, ball.x, ball.y, validTrashRect, TRASH_HITBOX_PADDING)
-    ) {
-      ball.enteringTrash = true;
-      ball.enterStartTime = hasFiniteNow ? nowMs : null;
-      ball.enterStartX = ball.x;
-      ball.enterStartY = ball.y;
-      ball.vx = 0;
-      ball.vy = 0;
-      ball.vRot = 0;
-      newlyHitTrashIds.push(ball.taskId);
+    } else if (couldScoreThisStep && validTrashRect) {
+      const w = validTrashRect.right - validTrashRect.left;
+      const h = validTrashRect.bottom - validTrashRect.top;
+      const basketInteriorRect: RectLike = {
+        left: validTrashRect.left + w * 0.16,
+        top: validTrashRect.top + h * 0.22,
+        right: validTrashRect.right - w * 0.16,
+        bottom: validTrashRect.bottom - h * 0.08,
+      };
+      if (doesSegmentHitRect(prevX, prevY, ball.x, ball.y, basketInteriorRect, 0)) {
+        ball.enteringTrash = true;
+        ball.enterStartTime = hasFiniteNow ? nowMs : null;
+        ball.enterStartX = ball.x;
+        ball.enterStartY = ball.y;
+        ball.vx = 0;
+        ball.vy = 0;
+        ball.vRot = 0;
+        newlyHitTrashIds.push(ball.taskId);
+      }
+    }
+
+    if (!ball.enteringTrash && maxBounceSpeed > 0) {
+      bouncedEvents.push({
+        taskId: ball.taskId,
+        impactSpeed: maxBounceSpeed,
+        surface: bounceSurface,
+      });
     }
   }
 
@@ -567,6 +688,7 @@ export function stepFloorPhysics(
   return {
     newlyHitTrashIds,
     finishedEnteringIds,
+    bouncedEvents,
     hasBallInFlight,
   };
 }

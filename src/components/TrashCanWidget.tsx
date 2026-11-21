@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { useTasks } from '../context/TaskContext';
-import { playPinClickSound } from '../utils/sound';
+import { playDrawerSlideSound } from '../utils/sound';
 import { getSmallBasketTextures } from '../utils/basketTextures';
 import type { Task } from '../types/task';
 import { CrumpledBall } from './CrumpledBall';
@@ -73,7 +73,7 @@ export function TrashCanWidget() {
   const { backSrc, frontSrc } = getSmallBasketTextures(isEnlarged || isHovered);
 
   const handleOpenTrash = () => {
-    playPinClickSound(state.muted);
+    playDrawerSlideSound(state.muted, true);
     dispatch({ type: 'SET_TRASH_DRAWER_OPEN', payload: { open: true } });
   };
 

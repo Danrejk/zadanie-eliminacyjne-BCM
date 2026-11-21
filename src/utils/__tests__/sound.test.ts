@@ -1,10 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  playBallBounceSound,
   playCrumpleSound,
+  playDrawerSlideSound,
   playPinClickSound,
   playRestoreSound,
   playTrashPlopSound,
   resetSoundContext,
+  unlockAudioContext,
 } from '../sound';
 
 interface MockAudioContextHandle {
@@ -54,7 +57,11 @@ function installMockAudioContext(state: AudioContextState = 'running'): MockAudi
 
   const createBiquadFilter = vi.fn(() => ({
     type: 'bandpass',
-    frequency: { value: 0 },
+    frequency: {
+      value: 0,
+      setValueAtTime: vi.fn(),
+      exponentialRampToValueAtTime: vi.fn(),
+    },
     Q: { value: 0 },
     connect: vi.fn(),
   }));
@@ -189,5 +196,67 @@ describe('sound', () => {
     expect(() => playPinClickSound(false)).not.toThrow();
     expect(() => playTrashPlopSound(false)).not.toThrow();
     expect(() => playRestoreSound(false)).not.toThrow();
+    expect(() => playBallBounceSound(false, 500)).not.toThrow();
+  });
+
+  it('plays bounce sound with both noise burst and tap oscillator when unmuted and ignores when muted', () => {
+    const mock = installMockAudioContext('running');
+
+    playBallBounceSound(true, 600);
+    expect(mock.ctor).not.toHaveBeenCalled();
+
+    playBallBounceSound(false, 600);
+    expect(mock.ctor).toHaveBeenCalledTimes(1);
+    expect(mock.bufStart).toHaveBeenCalledTimes(1);
+    expect(mock.oscStart).toHaveBeenCalledTimes(1);
+
+    expect(() => playBallBounceSound(false, Number.NaN)).not.toThrow();
+    expect(mock.bufStart).toHaveBeenCalledTimes(2);
+    expect(mock.oscStart).toHaveBeenCalledTimes(2);
+  });
+
+  it('unlockAudioContext creates/resumes AudioContext only when unmuted', () => {
+    const mock = installMockAudioContext('suspended');
+
+    unlockAudioContext(true);
+    expect(mock.ctor).not.toHaveBeenCalled();
+
+    unlockAudioContext(false);
+    expect(mock.ctor).toHaveBeenCalledTimes(1);
+    expect(mock.resume).toHaveBeenCalledTimes(1);
+  });
+
+  it('synthesizes distinct bounce sounds for floor, drawer, and trashcan surfaces', () => {
+    const mock = installMockAudioContext('running');
+
+    playBallBounceSound(false, 500, 'floor');
+    expect(mock.bufStart).toHaveBeenCalledTimes(1);
+    expect(mock.oscStart).toHaveBeenCalledTimes(1);
+
+    // Drawer uses two oscillators (hollow body + overtone) + 1 noise burst
+    playBallBounceSound(false, 500, 'drawer');
+    expect(mock.bufStart).toHaveBeenCalledTimes(2);
+    expect(mock.oscStart).toHaveBeenCalledTimes(3);
+
+    // Trashcan uses two inharmonic metallic oscillators + 1 bright noise burst
+    playBallBounceSound(false, 500, 'trashcan');
+    expect(mock.bufStart).toHaveBeenCalledTimes(3);
+    expect(mock.oscStart).toHaveBeenCalledTimes(5);
+  });
+
+  it('plays drawer slide sound on open and close and respects muted', () => {
+    const mock = installMockAudioContext('running');
+
+    playDrawerSlideSound(true, true);
+    playDrawerSlideSound(true, false);
+    expect(mock.ctor).not.toHaveBeenCalled();
+
+    playDrawerSlideSound(false, true);
+    expect(mock.bufStart).toHaveBeenCalledTimes(1);
+    expect(mock.oscStart).toHaveBeenCalledTimes(1);
+
+    playDrawerSlideSound(false, false);
+    expect(mock.bufStart).toHaveBeenCalledTimes(2);
+    expect(mock.oscStart).toHaveBeenCalledTimes(2);
   });
 });

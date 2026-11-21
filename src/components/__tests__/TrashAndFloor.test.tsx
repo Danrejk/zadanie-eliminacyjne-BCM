@@ -659,5 +659,61 @@ describe('Milestone M4 — TrashCanWidget, FloorPhysicsLayer & Archive Modals', 
       expect(screen.queryByTestId('context-menu')).not.toBeInTheDocument();
       expect(screen.getByTestId('trash-drawer')).toBeInTheDocument();
     });
+
+    it('plays bounce sound when a crumpled ball bounces off the floor', () => {
+      vi.useFakeTimers();
+      let nowMs = 1000;
+      vi.spyOn(performance, 'now').mockImplementation(() => nowMs);
+      const bounceSpy = vi
+        .spyOn(soundUtils, 'playBallBounceSound')
+        .mockImplementation(() => {});
+
+      const rafQueue: FrameRequestCallback[] = [];
+      vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
+        rafQueue.push(cb);
+        return rafQueue.length;
+      });
+      vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});
+
+      let latestCtx!: TaskContextValue;
+      renderM4Harness({}, (ctx) => {
+        latestCtx = ctx;
+      });
+
+      act(() => {
+        latestCtx.dispatch({
+          type: 'COMPLETE_TO_FLOOR',
+          payload: { id: 1, originX: 300, originY: 120 },
+        });
+      });
+
+      // Step RAF frames until the ball hits the floor and bounces
+      for (let i = 0; i < 60; i++) {
+        const cb = rafQueue.shift();
+        if (!cb) break;
+        nowMs += 16;
+        act(() => {
+          cb(nowMs);
+        });
+      }
+
+      expect(bounceSpy).toHaveBeenCalled();
+      expect(bounceSpy.mock.calls[0][0]).toBe(false);
+      expect(bounceSpy.mock.calls[0][1]).toBeGreaterThan(0);
+    });
+
+    it('plays drawer slide sound when opening and closing the trash drawer', () => {
+      const slideSpy = vi
+        .spyOn(soundUtils, 'playDrawerSlideSound')
+        .mockImplementation(() => {});
+
+      renderM4Harness();
+
+      fireEvent.click(screen.getByTestId('trash-hitbox'));
+      expect(slideSpy).toHaveBeenCalledWith(false, true);
+
+      fireEvent.keyDown(window, { key: 'Escape' });
+      expect(slideSpy).toHaveBeenCalledWith(false, false);
+    });
   });
 });

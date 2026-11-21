@@ -5,7 +5,7 @@ import type { Task } from '../types/task';
 import { useTasks } from '../context/TaskContext';
 import { PRIORITY_LABELS, formatDisplayDate } from '../utils/dateBuckets';
 import { getTagColor } from '../utils/tagColors';
-import { playPinClickSound, playTrashPlopSound } from '../utils/sound';
+import { playDrawerSlideSound, playPinClickSound, playTrashPlopSound } from '../utils/sound';
 import { getLargeBasketTextures } from '../utils/basketTextures';
 import { CrumpledBall } from './CrumpledBall';
 
@@ -178,6 +178,7 @@ export function TrashDrawer() {
         state.contextMenu === null
       ) {
         e.preventDefault();
+        playDrawerSlideSound(state.muted, false);
         dispatch({ type: 'SET_TRASH_DRAWER_OPEN', payload: { open: false } });
       }
     };
@@ -186,7 +187,7 @@ export function TrashDrawer() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, state.activeModal.type, state.contextMenu, dispatch]);
+  }, [isOpen, state.activeModal.type, state.contextMenu, state.muted, dispatch]);
 
   const { slots, totalHeight } = useMemo(
     () => computeHoneycombSlots(inTrashTasks),
@@ -194,7 +195,7 @@ export function TrashDrawer() {
   );
 
   const handleClose = useCallback(() => {
-    playPinClickSound(state.muted);
+    playDrawerSlideSound(state.muted, false);
     setHoveredTooltip(null);
     dispatch({ type: 'SET_TRASH_DRAWER_OPEN', payload: { open: false } });
   }, [state.muted, dispatch]);
@@ -303,14 +304,14 @@ export function TrashDrawer() {
           transition={{ type: 'spring', stiffness: 420, damping: 18 }}
           className="relative flex w-[280px] max-w-full flex-col items-center justify-end"
         >
-          {/* Invisible Top Hoop Opening Sensor aligned with rim */}
+          {/* Invisible Top Hoop Opening Sensor aligned inside the rim opening */}
           <div
             ref={(el) => {
               trashHoopRef.current = el;
             }}
             data-testid="trash-hoop"
             aria-hidden="true"
-            className="pointer-events-none relative z-20 -mb-5 h-11 w-[264px]"
+            className="pointer-events-none relative z-20 -mb-9 h-6 w-[216px]"
           />
 
           {/* Solid Basket Body tucked into the drawer at the bottom */}
