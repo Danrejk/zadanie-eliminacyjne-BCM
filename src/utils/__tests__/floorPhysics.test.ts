@@ -469,7 +469,23 @@ describe('floorPhysics', () => {
       );
       expect(bottomRes.newlyHitTrashIds).toEqual([31]);
       expect(bottomBall.enteringTrash).toBe(true);
+      expect(bottomBall.vx).toBe(0);
+      expect(bottomBall.vy).toBe(0);
       expect(bottomRes.bouncedEvents).toEqual([]);
+
+      // During the fade/shrink animation, the ball must remain in the bottom landing zone (never pulled back up to hoopRect)
+      const landedY = bottomBall.y;
+      const midAnimRes = stepFloorPhysics(
+        [bottomBall],
+        1 / 60,
+        VIEWPORT,
+        null,
+        1000 + TRASH_ENTER_DURATION_MS / 2,
+        expandedTrash,
+      );
+      expect(midAnimRes.bouncedEvents).toEqual([]);
+      expect(bottomBall.y).toBeGreaterThanOrEqual(landedY);
+      expect(bottomBall.y).toBeGreaterThan(expandedTrash.hoopRect.bottom);
     });
 
     it('emits bouncedEvents for floor, wall, ceiling, and solid basket impacts above threshold, and stays silent at rest', () => {
