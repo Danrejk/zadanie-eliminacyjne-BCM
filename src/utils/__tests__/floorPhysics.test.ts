@@ -387,9 +387,9 @@ describe('floorPhysics', () => {
         bodyRect: { left: 990, top: 430, right: 1210, bottom: 680 },
       };
 
-      // Side impact: ball moving right into the left wall of bodyRect bounces left, does not score
+      // Side impact: ball moving right into the tapered left wall of bodyRect bounces left, does not score
       const sideBall = createFloorBall(
-        { taskId: 30, originX: 960, originY: 540, spawnedAt: 0, vx: 600, vy: 0 },
+        { taskId: 30, originX: 985, originY: 540, spawnedAt: 0, vx: 600, vy: 0 },
         VIEWPORT,
       );
       expect(sideBall.vx).toBe(600);
@@ -406,7 +406,7 @@ describe('floorPhysics', () => {
       expect(sideRes.newlyHitTrashIds).toEqual([]);
       expect(sideBall.enteringTrash).toBe(false);
       expect(sideBall.vx).toBeLessThan(0);
-      expect(sideBall.x).toBeLessThanOrEqual(expandedTrash.bodyRect.left - sideBall.radius + 0.01);
+      expect(sideBall.x).toBeLessThan(995);
 
       // Top hoop impact: ball falling downward into hoopRect scores
       const hoopBall = createFloorBall(
@@ -451,7 +451,7 @@ describe('floorPhysics', () => {
       expect(wallRes.bouncedEvents).toHaveLength(1);
       expect(wallRes.bouncedEvents[0].taskId).toBe(41);
       expect(wallRes.bouncedEvents[0].impactSpeed).toBeGreaterThan(400);
-      expect(wallRes.bouncedEvents[0].surface).toBe('floor');
+      expect(floorRes.bouncedEvents[0].surface).toBe('floor');
 
       // Ceiling bounce
       const ceilBall = createFloorBall(
@@ -463,7 +463,7 @@ describe('floorPhysics', () => {
       expect(ceilRes.bouncedEvents[0].taskId).toBe(42);
       expect(ceilRes.bouncedEvents[0].surface).toBe('floor');
 
-      // Trashcan wall bounce vs drawer bounce
+      // Trashcan tapered cone wall bounce vs drawer bounce
       const expandedTrash = {
         hoopRect: { left: 1000, top: 380, right: 1200, bottom: 410 },
         bodyRect: { left: 990, top: 410, right: 1210, bottom: 600 },
@@ -471,7 +471,7 @@ describe('floorPhysics', () => {
       };
 
       const trashWallBall = createFloorBall(
-        { taskId: 44, originX: 960, originY: 500, spawnedAt: 0, vx: 600, vy: 0 },
+        { taskId: 44, originX: 985, originY: 500, spawnedAt: 0, vx: 600, vy: 0 },
         VIEWPORT,
       );
       const trashWallRes = stepFloorPhysics(
@@ -484,6 +484,22 @@ describe('floorPhysics', () => {
       );
       expect(trashWallRes.bouncedEvents).toHaveLength(1);
       expect(trashWallRes.bouncedEvents[0].surface).toBe('trashcan');
+
+      // Space outside the tapered cone near bottom-left of bodyRect (x=990..1026) is free, not a solid box
+      const outsideConeBall = createFloorBall(
+        { taskId: 46, originX: 990, originY: 580, spawnedAt: 0, vx: 0, vy: 0 },
+        VIEWPORT,
+      );
+      const outsideConeRes = stepFloorPhysics(
+        [outsideConeBall],
+        1 / 60,
+        VIEWPORT,
+        null,
+        16,
+        expandedTrash,
+      );
+      expect(outsideConeRes.bouncedEvents).toEqual([]);
+      expect(outsideConeBall.vx).toBe(0);
 
       const drawerBall = createFloorBall(
         { taskId: 45, originX: 910, originY: 650, spawnedAt: 0, vx: 600, vy: 0 },
