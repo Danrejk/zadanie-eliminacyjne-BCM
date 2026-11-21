@@ -362,8 +362,8 @@ export function playBallBounceSound(
         return;
       }
 
-      // Default ('floor'): crisp papery crinkle burst
-      const duration = 0.09;
+      // Default ('floor'): light, dry papery crinkle + gentle tap (no kick-like bass sweep)
+      const duration = 0.065;
       const frameCount = Math.max(1, Math.floor(sampleRate * duration));
       const buffer = ctx.createBuffer(1, frameCount, sampleRate);
       const channelData = buffer.getChannelData(0);
@@ -377,14 +377,14 @@ export function playBallBounceSound(
 
       const filter = ctx.createBiquadFilter();
       filter.type = 'bandpass';
-      filter.frequency.value = 1600 + intensity * 800;
-      filter.Q.value = 0.85;
+      filter.frequency.value = 2200 + intensity * 600;
+      filter.Q.value = 1.15;
 
       const noiseGain = ctx.createGain();
-      noiseGain.gain.setValueAtTime(0.01, t);
-      noiseGain.gain.linearRampToValueAtTime(0.28 * intensity, t + 0.012);
-      noiseGain.gain.linearRampToValueAtTime(0.12 * intensity, t + 0.036);
-      noiseGain.gain.linearRampToValueAtTime(0.2 * intensity, t + 0.052);
+      noiseGain.gain.setValueAtTime(0.005, t);
+      noiseGain.gain.linearRampToValueAtTime(0.15 * intensity, t + 0.01);
+      noiseGain.gain.linearRampToValueAtTime(0.06 * intensity, t + 0.028);
+      noiseGain.gain.linearRampToValueAtTime(0.11 * intensity, t + 0.04);
       noiseGain.gain.exponentialRampToValueAtTime(0.001, t + duration);
 
       source.connect(filter);
@@ -394,21 +394,21 @@ export function playBallBounceSound(
       source.start(t);
       source.stop(t + duration);
 
-      // Audible mid-range paper tap/thump
+      // Subtle, ultra-short soft paper-on-desk pat (high-mid, no low-end thump)
       const osc = ctx.createOscillator();
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(340 + intensity * 140, t);
-      osc.frequency.exponentialRampToValueAtTime(125, t + 0.07);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(460 + intensity * 90, t);
+      osc.frequency.exponentialRampToValueAtTime(300, t + 0.025);
 
       const oscGain = ctx.createGain();
-      oscGain.gain.setValueAtTime(0.22 * intensity, t);
-      oscGain.gain.exponentialRampToValueAtTime(0.001, t + 0.075);
+      oscGain.gain.setValueAtTime(0.045 * intensity, t);
+      oscGain.gain.exponentialRampToValueAtTime(0.001, t + 0.028);
 
       osc.connect(oscGain);
       oscGain.connect(ctx.destination);
 
       osc.start(t);
-      osc.stop(t + 0.075);
+      osc.stop(t + 0.028);
     } catch {
       // Safe no-op
     }
