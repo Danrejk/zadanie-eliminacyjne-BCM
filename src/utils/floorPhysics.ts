@@ -616,8 +616,8 @@ export function stepFloorPhysics(
       const { hoopRect, bodyRect } = validExpandedTrash;
       const scoredTopHoop =
         couldScoreThisStep &&
-        ball.vy >= -40 &&
-        doesSegmentHitRect(prevX, prevY, ball.x, ball.y, hoopRect, 10);
+        ball.vy > 0 &&
+        doesSegmentHitRect(prevX, prevY, ball.x, ball.y, hoopRect, 0);
 
       if (scoredTopHoop) {
         ball.enteringTrash = true;
@@ -659,19 +659,25 @@ export function stepFloorPhysics(
           recordBounce(resolveCircleRectBounce(ball, solidDrawerRect), 'drawer');
         }
       }
-    } else if (
-      couldScoreThisStep &&
-      validTrashRect &&
-      doesSegmentHitRect(prevX, prevY, ball.x, ball.y, validTrashRect, TRASH_HITBOX_PADDING)
-    ) {
-      ball.enteringTrash = true;
-      ball.enterStartTime = hasFiniteNow ? nowMs : null;
-      ball.enterStartX = ball.x;
-      ball.enterStartY = ball.y;
-      ball.vx = 0;
-      ball.vy = 0;
-      ball.vRot = 0;
-      newlyHitTrashIds.push(ball.taskId);
+    } else if (couldScoreThisStep && validTrashRect) {
+      const w = validTrashRect.right - validTrashRect.left;
+      const h = validTrashRect.bottom - validTrashRect.top;
+      const basketInteriorRect: RectLike = {
+        left: validTrashRect.left + w * 0.16,
+        top: validTrashRect.top + h * 0.22,
+        right: validTrashRect.right - w * 0.16,
+        bottom: validTrashRect.bottom - h * 0.08,
+      };
+      if (doesSegmentHitRect(prevX, prevY, ball.x, ball.y, basketInteriorRect, 0)) {
+        ball.enteringTrash = true;
+        ball.enterStartTime = hasFiniteNow ? nowMs : null;
+        ball.enterStartX = ball.x;
+        ball.enterStartY = ball.y;
+        ball.vx = 0;
+        ball.vy = 0;
+        ball.vRot = 0;
+        newlyHitTrashIds.push(ball.taskId);
+      }
     }
 
     if (!ball.enteringTrash && maxBounceSpeed > 0) {

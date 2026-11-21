@@ -342,7 +342,7 @@ describe('floorPhysics', () => {
       expect(noScoreBall.enteringTrash).toBe(false);
 
       const scoringBall = createFloorBall(
-        { taskId: 21, originX: 1100, originY: 600, spawnedAt: 0 },
+        { taskId: 21, originX: 1115, originY: 600, spawnedAt: 0 },
         VIEWPORT,
       );
       scoringBall.vx = 1800;
@@ -353,6 +353,16 @@ describe('floorPhysics', () => {
       expect(resHit.newlyHitTrashIds).toEqual([21]);
       expect(scoringBall.enteringTrash).toBe(true);
       expect(resHit.finishedEnteringIds).toEqual([]);
+
+      // Ball flying just above the closed trashcan rim does not get pulled in
+      const aboveClosedBall = createFloorBall(
+        { taskId: 23, originX: 1190, originY: TRASH_RECT.top - 4, spawnedAt: 0, vx: 300, vy: 0 },
+        VIEWPORT,
+      );
+      aboveClosedBall.canScoreTrash = true;
+      const resAboveClosed = stepFloorPhysics([aboveClosedBall], 1 / 60, VIEWPORT, TRASH_RECT, 1000);
+      expect(resAboveClosed.newlyHitTrashIds).toEqual([]);
+      expect(aboveClosedBall.enteringTrash).toBe(false);
 
       const resFinish = stepFloorPhysics(
         [scoringBall],
@@ -408,9 +418,26 @@ describe('floorPhysics', () => {
       expect(sideBall.vx).toBeLessThan(0);
       expect(sideBall.x).toBeLessThan(995);
 
+      // Ball flying just above the open hoop does not get vacuumed in
+      const aboveHoopBall = createFloorBall(
+        { taskId: 32, originX: 1100, originY: 394, spawnedAt: 0, vx: 200, vy: 0 },
+        VIEWPORT,
+      );
+      aboveHoopBall.canScoreTrash = true;
+      const aboveHoopRes = stepFloorPhysics(
+        [aboveHoopBall],
+        1 / 60,
+        VIEWPORT,
+        null,
+        1000,
+        expandedTrash,
+      );
+      expect(aboveHoopRes.newlyHitTrashIds).toEqual([]);
+      expect(aboveHoopBall.enteringTrash).toBe(false);
+
       // Top hoop impact: ball falling downward into hoopRect scores
       const hoopBall = createFloorBall(
-        { taskId: 31, originX: 1100, originY: 390, spawnedAt: 0, vx: 0, vy: 400 },
+        { taskId: 31, originX: 1100, originY: 395, spawnedAt: 0, vx: 0, vy: 400 },
         VIEWPORT,
       );
       hoopBall.canScoreTrash = true;
