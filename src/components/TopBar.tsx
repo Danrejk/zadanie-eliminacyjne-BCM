@@ -367,57 +367,68 @@ export function TopBar() {
           style={{ borderTopColor: 'rgba(139, 90, 43, 0.5)' }}
         >
           {/* Tag Pin Chips */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="mr-1 font-medium text-amber-200/80">
-              Pinezki (tagi):
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <span className="whitespace-nowrap font-medium text-amber-200/80">
+              Filtruj po tagach
             </span>
             {allTags.length === 0 ? (
               <span className="italic text-amber-200/50">
                 Brak tagów na aktywnych zadaniach
               </span>
             ) : (
-              allTags.map((tag) => {
-                const normalized = normalizeTag(tag);
-                const color = getTagColor(normalized);
-                const isSelected = selectedTags.includes(normalized);
+              <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                {allTags.map((tag) => {
+                  const normalized = normalizeTag(tag);
+                  const color = getTagColor(normalized);
+                  const isSelected = selectedTags.includes(normalized);
 
-                return (
-                  <button
-                    key={normalized}
-                    type="button"
-                    data-testid={`tag-filter-${normalized}`}
-                    data-active={isSelected ? 'true' : 'false'}
-                    aria-pressed={isSelected}
-                    onClick={() => handleToggleTag(normalized)}
-                    title={`Filtruj po tagu: #${normalized} (${color.name})`}
-                    className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium transition-all cursor-pointer"
-                    style={
-                      isSelected
-                        ? {
-                            backgroundColor: color.bg,
-                            borderColor: '#fef3c7',
-                            color: color.text,
-                            boxShadow: '0 0 0 2px rgba(254, 243, 199, 0.45)',
-                          }
-                        : {
-                            backgroundColor: 'rgba(46, 32, 24, 0.72)',
-                            borderColor: color.bg,
-                            color: '#fef3c7',
-                          }
-                    }
-                  >
-                    <span
-                      className="inline-block h-2.5 w-2.5 rounded-full shrink-0"
+                  return (
+                    <button
+                      key={normalized}
+                      type="button"
+                      data-testid={`tag-filter-${normalized}`}
+                      data-active={isSelected ? 'true' : 'false'}
+                      aria-pressed={isSelected}
+                      onClick={() => handleToggleTag(normalized)}
+                      title={`Filtruj po tagu: ${normalized} (${color.name})`}
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold text-[#2b231d] shadow-sm transition-colors hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-wood-dark)] cursor-pointer"
                       style={{
-                        background: `radial-gradient(circle at 35% 30%, ${color.light}, ${color.bg} 65%, ${color.dark})`,
-                        border: `1px solid ${isSelected ? '#ffffff' : color.dark}`,
+                        backgroundColor: isSelected ? '#fff3a1' : '#fff3d6',
+                        borderColor: isSelected ? '#4a2d16' : '#e5d2a8',
+                        boxShadow: isSelected
+                          ? '0 0 0 1px #4a2d16, 0 2px 4px rgba(0, 0, 0, 0.25)'
+                          : '0 2px 4px rgba(0, 0, 0, 0.2)',
                       }}
-                      aria-hidden="true"
-                    />
-                    <span>#{normalized}</span>
-                  </button>
-                );
-              })
+                    >
+                      <span
+                        className="relative inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center"
+                        aria-hidden="true"
+                      >
+                        <span className="absolute bottom-0 h-1 w-1.5 rounded-full bg-black/35" />
+                        <span
+                          className="relative z-10 h-3.5 w-3.5 rounded-full border"
+                          style={{
+                            background: `radial-gradient(circle at 32% 30%, ${color.light} 0%, ${color.bg} 55%, ${color.dark} 100%)`,
+                            borderColor: color.dark,
+                            boxShadow:
+                              '0 2px 3px rgba(0, 0, 0, 0.38), inset 0 1px 1.5px rgba(255, 255, 255, 0.65)',
+                          }}
+                        >
+                          <span className="absolute left-[3px] top-[2px] h-1 w-1 rounded-full bg-white/80" />
+                        </span>
+                      </span>
+                      <span>{normalized}</span>
+                      <span
+                        data-testid={`tag-filter-indicator-${normalized}`}
+                        className={`inline-flex w-3 justify-center text-sm leading-none ${isSelected ? 'opacity-100' : 'opacity-0'}`}
+                        aria-hidden="true"
+                      >
+                        ✓
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             )}
           </div>
 

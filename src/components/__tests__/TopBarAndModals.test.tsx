@@ -200,15 +200,21 @@ describe('Milestone M3 — TopBar, TaskModal, ContextMenu & Toast', () => {
       expect(Array.from(getCtx().matchingTaskIds)).toEqual([2]);
     });
 
-    it('renders colored tag pin chips for active tags, toggles tag selection, switches filter mode, and resets filters preserving filterMode', async () => {
+    it('renders paper tag filters with colored pins, toggles selection, switches filter mode, and resets filters preserving filterMode', async () => {
       const user = userEvent.setup();
       const { getCtx } = renderM3Harness();
 
       // Active tasks have tags: dom, egzamin, projekt, studia, zakupy
+      expect(screen.getByText('Filtruj po tagach')).toBeInTheDocument();
       const studiaChip = screen.getByTestId('tag-filter-studia');
       const domChip = screen.getByTestId('tag-filter-dom');
+      expect(studiaChip).toHaveTextContent('studia');
+      expect(studiaChip).not.toHaveTextContent('#studia');
       expect(studiaChip).toHaveAttribute('aria-pressed', 'false');
       expect(domChip).toHaveAttribute('aria-pressed', 'false');
+      const studiaIndicator = screen.getByTestId('tag-filter-indicator-studia');
+      expect(studiaIndicator).toHaveTextContent('✓');
+      expect(studiaIndicator).toHaveClass('opacity-0');
 
       // Reset button not shown when no filters active
       expect(
@@ -218,6 +224,8 @@ describe('Milestone M3 — TopBar, TaskModal, ContextMenu & Toast', () => {
       // Toggle 'studia' tag filter
       await user.click(studiaChip);
       expect(studiaChip).toHaveAttribute('aria-pressed', 'true');
+      expect(studiaChip).toHaveAttribute('data-active', 'true');
+      expect(studiaIndicator).toHaveClass('opacity-100');
       expect(getCtx().state.filters.selectedTags).toEqual(['studia']);
       expect(Array.from(getCtx().matchingTaskIds).sort()).toEqual([1, 3]);
 
