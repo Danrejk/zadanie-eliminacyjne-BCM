@@ -1,4 +1,4 @@
-import { useRef, type ChangeEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import {
   Plus,
   Search,
@@ -12,6 +12,8 @@ import {
   Eye,
   RotateCcw,
   Pin,
+  ChevronDown,
+  FileText,
 } from 'lucide-react';
 import { useTasks } from '../context/TaskContext';
 import { getTagColor, normalizeTag } from '../utils/tagColors';
@@ -39,9 +41,44 @@ async function readFileText(file: File): Promise<string> {
 export function TopBar() {
   const { state, dispatch, allTags } = useTasks();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const filesMenuRef = useRef<HTMLDivElement | null>(null);
+  const filesMenuButtonRef = useRef<HTMLButtonElement | null>(null);
+  const [isFilesMenuOpen, setIsFilesMenuOpen] = useState(false);
 
   const { searchQuery, selectedTags, filterMode } = state.filters;
   const hasActiveFilters = searchQuery.length > 0 || selectedTags.length > 0;
+
+  useEffect(() => {
+    if (!isFilesMenuOpen) {
+      return;
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (
+        event.target instanceof Node &&
+        !filesMenuRef.current?.contains(event.target)
+      ) {
+        setIsFilesMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsFilesMenuOpen(false);
+        filesMenuButtonRef.current?.focus();
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    filesMenuRef.current
+      ?.querySelector<HTMLButtonElement>('[role="menuitem"]')
+      ?.focus();
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isFilesMenuOpen]);
 
   const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
     dispatch({
@@ -64,10 +101,10 @@ export function TopBar() {
     });
   };
 
-  const handleToggleFilterMode = () => {
+  const handleSetFilterMode = (mode: 'filter' | 'highlight') => {
     dispatch({
       type: 'SET_FILTER_MODE',
-      payload: { mode: filterMode === 'filter' ? 'highlight' : 'filter' },
+      payload: { mode },
     });
   };
 
@@ -83,7 +120,13 @@ export function TopBar() {
   };
 
   const handleTriggerImport = () => {
+    setIsFilesMenuOpen(false);
     fileInputRef.current?.click();
+  };
+
+  const closeFilesMenu = () => {
+    setIsFilesMenuOpen(false);
+    filesMenuButtonRef.current?.focus();
   };
 
   const handleFileImport = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -179,19 +222,20 @@ export function TopBar() {
       className="sticky top-0 z-30 w-full border-b-2 shadow-md select-none"
       style={{
         zIndex: 'var(--z-topbar)',
-        background:
-          'linear-gradient(180deg, var(--color-wood-frame) 0%, var(--color-wood-dark) 100%)',
+        backgroundColor: 'var(--color-wood-dark)',
+        backgroundImage:
+          'repeating-linear-gradient(178deg, rgba(255, 215, 160, 0.045) 0px, rgba(255, 215, 160, 0.045) 1px, transparent 2px, transparent 12px, rgba(20, 10, 4, 0.11) 15px, transparent 18px, transparent 31px), repeating-linear-gradient(180deg, transparent 0px, transparent 7px, rgba(21, 10, 4, 0.12) 8px, transparent 9px, transparent 14px), linear-gradient(180deg, rgba(34, 18, 8, 0.28), rgba(30, 14, 6, 0.45)), linear-gradient(180deg, #754a27 0%, #5a381e 48%, #472b16 100%)',
         borderBottomColor: 'var(--color-wood-highlight)',
         color: '#fef3c7',
       }}
     >
-      <div className="mx-auto max-w-[1600px] px-4 py-2.5 flex flex-col gap-2">
+      <div className="mx-auto flex max-w-[1600px] flex-col gap-2 px-3 py-2 sm:px-4">
         {/* Top Row: Brand Title, Live Search, Primary Action Buttons */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2 border-b pb-2.5 sm:gap-3" style={{ borderBottomColor: 'rgba(218, 150, 78, 0.38)' }}>
           {/* Brand Title */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex shrink-0 items-center gap-2.5">
             <span
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border shadow-inner"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-lg border shadow-inner"
               style={{
                 backgroundColor: 'var(--color-wood-dark)',
                 borderColor: 'var(--color-wood-highlight)',
@@ -200,13 +244,13 @@ export function TopBar() {
             >
               <Pin className="h-4 w-4 text-red-400 -rotate-12" />
             </span>
-            <h1 className="text-lg sm:text-xl font-bold tracking-tight text-amber-50 drop-shadow-xs">
+            <h1 className="whitespace-nowrap text-lg font-bold tracking-tight text-amber-50 drop-shadow-xs sm:text-xl">
               Praktyczna Tablica
             </h1>
           </div>
 
           {/* Live Search Input */}
-          <div className="relative flex-1 min-w-[220px] max-w-md">
+          <div className="relative order-3 min-w-0 basis-full flex-1 sm:order-none sm:min-w-[180px] sm:basis-auto sm:max-w-sm">
             <Search
               className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-amber-200/70"
               aria-hidden="true"
@@ -216,9 +260,9 @@ export function TopBar() {
               data-testid="search-input"
               value={searchQuery}
               onChange={handleSearchChange}
-              placeholder="Szukaj w tytule lub opisie..."
-              aria-label="Szukaj w tytule lub opisie"
-              className="w-full rounded-lg border py-1.5 pl-9 pr-8 text-sm text-amber-50 placeholder:text-amber-200/60 focus:outline-none focus:ring-2 focus:ring-amber-300/70 transition-colors"
+              placeholder="Szukaj zadań…"
+              aria-label="Szukaj zadań"
+              className="h-10 w-full rounded-md border py-1.5 pl-9 pr-8 text-sm text-amber-50 placeholder:text-amber-200/60 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-300/70"
               style={{
                 backgroundColor: 'rgba(46, 32, 24, 0.75)',
                 borderColor: 'var(--color-wood-highlight)',
@@ -238,13 +282,13 @@ export function TopBar() {
           </div>
 
           {/* Action Toolbar */}
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="ml-auto flex flex-wrap items-center gap-2">
             {/* + Nowe zadanie */}
             <button
               type="button"
               data-testid="btn-new-task"
               onClick={handleOpenCreateModal}
-              className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-semibold shadow-xs transition-all hover:brightness-105 active:scale-95 cursor-pointer"
+              className="inline-flex h-10 items-center gap-2 rounded-md border px-3 text-sm font-semibold text-[#2b231d] shadow-sm transition-all hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-wood-dark)] active:scale-95 cursor-pointer"
               style={{
                 backgroundColor: 'var(--color-note-medium-bg)',
                 borderColor: 'var(--color-note-medium-border)',
@@ -252,7 +296,7 @@ export function TopBar() {
               }}
             >
               <Plus className="h-4 w-4 stroke-[2.5]" aria-hidden="true" />
-              <span>+ Nowe zadanie</span>
+              <span>Nowe zadanie</span>
             </button>
 
             {/* Hidden File Input for JSON Import */}
@@ -266,44 +310,12 @@ export function TopBar() {
               aria-label="Wybierz plik JSON z zadaniami"
             />
 
-            {/* Wczytaj JSON */}
-            <button
-              type="button"
-              data-testid="btn-import-json"
-              onClick={handleTriggerImport}
-              className="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs sm:text-sm font-medium text-amber-50 transition-colors hover:bg-amber-100/15 active:scale-95 cursor-pointer"
-              style={{
-                backgroundColor: 'rgba(46, 32, 24, 0.65)',
-                borderColor: 'var(--color-wood-highlight)',
-              }}
-              title="Wczytaj zadania z pliku JSON"
-            >
-              <Upload className="h-4 w-4 text-amber-200" aria-hidden="true" />
-              <span>Wczytaj JSON</span>
-            </button>
-
-            {/* Eksportuj JSON */}
-            <button
-              type="button"
-              data-testid="btn-export-json"
-              onClick={handleExportJson}
-              className="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs sm:text-sm font-medium text-amber-50 transition-colors hover:bg-amber-100/15 active:scale-95 cursor-pointer"
-              style={{
-                backgroundColor: 'rgba(46, 32, 24, 0.65)',
-                borderColor: 'var(--color-wood-highlight)',
-              }}
-              title="Zapisz zadania do pliku zadania.json"
-            >
-              <Download className="h-4 w-4 text-amber-200" aria-hidden="true" />
-              <span>Eksportuj JSON</span>
-            </button>
-
             {/* Archiwum */}
             <button
               type="button"
               data-testid="btn-open-archive"
               onClick={handleOpenArchive}
-              className="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs sm:text-sm font-medium text-amber-50 transition-colors hover:bg-amber-100/15 active:scale-95 cursor-pointer"
+              className="inline-flex h-10 items-center gap-1.5 rounded-md border px-2.5 text-sm font-medium text-amber-50 transition-colors hover:bg-amber-100/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-wood-dark)] active:scale-95 cursor-pointer"
               style={{
                 backgroundColor: 'rgba(46, 32, 24, 0.65)',
                 borderColor: 'var(--color-wood-highlight)',
@@ -326,6 +338,67 @@ export function TopBar() {
               )}
             </button>
 
+            {/* Files Menu */}
+            <div className="relative" ref={filesMenuRef}>
+            <button
+              ref={filesMenuButtonRef}
+              type="button"
+              data-testid="btn-files-menu"
+              aria-haspopup="menu"
+              aria-expanded={isFilesMenuOpen}
+              aria-controls="files-menu"
+              onClick={() => setIsFilesMenuOpen((open) => !open)}
+              className="inline-flex h-10 items-center gap-2 rounded-md border px-2.5 text-sm font-medium text-amber-50 transition-colors hover:bg-amber-100/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-wood-dark)] cursor-pointer"
+              style={{
+                backgroundColor: 'rgba(46, 32, 24, 0.65)',
+                borderColor: 'var(--color-wood-highlight)',
+              }}
+            >
+              <FileText className="h-4 w-4 text-amber-200" aria-hidden="true" />
+              <span>Pliki</span>
+              <ChevronDown
+                className={`h-3.5 w-3.5 transition-transform ${isFilesMenuOpen ? 'rotate-180' : ''}`}
+                aria-hidden="true"
+              />
+            </button>
+            {isFilesMenuOpen && (
+              <div
+                id="files-menu"
+                role="menu"
+                aria-label="Pliki"
+                className="absolute right-0 top-full z-50 mt-1 flex min-w-44 flex-col gap-1 rounded-md border p-1.5 text-sm shadow-xl"
+                style={{
+                  backgroundColor: 'var(--color-wood-dark)',
+                  borderColor: 'var(--color-wood-highlight)',
+                }}
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  data-testid="btn-import-json"
+                  onClick={handleTriggerImport}
+                  className="inline-flex h-9 items-center gap-2 rounded px-2 text-left text-amber-50 transition-colors hover:bg-amber-100/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 cursor-pointer"
+                >
+                  <Upload className="h-4 w-4 text-amber-200" aria-hidden="true" />
+                  <span>Wczytaj JSON</span>
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  data-testid="btn-export-json"
+                  onClick={() => {
+                    closeFilesMenu();
+                    handleExportJson();
+                  }}
+                  className="inline-flex h-9 items-center gap-2 rounded px-2 text-left text-amber-50 transition-colors hover:bg-amber-100/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 cursor-pointer"
+                >
+                  <Download className="h-4 w-4 text-amber-200" aria-hidden="true" />
+                  <span>Eksportuj JSON</span>
+                </button>
+              </div>
+            )}
+            </div>
+
             {/* Mute / Unmute Toggle */}
             <button
               type="button"
@@ -339,7 +412,7 @@ export function TopBar() {
                   ? 'Dźwięki wyciszone (kliknij, aby włączyć)'
                   : 'Dźwięki włączone (kliknij, aby wyciszyć)'
               }
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-amber-100 transition-colors hover:bg-amber-100/15 active:scale-95 cursor-pointer"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-md border text-amber-100 transition-colors hover:bg-amber-100/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-wood-dark)] active:scale-95 cursor-pointer"
               style={{
                 backgroundColor: state.muted
                   ? 'rgba(198, 40, 40, 0.35)'
@@ -362,10 +435,7 @@ export function TopBar() {
         </div>
 
         {/* Second Row: Push-pin / Tag Filter Bar + Filter Mode Toggle + Quick Reset */}
-        <div
-          className="flex flex-wrap items-center justify-between gap-2 border-t pt-2 text-xs"
-          style={{ borderTopColor: 'rgba(139, 90, 43, 0.5)' }}
-        >
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5 text-xs">
           {/* Tag Pin Chips */}
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <span className="whitespace-nowrap font-medium text-amber-200/80">
@@ -433,41 +503,51 @@ export function TopBar() {
           </div>
 
           {/* Filter Mode Toggle & Quick Reset */}
-          <div className="flex items-center gap-2 ml-auto">
-            <button
-              type="button"
-              data-testid="filter-mode-toggle"
-              data-mode={filterMode}
-              onClick={handleToggleFilterMode}
-              title={
-                filterMode === 'filter'
-                  ? 'Tryb filtrowania: ukrywa niepasujące notatki (kliknij, aby przełączyć na podświetlanie)'
-                  : 'Tryb podświetlania: przygasza niepasujące notatki (kliknij, aby przełączyć na ukrywanie)'
-              }
-              className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium text-amber-100 transition-colors hover:bg-amber-100/15 cursor-pointer"
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            <div
+              role="group"
+              aria-label="Tryb filtrowania"
+              className="inline-flex items-center rounded-md border p-0.5"
               style={{
                 backgroundColor: 'rgba(46, 32, 24, 0.65)',
                 borderColor: 'var(--color-wood-highlight)',
               }}
             >
-              {filterMode === 'filter' ? (
-                <>
-                  <Filter
-                    className="h-3.5 w-3.5 text-amber-300"
-                    aria-hidden="true"
-                  />
-                  <span>Tryb: Filtruj (ukryj inne)</span>
-                </>
-              ) : (
-                <>
-                  <Eye
-                    className="h-3.5 w-3.5 text-amber-300"
-                    aria-hidden="true"
-                  />
-                  <span>Tryb: Podświetl (przygaś inne)</span>
-                </>
-              )}
-            </button>
+              <button
+                type="button"
+                data-testid="filter-mode-hide"
+                data-mode={filterMode}
+                aria-pressed={filterMode === 'filter'}
+                onClick={() => handleSetFilterMode('filter')}
+                className="inline-flex h-8 items-center gap-1.5 rounded px-2.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-wood-dark)] cursor-pointer"
+                style={{
+                  backgroundColor:
+                    filterMode === 'filter' ? 'var(--color-cork-light)' : 'transparent',
+                  color:
+                    filterMode === 'filter' ? 'var(--color-ink)' : '#fef3c7',
+                }}
+              >
+                <Filter className="h-3.5 w-3.5" aria-hidden="true" />
+                <span>Ukryj</span>
+              </button>
+              <button
+                type="button"
+                data-testid="filter-mode-highlight"
+                data-mode={filterMode}
+                aria-pressed={filterMode === 'highlight'}
+                onClick={() => handleSetFilterMode('highlight')}
+                className="inline-flex h-8 items-center gap-1.5 rounded px-2.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-wood-dark)] cursor-pointer"
+                style={{
+                  backgroundColor:
+                    filterMode === 'highlight' ? 'var(--color-cork-light)' : 'transparent',
+                  color:
+                    filterMode === 'highlight' ? 'var(--color-ink)' : '#fef3c7',
+                }}
+              >
+                <Eye className="h-3.5 w-3.5" aria-hidden="true" />
+                <span>Podświetl</span>
+              </button>
+            </div>
 
             {hasActiveFilters && (
               <button

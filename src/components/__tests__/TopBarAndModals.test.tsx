@@ -33,6 +33,7 @@ import {
 } from '../../utils/dateBuckets';
 import * as soundUtils from '../../utils/sound';
 import { TopBar } from '../TopBar';
+import { Corkboard } from '../Corkboard';
 import { TaskModal } from '../TaskModal';
 import { ContextMenu } from '../ContextMenu';
 import { Toast } from '../Toast';
@@ -82,6 +83,7 @@ function createSampleSeedTasks(): Task[] {
 interface HarnessOptions {
   seed?: InitialStateSeed;
   initialActions?: TaskAction[];
+  showCorkboard?: boolean;
 }
 
 function StateProbe({
@@ -129,6 +131,7 @@ function renderM3Harness(options: HarnessOptions = {}) {
         }}
       />
       <TopBar />
+      {options.showCorkboard && <Corkboard />}
       <TaskModal />
       <ContextMenu />
       <Toast />
@@ -168,6 +171,29 @@ describe('Milestone M3 — TopBar, TaskModal, ContextMenu & Toast', () => {
       expect(topbar).toBeInTheDocument();
       expect(within(topbar).getByText('Praktyczna Tablica')).toBeInTheDocument();
       expect(topbar.textContent).not.toMatch(/Praktykanci/i);
+      expect(screen.getByTestId('search-input')).toHaveAttribute(
+        'placeholder',
+        'Szukaj zadań…',
+      );
+      expect(screen.getByRole('button', { name: 'Wycisz dźwięki' })).toBeInTheDocument();
+    });
+
+    it('closes the Files menu on Escape and outside click', async () => {
+      const user = userEvent.setup();
+      renderM3Harness();
+      const menuButton = screen.getByTestId('btn-files-menu');
+
+      await user.click(menuButton);
+      expect(menuButton).toHaveAttribute('aria-expanded', 'true');
+      expect(screen.getByRole('menu', { name: 'Pliki' })).toBeInTheDocument();
+      await user.keyboard('{Escape}');
+      expect(menuButton).toHaveAttribute('aria-expanded', 'false');
+      expect(menuButton).toHaveFocus();
+
+      await user.click(menuButton);
+      await user.click(screen.getByTestId('search-input'));
+      expect(menuButton).toHaveAttribute('aria-expanded', 'false');
+      expect(screen.queryByRole('menu', { name: 'Pliki' })).not.toBeInTheDocument();
     });
 
     it('filters tasks via live search input (matching title & description) and clears via quick clear button', async () => {
@@ -202,7 +228,7 @@ describe('Milestone M3 — TopBar, TaskModal, ContextMenu & Toast', () => {
 
     it('renders paper tag filters with colored pins, toggles selection, switches filter mode, and resets filters preserving filterMode', async () => {
       const user = userEvent.setup();
-      const { getCtx } = renderM3Harness();
+      const { getCtx } = renderM3Harness({ showCorkboard: true });
 
       // Active tasks have tags: dom, egzamin, projekt, studia, zakupy
       expect(screen.getByText('Filtruj po tagach')).toBeInTheDocument();
@@ -215,6 +241,10 @@ describe('Milestone M3 — TopBar, TaskModal, ContextMenu & Toast', () => {
       const studiaIndicator = screen.getByTestId('tag-filter-indicator-studia');
       expect(studiaIndicator).toHaveTextContent('✓');
       expect(studiaIndicator).toHaveClass('opacity-0');
+      const hideModeButton = screen.getByTestId('filter-mode-hide');
+      const highlightModeButton = screen.getByTestId('filter-mode-highlight');
+      expect(hideModeButton).toHaveAttribute('aria-pressed', 'true');
+      expect(highlightModeButton).toHaveAttribute('aria-pressed', 'false');
 
       // Reset button not shown when no filters active
       expect(
@@ -228,6 +258,7 @@ describe('Milestone M3 — TopBar, TaskModal, ContextMenu & Toast', () => {
       expect(studiaIndicator).toHaveClass('opacity-100');
       expect(getCtx().state.filters.selectedTags).toEqual(['studia']);
       expect(Array.from(getCtx().matchingTaskIds).sort()).toEqual([1, 3]);
+      expect(screen.queryByTestId('postit-note-2')).not.toBeInTheDocument();
 
       // Toggle 'dom' tag filter (OR match across selected tags)
       await user.click(domChip);
@@ -236,14 +267,24 @@ describe('Milestone M3 — TopBar, TaskModal, ContextMenu & Toast', () => {
       expect(Array.from(getCtx().matchingTaskIds).sort()).toEqual([1, 2, 3]);
 
       // Switch filter mode from 'filter' to 'highlight'
-      const modeToggle = screen.getByTestId('filter-mode-toggle');
-      expect(modeToggle).toHaveAttribute('data-mode', 'filter');
-      expect(modeToggle).toHaveTextContent(/Filtruj/i);
-
-      await user.click(modeToggle);
+      await user.click(highlightModeButton);
       expect(getCtx().state.filters.filterMode).toBe('highlight');
-      expect(modeToggle).toHaveAttribute('data-mode', 'highlight');
-      expect(modeToggle).toHaveTextContent(/Podświetl/i);
+      expect(highlightModeButton).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByTestId('postit-note-2')).toHaveAttribute(
+        'data-dimmed',
+        'false',
+      );
+
+      await user.click(domChip);
+      expect(screen.getByTestId('postit-note-2')).toHaveAttribute(
+        'data-dimmed',
+        'true',
+      );
+      await user.click(hideModeButton);
+      expect(getCtx().state.filters.filterMode).toBe('filter');
+      expect(hideModeButton).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.queryByTestId('postit-note-2')).not.toBeInTheDocument();
+      await user.click(highlightModeButton);
 
       // Quick reset button clears searchQuery & selectedTags but preserves filterMode === 'highlight'
       await user.type(screen.getByTestId('search-input'), 'kawa');
@@ -297,6 +338,10 @@ describe('Milestone M3 — TopBar, TaskModal, ContextMenu & Toast', () => {
         ],
       });
 
+      const filesMenuButton = screen.getByTestId('btn-files-menu');
+      await user.click(filesMenuButton);
+      await user.click(screen.getByTestId('btn-import-json'));
+      expect(filesMenuButton).toHaveAttribute('aria-expanded', 'false');
       const fileInput = screen.getByTestId(
         'import-json-input',
       ) as HTMLInputElement;
@@ -470,9 +515,12 @@ describe('Milestone M3 — TopBar, TaskModal, ContextMenu & Toast', () => {
           },
         });
 
+        const filesMenuButton = screen.getByTestId('btn-files-menu');
+        await user.click(filesMenuButton);
         await user.click(screen.getByTestId('btn-export-json'));
 
         expect(clickSpy).toHaveBeenCalledTimes(1);
+        expect(filesMenuButton).toHaveAttribute('aria-expanded', 'false');
         expect(clickedDownloadAttr).toBe('zadania.json');
         expect(capturedBlob).not.toBeNull();
 
