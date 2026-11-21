@@ -163,6 +163,7 @@ test.describe('Tier 2 — Boundaries, Validation Errors & Edge Cases (E01–E28)
     // Mutate state by deleting task 101, then re-import the exact same file path
     await page.getByTestId('postit-note-101').click({ button: 'right' });
     await page.getByTestId('context-menu-delete').click();
+    await page.getByTestId('context-menu-delete-confirm').click();
     await expect(page.locator('[data-testid^="postit-note-"]')).toHaveCount(3);
 
     await uploadTasksJson(page, 'valid-v2.json');

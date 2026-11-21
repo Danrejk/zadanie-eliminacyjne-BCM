@@ -260,6 +260,7 @@ test.describe('Tier 1 — Core Feature Coverage (F01–F31)', () => {
     await note6.click({ button: 'right' });
     await expect(page.getByTestId('context-menu')).toBeVisible();
     await page.getByTestId('context-menu-delete').click();
+    await page.getByTestId('context-menu-delete-confirm').click();
     await expect(note6).toHaveCount(0);
     await expect(page.locator('[data-testid^="postit-note-"]')).toHaveCount(15);
 
@@ -494,6 +495,7 @@ test.describe('Tier 1 — Core Feature Coverage (F01–F31)', () => {
     await page.getByTestId('trash-ball-20').click({ button: 'right' });
     await expect(page.getByTestId('context-menu')).toBeVisible();
     await page.getByTestId('context-menu-delete').click();
+    await page.getByTestId('context-menu-delete-confirm').click();
     await expect(page.getByTestId('trash-ball-20')).toHaveCount(0);
 
     await page.getByTestId('btn-close-trash-drawer').click();

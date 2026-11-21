@@ -75,6 +75,11 @@ export function ContextMenu() {
     ? `${contextMenu.kind}-${contextMenu.taskId}-${contextMenu.x}-${contextMenu.y}`
     : '';
 
+  const [confirmingDeleteKey, setConfirmingDeleteKey] = useState<string | null>(
+    null,
+  );
+  const isConfirmingDelete = menuKey !== '' && confirmingDeleteKey === menuKey;
+
   const [measuredRect, setMeasuredRect] = useState<{
     key: string;
     width: number;
@@ -233,11 +238,61 @@ export function ContextMenu() {
   };
 
   const handleDelete = () => {
+    setConfirmingDeleteKey(null);
     dispatch({
       type: 'DELETE_TASK',
       payload: { id: contextMenu.taskId },
     });
     dispatch({ type: 'CLOSE_CONTEXT_MENU' });
+  };
+
+  const renderDeleteControl = (label: string) => {
+    if (isConfirmingDelete) {
+      return (
+        <div
+          data-testid="context-menu-delete-confirmation"
+          className="mx-2 my-1 flex items-center justify-between gap-2 rounded-lg border border-red-300 bg-red-50 px-2.5 py-1.5"
+        >
+          <span className="text-xs font-semibold text-red-900">
+            Czy na pewno?
+          </span>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              role="menuitem"
+              data-testid="context-menu-delete-confirm"
+              onClick={handleDelete}
+              className="rounded-md bg-red-700 px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-red-800 cursor-pointer"
+            >
+              Tak
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              data-testid="context-menu-delete-cancel"
+              onClick={() => setConfirmingDeleteKey(null)}
+              className="rounded-md border border-amber-900/20 bg-white px-2.5 py-1 text-xs font-semibold text-[#2b231d] transition-colors hover:bg-amber-50 cursor-pointer"
+            >
+              Nie
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <button
+        type="button"
+        role="menuitem"
+        data-testid="context-menu-delete"
+        onClick={() => setConfirmingDeleteKey(menuKey)}
+        className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm font-semibold hover:bg-red-900/10 transition-colors cursor-pointer"
+        style={{ color: 'var(--color-stamp-red)' }}
+      >
+        <Trash2 className="h-4 w-4" aria-hidden="true" />
+        <span>{label}</span>
+      </button>
+    );
   };
 
   return (
@@ -379,17 +434,7 @@ export function ContextMenu() {
             </div>
           </div>
 
-          <button
-            type="button"
-            role="menuitem"
-            data-testid="context-menu-delete"
-            onClick={handleDelete}
-            className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm font-semibold hover:bg-red-900/10 transition-colors cursor-pointer"
-            style={{ color: 'var(--color-stamp-red)' }}
-          >
-            <Trash2 className="h-4 w-4" aria-hidden="true" />
-            <span>Usuń zadanie na stałe</span>
-          </button>
+          {renderDeleteControl('Usuń zadanie na stałe')}
         </>
       )}
 
@@ -437,17 +482,7 @@ export function ContextMenu() {
             style={{ borderTopColor: 'rgba(166, 124, 82, 0.25)' }}
           />
 
-          <button
-            type="button"
-            role="menuitem"
-            data-testid="context-menu-delete"
-            onClick={handleDelete}
-            className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm font-semibold hover:bg-red-900/10 transition-colors cursor-pointer"
-            style={{ color: 'var(--color-stamp-red)' }}
-          >
-            <Trash2 className="h-4 w-4" aria-hidden="true" />
-            <span>Usuń na stałe</span>
-          </button>
+          {renderDeleteControl('Usuń na stałe')}
         </>
       )}
 
@@ -481,17 +516,7 @@ export function ContextMenu() {
             style={{ borderTopColor: 'rgba(166, 124, 82, 0.25)' }}
           />
 
-          <button
-            type="button"
-            role="menuitem"
-            data-testid="context-menu-delete"
-            onClick={handleDelete}
-            className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm font-semibold hover:bg-red-900/10 transition-colors cursor-pointer"
-            style={{ color: 'var(--color-stamp-red)' }}
-          >
-            <Trash2 className="h-4 w-4" aria-hidden="true" />
-            <span>Usuń na stałe</span>
-          </button>
+          {renderDeleteControl('Usuń na stałe')}
         </>
       )}
       </div>

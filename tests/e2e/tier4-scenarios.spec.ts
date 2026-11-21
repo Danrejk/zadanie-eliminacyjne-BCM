@@ -267,6 +267,7 @@ test.describe('Tier 4 — Real-World Student & Competition Judge Scenarios', () 
     // 3. Permanently delete task 16 via board PPM
     await page.getByTestId('postit-note-16').click({ button: 'right' });
     await page.getByTestId('context-menu-delete').click();
+    await page.getByTestId('context-menu-delete-confirm').click();
     await expect(page.getByTestId('postit-note-16')).toHaveCount(0);
 
     // 4. Reset filters and edit task 14 to add a deadline and new tag "kariera"
