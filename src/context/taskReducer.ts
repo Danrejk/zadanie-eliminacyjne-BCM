@@ -164,6 +164,13 @@ export function selectAllTags(activeTasks: Task[], selectedTags: string[] = []):
   return Array.from(tagSet).sort((a, b) => a.localeCompare(b, 'pl'));
 }
 
+function isContextMenuForTask(
+  menu: TaskState['contextMenu'],
+  taskId: number,
+): boolean {
+  return menu !== null && 'taskId' in menu && menu.taskId === taskId;
+}
+
 export function taskReducer(state: TaskState, action: TaskAction): TaskState {
   switch (action.type) {
     case 'ADD_TASK': {
@@ -240,7 +247,7 @@ export function taskReducer(state: TaskState, action: TaskAction): TaskState {
           floorBalls: nextFloorBalls,
           draggingFloorBallId: state.draggingFloorBallId === id ? null : state.draggingFloorBallId,
           ballInFlight: nextFloorBalls.length === 0 ? false : state.ballInFlight,
-          contextMenu: state.contextMenu?.taskId === id ? null : state.contextMenu,
+          contextMenu: isContextMenuForTask(state.contextMenu, id) ? null : state.contextMenu,
         };
       }
 
@@ -266,7 +273,7 @@ export function taskReducer(state: TaskState, action: TaskAction): TaskState {
         draggingFloorBallId: state.draggingFloorBallId === id ? null : state.draggingFloorBallId,
         draggingNoteId: state.draggingNoteId === id ? null : state.draggingNoteId,
         ballInFlight: nextFloorBalls.length === 0 ? false : state.ballInFlight,
-        contextMenu: state.contextMenu?.taskId === id ? null : state.contextMenu,
+        contextMenu: isContextMenuForTask(state.contextMenu, id) ? null : state.contextMenu,
         activeModal:
           (state.activeModal.type === 'edit' ||
             state.activeModal.type === 'view') &&
@@ -348,7 +355,7 @@ export function taskReducer(state: TaskState, action: TaskAction): TaskState {
         tasks: state.tasks.map((t) => (t.id === id ? { ...t, wykonane: true } : t)),
         floorBalls: nextFloorBalls,
         draggingNoteId: state.draggingNoteId === id ? null : state.draggingNoteId,
-        contextMenu: state.contextMenu?.taskId === id ? null : state.contextMenu,
+        contextMenu: isContextMenuForTask(state.contextMenu, id) ? null : state.contextMenu,
       };
     }
 
@@ -376,7 +383,7 @@ export function taskReducer(state: TaskState, action: TaskAction): TaskState {
         draggingNoteId: state.draggingNoteId === id ? null : state.draggingNoteId,
         draggingFloorBallId: state.draggingFloorBallId === id ? null : state.draggingFloorBallId,
         ballInFlight: nextFloorBalls.length === 0 ? false : state.ballInFlight,
-        contextMenu: state.contextMenu?.taskId === id ? null : state.contextMenu,
+        contextMenu: isContextMenuForTask(state.contextMenu, id) ? null : state.contextMenu,
       };
     }
 
@@ -395,7 +402,7 @@ export function taskReducer(state: TaskState, action: TaskAction): TaskState {
         trashBounceCount: state.trashBounceCount + 1,
         draggingFloorBallId: state.draggingFloorBallId === id ? null : state.draggingFloorBallId,
         ballInFlight: false,
-        contextMenu: state.contextMenu?.taskId === id ? null : state.contextMenu,
+        contextMenu: isContextMenuForTask(state.contextMenu, id) ? null : state.contextMenu,
       };
     }
 
@@ -467,7 +474,7 @@ export function taskReducer(state: TaskState, action: TaskAction): TaskState {
         floorBalls: nextFloorBalls,
         draggingFloorBallId: state.draggingFloorBallId === id ? null : state.draggingFloorBallId,
         ballInFlight: nextFloorBalls.length === 0 ? false : state.ballInFlight,
-        contextMenu: state.contextMenu?.taskId === id ? null : state.contextMenu,
+        contextMenu: isContextMenuForTask(state.contextMenu, id) ? null : state.contextMenu,
       };
     }
 
@@ -493,7 +500,9 @@ export function taskReducer(state: TaskState, action: TaskAction): TaskState {
         tasks: state.tasks.filter((t) => !inTrashIds.has(t.id)),
         archive: [...state.archive, ...newEntries],
         contextMenu:
-          state.contextMenu && inTrashIds.has(state.contextMenu.taskId)
+          state.contextMenu &&
+          'taskId' in state.contextMenu &&
+          inTrashIds.has(state.contextMenu.taskId)
             ? null
             : state.contextMenu,
       };

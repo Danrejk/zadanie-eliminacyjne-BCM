@@ -1039,10 +1039,77 @@ describe('Milestone M3 — TopBar, TaskModal, ContextMenu & Toast', () => {
       });
       await user.click(screen.getByTestId('context-menu-restore'));
       expect(restoreSoundSpy).toHaveBeenCalledTimes(1);
-      expect(getCtx().state.tasks.find((t) => t.id === 4)?.wykonane).toBe(
-        false,
-      );
+      expect(
+        getCtx().state.tasks.find((t) => t.id === 4)?.wykonane,
+      ).toBe(false);
       expect(screen.queryByTestId('context-menu')).not.toBeInTheDocument();
+    });
+
+    it('renders cell context menu with single create option and opens TaskModal with prefilled priority and deadline (and empty title)', async () => {
+      const user = userEvent.setup();
+
+      const { getCtx } = renderM3Harness({
+        initialActions: [
+          {
+            type: 'OPEN_CONTEXT_MENU',
+            payload: {
+              kind: 'cell',
+              priority: 'wysoki',
+              zone: 'todayTomorrow',
+              x: 300,
+              y: 200,
+            },
+          },
+        ],
+      });
+
+      const menu = screen.getByTestId('context-menu');
+      expect(menu).toHaveAttribute('data-kind', 'cell');
+      expect(within(menu).getAllByRole('menuitem')).toHaveLength(1);
+      expect(screen.getByTestId('context-menu-create')).toHaveTextContent(
+        'Utwórz nową notatkę',
+      );
+      expect(screen.queryByTestId('context-menu-view')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('context-menu-delete')).not.toBeInTheDocument();
+
+      await user.click(screen.getByTestId('context-menu-create'));
+
+      expect(screen.queryByTestId('context-menu')).not.toBeInTheDocument();
+      expect(screen.getByTestId('task-modal')).toBeInTheDocument();
+      expect(screen.getByTestId('task-input-title')).toHaveValue('');
+      expect(screen.getByTestId('task-input-desc')).toHaveValue('');
+      expect(screen.getByTestId('task-priority-wysoki')).toHaveAttribute(
+        'data-active',
+        'true',
+      );
+      expect(screen.getByTestId('task-input-date')).toHaveValue(
+        getTodayDateString(),
+      );
+      expect(
+        screen.getByTestId('task-checkbox-no-deadline'),
+      ).not.toBeChecked();
+
+      // Also verify noDeadline cell shortcut
+      fireEvent.keyDown(window, { key: 'Escape' });
+      act(() => {
+        getCtx().dispatch({
+          type: 'OPEN_CONTEXT_MENU',
+          payload: {
+            kind: 'cell',
+            priority: 'niski',
+            zone: 'noDeadline',
+            x: 350,
+            y: 250,
+          },
+        });
+      });
+      await user.click(screen.getByTestId('context-menu-create'));
+      expect(screen.getByTestId('task-input-title')).toHaveValue('');
+      expect(screen.getByTestId('task-priority-niski')).toHaveAttribute(
+        'data-active',
+        'true',
+      );
+      expect(screen.getByTestId('task-checkbox-no-deadline')).toBeChecked();
     });
 
     it('clamps coordinates inside viewport boundaries near right/bottom and negative edges, and dismisses on outside click, Escape, scroll, and resize', () => {

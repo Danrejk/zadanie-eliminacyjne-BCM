@@ -7,10 +7,11 @@ import {
   ArrowDownToLine,
   Check,
   Flag,
+  Plus,
 } from 'lucide-react';
 import { PRIORITIES, type Priority } from '../types/task';
 import { useTasks } from '../context/TaskContext';
-import { PRIORITY_LABELS } from '../utils/dateBuckets';
+import { PRIORITY_LABELS, TIME_ZONE_LABELS } from '../utils/dateBuckets';
 import {
   playCrumpleSound,
   playPinClickSound,
@@ -72,7 +73,9 @@ export function ContextMenu() {
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   const menuKey = contextMenu
-    ? `${contextMenu.kind}-${contextMenu.taskId}-${contextMenu.x}-${contextMenu.y}`
+    ? 'taskId' in contextMenu
+      ? `${contextMenu.kind}-${contextMenu.taskId}-${contextMenu.x}-${contextMenu.y}`
+      : `${contextMenu.kind}-${contextMenu.priority}-${contextMenu.zone}-${contextMenu.x}-${contextMenu.y}`
     : '';
 
   const [measuredRect, setMeasuredRect] = useState<{
@@ -155,7 +158,11 @@ export function ContextMenu() {
     return null;
   }
 
-  const targetTask = state.tasks.find((t) => t.id === contextMenu.taskId);
+  const contextTaskId = 'taskId' in contextMenu ? contextMenu.taskId : null;
+  const targetTask =
+    contextTaskId !== null
+      ? state.tasks.find((t) => t.id === contextTaskId)
+      : undefined;
 
   const effectiveWidth =
     measuredRect && measuredRect.key === menuKey
@@ -185,19 +192,21 @@ export function ContextMenu() {
   );
 
   const handleView = () => {
+    if (contextTaskId === null) return;
     dispatch({
       type: 'OPEN_MODAL',
-      payload: { type: 'view', taskId: contextMenu.taskId },
+      payload: { type: 'view', taskId: contextTaskId },
     });
     dispatch({ type: 'CLOSE_CONTEXT_MENU' });
   };
 
   const handleCompleteToFloor = () => {
+    if (contextTaskId === null) return;
     playCrumpleSound(state.muted);
     dispatch({
       type: 'COMPLETE_TO_FLOOR',
       payload: {
-        id: contextMenu.taskId,
+        id: contextTaskId,
         originX: contextMenu.x,
         originY: contextMenu.y,
       },
@@ -206,36 +215,53 @@ export function ContextMenu() {
   };
 
   const handleSetPriority = (priorytet: Priority) => {
+    if (contextTaskId === null) return;
     playPinClickSound(state.muted);
     dispatch({
       type: 'SET_PRIORITY',
-      payload: { id: contextMenu.taskId, priorytet },
+      payload: { id: contextTaskId, priorytet },
     });
     dispatch({ type: 'CLOSE_CONTEXT_MENU' });
   };
 
   const handleDropIntoTrash = () => {
+    if (contextTaskId === null) return;
     playTrashPlopSound(state.muted);
     dispatch({
       type: 'DROP_BALL_INTO_TRASH',
-      payload: { id: contextMenu.taskId },
+      payload: { id: contextTaskId },
     });
     dispatch({ type: 'CLOSE_CONTEXT_MENU' });
   };
 
   const handleRestore = () => {
+    if (contextTaskId === null) return;
     playRestoreSound(state.muted);
     dispatch({
       type: 'RESTORE_TASK',
-      payload: { id: contextMenu.taskId },
+      payload: { id: contextTaskId },
     });
     dispatch({ type: 'CLOSE_CONTEXT_MENU' });
   };
 
   const handleDelete = () => {
+    if (contextTaskId === null) return;
     dispatch({
       type: 'DELETE_TASK',
-      payload: { id: contextMenu.taskId },
+      payload: { id: contextTaskId },
+    });
+    dispatch({ type: 'CLOSE_CONTEXT_MENU' });
+  };
+
+  const handleCreateFromCell = () => {
+    if (contextMenu.kind !== 'cell') return;
+    dispatch({
+      type: 'OPEN_MODAL',
+      payload: {
+        type: 'create',
+        defaultPriority: contextMenu.priority,
+        defaultZone: contextMenu.zone,
+      },
     });
     dispatch({ type: 'CLOSE_CONTEXT_MENU' });
   };
@@ -271,7 +297,11 @@ export function ContextMenu() {
         data-testid="context-menu"
         data-kind={contextMenu.kind}
         role="menu"
-        aria-label="Menu kontekstowe zadania"
+        aria-label={
+          contextMenu.kind === 'cell'
+            ? 'Menu kontekstowe komórki'
+            : 'Menu kontekstowe zadania'
+        }
       onContextMenu={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -298,6 +328,34 @@ export function ContextMenu() {
         >
           {targetTask.tytul}
         </div>
+      )}
+
+      {/* Cell Header Preview */}
+      {contextMenu.kind === 'cell' && (
+        <div
+          className="border-b px-3 py-1.5 mb-1 truncate text-xs font-bold"
+          style={{
+            borderBottomColor: 'rgba(166, 124, 82, 0.3)',
+            color: 'var(--color-ink-muted)',
+          }}
+        >
+          {TIME_ZONE_LABELS[contextMenu.zone]} ·{' '}
+          {PRIORITY_LABELS[contextMenu.priority]}
+        </div>
+      )}
+
+      {/* Variant 4: Empty/Background Cell on Corkboard */}
+      {contextMenu.kind === 'cell' && (
+        <button
+          type="button"
+          role="menuitem"
+          data-testid="context-menu-create"
+          onClick={handleCreateFromCell}
+          className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm font-medium hover:bg-amber-900/10 transition-colors cursor-pointer"
+        >
+          <Plus className="h-4 w-4 text-amber-800" aria-hidden="true" />
+          <span>Utwórz nową notatkę</span>
+        </button>
       )}
 
       {/* Variant 1: Post-it Note on Corkboard */}

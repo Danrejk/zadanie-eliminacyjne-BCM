@@ -455,6 +455,21 @@ describe('Milestone M2 — Corkboard 3x5, PostItNote & PushPin', () => {
       expect(harness.ctx.state.activeModal).toEqual({ type: 'none' });
     });
 
+    it('right-click (PPM) on a corkboard cell dispatches OPEN_CONTEXT_MENU with kind: "cell" and cell coordinates', () => {
+      const harness = renderCorkboard([]);
+
+      const cell = screen.getByTestId('zone-cell-wysoki-todayTomorrow');
+      fireEvent.contextMenu(cell, { clientX: 480, clientY: 220 });
+
+      expect(harness.ctx.state.contextMenu).toEqual({
+        kind: 'cell',
+        priority: 'wysoki',
+        zone: 'todayTomorrow',
+        x: 480,
+        y: 220,
+      });
+    });
+
     it('suppresses trailing click right after dragEnd via wasDraggingRef (50ms window)', () => {
       vi.useFakeTimers();
       const harness = renderCorkboard();
