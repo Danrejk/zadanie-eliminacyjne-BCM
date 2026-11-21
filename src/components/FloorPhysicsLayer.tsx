@@ -337,7 +337,7 @@ export function FloorPhysicsLayer() {
       }
 
       if (result.bouncedEvents.length > 0) {
-        let loudestBounce: { taskId: number; impactSpeed: number } | null = null;
+        let loudestBounce: (typeof result.bouncedEvents)[number] | null = null;
         for (const ev of result.bouncedEvents) {
           const lastAt = lastBounceSoundMapRef.current.get(ev.taskId) ?? -Infinity;
           if (nowMs - lastAt >= 45) {
@@ -350,7 +350,11 @@ export function FloorPhysicsLayer() {
           for (const ev of result.bouncedEvents) {
             lastBounceSoundMapRef.current.set(ev.taskId, nowMs);
           }
-          playBallBounceSound(mutedRef.current, loudestBounce.impactSpeed);
+          playBallBounceSound(
+            mutedRef.current,
+            loudestBounce.impactSpeed,
+            loudestBounce.surface,
+          );
         }
       }
 

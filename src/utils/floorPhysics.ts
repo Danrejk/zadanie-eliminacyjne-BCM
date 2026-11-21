@@ -1,4 +1,5 @@
 import type { FloorBall, FloorBallSpawn } from '../types/task';
+import type { BounceSurface } from './sound';
 
 export const BALL_RADIUS = 24;               // 48x48px visual diameter
 export const GRAVITY = 1900;                 // px/s^2
@@ -43,6 +44,7 @@ export interface ExpandedTrashCollider {
 export interface BounceEvent {
   taskId: number;
   impactSpeed: number;
+  surface: BounceSurface;
 }
 
 export interface PhysicsStepResult {
@@ -442,6 +444,13 @@ export function stepFloorPhysics(
     const prevY = ball.y;
     const couldScoreThisStep = ball.canScoreTrash;
     let maxBounceSpeed = 0;
+    let bounceSurface: BounceSurface = 'floor';
+    const recordBounce = (impact: number, surface: BounceSurface) => {
+      if (impact > maxBounceSpeed) {
+        maxBounceSpeed = impact;
+        bounceSurface = surface;
+      }
+    };
 
     // Gravity & air drag
     ball.vy += GRAVITY * dt;
@@ -457,14 +466,14 @@ export function stepFloorPhysics(
     if (ball.x < minX) {
       const impact = ball.vx < 0 ? -ball.vx : 0;
       if (impact > BOUNCE_SOUND_MIN_SPEED) {
-        maxBounceSpeed = Math.max(maxBounceSpeed, impact);
+        recordBounce(impact, 'floor');
       }
       ball.x = minX;
       ball.vx = Math.abs(ball.vx) * WALL_RESTITUTION;
     } else if (ball.x > maxX) {
       const impact = ball.vx > 0 ? ball.vx : 0;
       if (impact > BOUNCE_SOUND_MIN_SPEED) {
-        maxBounceSpeed = Math.max(maxBounceSpeed, impact);
+        recordBounce(impact, 'floor');
       }
       ball.x = maxX;
       ball.vx = -Math.abs(ball.vx) * WALL_RESTITUTION;
@@ -473,7 +482,7 @@ export function stepFloorPhysics(
     if (ball.y < r) {
       const impact = ball.vy < 0 ? -ball.vy : 0;
       if (impact > BOUNCE_SOUND_MIN_SPEED) {
-        maxBounceSpeed = Math.max(maxBounceSpeed, impact);
+        recordBounce(impact, 'floor');
       }
       ball.y = r;
       ball.vy = Math.abs(ball.vy) * WALL_RESTITUTION;
@@ -485,7 +494,7 @@ export function stepFloorPhysics(
       const impact = Math.abs(ball.vy);
       if (impact > BOUNCE_SOUND_MIN_SPEED) {
         if (ball.vy > 0) {
-          maxBounceSpeed = Math.max(maxBounceSpeed, impact);
+          recordBounce(impact, 'floor');
         }
         ball.vy = -impact * BOUNCE_RESTITUTION;
       } else {
@@ -533,7 +542,7 @@ export function stepFloorPhysics(
           right: Math.max(bodyRect.right, safeW),
           bottom: bodyRect.bottom,
         };
-        maxBounceSpeed = Math.max(maxBounceSpeed, resolveCircleRectBounce(ball, solidWallRect));
+        recordBounce(resolveCircleRectBounce(ball, solidWallRect), 'trashcan');
 
         if (validExpandedTrash.drawerRect && isFiniteRect(validExpandedTrash.drawerRect)) {
           const solidDrawerRect: RectLike = {
@@ -542,7 +551,7 @@ export function stepFloorPhysics(
             right: Math.max(validExpandedTrash.drawerRect.right, safeW),
             bottom: validExpandedTrash.drawerRect.bottom,
           };
-          maxBounceSpeed = Math.max(maxBounceSpeed, resolveCircleRectBounce(ball, solidDrawerRect));
+          recordBounce(resolveCircleRectBounce(ball, solidDrawerRect), 'drawer');
         }
       }
     } else if (
@@ -564,6 +573,7 @@ export function stepFloorPhysics(
       bouncedEvents.push({
         taskId: ball.taskId,
         impactSpeed: maxBounceSpeed,
+        surface: bounceSurface,
       });
     }
   }

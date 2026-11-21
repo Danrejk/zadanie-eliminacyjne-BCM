@@ -220,4 +220,22 @@ describe('sound', () => {
     expect(mock.ctor).toHaveBeenCalledTimes(1);
     expect(mock.resume).toHaveBeenCalledTimes(1);
   });
+
+  it('synthesizes distinct bounce sounds for floor, drawer, and trashcan surfaces', () => {
+    const mock = installMockAudioContext('running');
+
+    playBallBounceSound(false, 500, 'floor');
+    expect(mock.bufStart).toHaveBeenCalledTimes(1);
+    expect(mock.oscStart).toHaveBeenCalledTimes(1);
+
+    // Drawer uses two oscillators (hollow body + overtone) + 1 noise burst
+    playBallBounceSound(false, 500, 'drawer');
+    expect(mock.bufStart).toHaveBeenCalledTimes(2);
+    expect(mock.oscStart).toHaveBeenCalledTimes(3);
+
+    // Trashcan uses two inharmonic metallic oscillators + 1 bright noise burst
+    playBallBounceSound(false, 500, 'trashcan');
+    expect(mock.bufStart).toHaveBeenCalledTimes(3);
+    expect(mock.oscStart).toHaveBeenCalledTimes(5);
+  });
 });

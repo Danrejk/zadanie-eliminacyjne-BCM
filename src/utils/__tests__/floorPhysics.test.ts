@@ -440,6 +440,7 @@ describe('floorPhysics', () => {
       expect(floorRes.bouncedEvents).toHaveLength(1);
       expect(floorRes.bouncedEvents[0].taskId).toBe(40);
       expect(floorRes.bouncedEvents[0].impactSpeed).toBeGreaterThan(400);
+      expect(floorRes.bouncedEvents[0].surface).toBe('floor');
 
       // Left wall bounce
       const wallBall = createFloorBall(
@@ -450,6 +451,7 @@ describe('floorPhysics', () => {
       expect(wallRes.bouncedEvents).toHaveLength(1);
       expect(wallRes.bouncedEvents[0].taskId).toBe(41);
       expect(wallRes.bouncedEvents[0].impactSpeed).toBeGreaterThan(400);
+      expect(wallRes.bouncedEvents[0].surface).toBe('floor');
 
       // Ceiling bounce
       const ceilBall = createFloorBall(
@@ -459,6 +461,44 @@ describe('floorPhysics', () => {
       const ceilRes = stepFloorPhysics([ceilBall], 1 / 60, VIEWPORT, null, 16);
       expect(ceilRes.bouncedEvents).toHaveLength(1);
       expect(ceilRes.bouncedEvents[0].taskId).toBe(42);
+      expect(ceilRes.bouncedEvents[0].surface).toBe('floor');
+
+      // Trashcan wall bounce vs drawer bounce
+      const expandedTrash = {
+        hoopRect: { left: 1000, top: 380, right: 1200, bottom: 410 },
+        bodyRect: { left: 990, top: 410, right: 1210, bottom: 600 },
+        drawerRect: { left: 940, top: 600, right: 1280, bottom: 720 },
+      };
+
+      const trashWallBall = createFloorBall(
+        { taskId: 44, originX: 960, originY: 500, spawnedAt: 0, vx: 600, vy: 0 },
+        VIEWPORT,
+      );
+      const trashWallRes = stepFloorPhysics(
+        [trashWallBall],
+        1 / 60,
+        VIEWPORT,
+        null,
+        16,
+        expandedTrash,
+      );
+      expect(trashWallRes.bouncedEvents).toHaveLength(1);
+      expect(trashWallRes.bouncedEvents[0].surface).toBe('trashcan');
+
+      const drawerBall = createFloorBall(
+        { taskId: 45, originX: 910, originY: 650, spawnedAt: 0, vx: 600, vy: 0 },
+        VIEWPORT,
+      );
+      const drawerRes = stepFloorPhysics(
+        [drawerBall],
+        1 / 60,
+        VIEWPORT,
+        null,
+        16,
+        expandedTrash,
+      );
+      expect(drawerRes.bouncedEvents).toHaveLength(1);
+      expect(drawerRes.bouncedEvents[0].surface).toBe('drawer');
 
       // Resting ball on floor does not emit bounce events
       const restBall = createFloorBall(
