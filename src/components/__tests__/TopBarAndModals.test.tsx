@@ -934,6 +934,19 @@ describe('Milestone M3 — TopBar, TaskModal, ContextMenu & Toast', () => {
       });
       await user.click(screen.getByTestId('context-menu-delete'));
       expect(
+        screen.getByTestId('context-menu-delete-confirmation'),
+      ).toHaveTextContent('Czy na pewno?');
+      await user.click(screen.getByTestId('context-menu-delete-cancel'));
+      expect(
+        screen.queryByTestId('context-menu-delete-confirmation'),
+      ).not.toBeInTheDocument();
+      expect(
+        getCtx().state.tasks.find((t) => t.id === 3),
+      ).toBeDefined();
+
+      await user.click(screen.getByTestId('context-menu-delete'));
+      await user.click(screen.getByTestId('context-menu-delete-confirm'));
+      expect(
         getCtx().state.tasks.find((t) => t.id === 3),
       ).toBeUndefined();
       expect(screen.queryByTestId('context-menu')).not.toBeInTheDocument();
@@ -994,6 +1007,10 @@ describe('Milestone M3 — TopBar, TaskModal, ContextMenu & Toast', () => {
         });
       });
       await user.click(screen.getByTestId('context-menu-delete'));
+      expect(
+        screen.getByTestId('context-menu-delete-confirmation'),
+      ).toHaveTextContent('Czy na pewno?');
+      await user.click(screen.getByTestId('context-menu-delete-confirm'));
       expect(getCtx().floorBallIds.has(3)).toBe(false);
       expect(
         getCtx().state.tasks.find((t) => t.id === 3),

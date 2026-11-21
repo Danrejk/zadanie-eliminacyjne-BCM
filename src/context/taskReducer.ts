@@ -508,6 +508,33 @@ export function taskReducer(state: TaskState, action: TaskAction): TaskState {
       };
     }
 
+    case 'DELETE_ARCHIVE_ENTRY': {
+      const { taskId, oproznionoDnia } = action.payload;
+      const idx = state.archive.findIndex(
+        (entry) =>
+          entry.task.id === taskId && entry.oproznionoDnia === oproznionoDnia,
+      );
+      if (idx === -1) {
+        return state;
+      }
+
+      return {
+        ...state,
+        archive: state.archive.filter((_, i) => i !== idx),
+      };
+    }
+
+    case 'CLEAR_ARCHIVE': {
+      if (state.archive.length === 0) {
+        return state;
+      }
+
+      return {
+        ...state,
+        archive: [],
+      };
+    }
+
     case 'LOAD_TASKS_FILE': {
       const { file, sourceLabel } = action.payload;
       return {

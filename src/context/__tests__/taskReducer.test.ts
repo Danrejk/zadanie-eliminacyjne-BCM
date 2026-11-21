@@ -468,6 +468,47 @@ describe('taskReducer & selectors', () => {
       expect(afterEmpty.archive).toHaveLength(1);
       expect(isValidIsoTimestamp(afterEmpty.archive[0].oproznionoDnia)).toBe(true);
     });
+
+    it('DELETE_ARCHIVE_ENTRY removes only the matching archive entry and no-ops when missing', () => {
+      const state = createInitialState({
+        wersja: 1,
+        tasks: [],
+        archive: [
+          { task: makeTask(1, { wykonane: true }), oproznionoDnia: '2026-11-18T10:00:00.000Z' },
+          { task: makeTask(2, { wykonane: true }), oproznionoDnia: '2026-11-18T10:00:00.000Z' },
+        ],
+      });
+
+      const missing = taskReducer(state, {
+        type: 'DELETE_ARCHIVE_ENTRY',
+        payload: { taskId: 999, oproznionoDnia: '2026-11-18T10:00:00.000Z' },
+      });
+      expect(missing).toBe(state);
+
+      const afterDelete = taskReducer(state, {
+        type: 'DELETE_ARCHIVE_ENTRY',
+        payload: { taskId: 1, oproznionoDnia: '2026-11-18T10:00:00.000Z' },
+      });
+      expect(afterDelete.archive).toHaveLength(1);
+      expect(afterDelete.archive[0].task.id).toBe(2);
+    });
+
+    it('CLEAR_ARCHIVE empties archive and no-ops when already empty', () => {
+      const state = createInitialState({
+        wersja: 1,
+        tasks: [makeTask(1)],
+        archive: [
+          { task: makeTask(2, { wykonane: true }), oproznionoDnia: '2026-11-18T10:00:00.000Z' },
+          { task: makeTask(3, { wykonane: true }), oproznionoDnia: '2026-11-19T10:00:00.000Z' },
+        ],
+      });
+
+      const cleared = taskReducer(state, { type: 'CLEAR_ARCHIVE' });
+      expect(cleared.archive).toEqual([]);
+      expect(cleared.tasks).toHaveLength(1);
+
+      expect(taskReducer(cleared, { type: 'CLEAR_ARCHIVE' })).toBe(cleared);
+    });
   });
 
   describe('LOAD_TASKS_FILE, RESET_TO_SAMPLE, filters, modals, and toasts', () => {

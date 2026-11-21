@@ -1,4 +1,6 @@
-import { Archive, Download } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Archive, Download, Trash2 } from 'lucide-react';
+import type { ArchiveEntry } from '../types/task';
 import { useTasks } from '../context/TaskContext';
 import { PRIORITY_LABELS, formatDisplayDate } from '../utils/dateBuckets';
 import { getTagColor } from '../utils/tagColors';
@@ -22,8 +24,21 @@ function formatArchiveTimestamp(isoStr: string): string {
 export function ArchiveModal() {
   const { state, dispatch } = useTasks();
   const isOpen = state.activeModal.type === 'archive';
+  const [confirmingEntryKey, setConfirmingEntryKey] = useState<string | null>(
+    null,
+  );
+  const [confirmingClearAll, setConfirmingClearAll] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setConfirmingEntryKey(null);
+      setConfirmingClearAll(false);
+    }
+  }, [isOpen]);
 
   const handleClose = () => {
+    setConfirmingEntryKey(null);
+    setConfirmingClearAll(false);
     dispatch({ type: 'CLOSE_MODAL' });
   };
 
@@ -37,6 +52,38 @@ export function ArchiveModal() {
       payload: {
         type: 'success',
         text: 'Wyeksportowano archiwum do pliku archiwum_usunietych.json.',
+      },
+    });
+  };
+
+  const handleConfirmDeleteEntry = (entry: ArchiveEntry) => {
+    dispatch({
+      type: 'DELETE_ARCHIVE_ENTRY',
+      payload: {
+        taskId: entry.task.id,
+        oproznionoDnia: entry.oproznionoDnia,
+      },
+    });
+    setConfirmingEntryKey(null);
+    dispatch({
+      type: 'SHOW_TOAST',
+      payload: {
+        type: 'info',
+        text: `Usunięto trwale zadanie „${entry.task.tytul}” z archiwum.`,
+      },
+    });
+  };
+
+  const handleConfirmClearAll = () => {
+    const count = state.archive.length;
+    dispatch({ type: 'CLEAR_ARCHIVE' });
+    setConfirmingClearAll(false);
+    setConfirmingEntryKey(null);
+    dispatch({
+      type: 'SHOW_TOAST',
+      payload: {
+        type: 'info',
+        text: `Usunięto trwale wszystkie zadania z archiwum (${count}).`,
       },
     });
   };
@@ -56,26 +103,72 @@ export function ArchiveModal() {
       closeAriaLabel="Zamknij archiwum"
       footerJustifyClass="justify-between"
       footer={
-        <>
-          <button
-            type="button"
-            data-testid="btn-export-archive"
-            onClick={handleExportArchive}
-            className="inline-flex items-center gap-1.5 rounded-xs bg-amber-800 px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-amber-900 cursor-pointer"
+        confirmingClearAll ? (
+          <div
+            data-testid="confirm-clear-archive"
+            className="flex w-full flex-wrap items-center justify-between gap-2 rounded-xs border border-red-300 bg-red-50/95 px-3 py-2"
           >
-            <Download className="h-3.5 w-3.5" aria-hidden="true" />
-            Eksportuj archiwum JSON
-          </button>
+            <span className="text-xs font-semibold text-red-900">
+              Czy na pewno chcesz wszystko usunąć?
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                data-testid="btn-cancel-clear-archive"
+                onClick={() => setConfirmingClearAll(false)}
+                className="notebook-pencil-box bg-white px-3 py-1.5 text-xs font-semibold text-[#2b231d] transition-colors hover:bg-amber-900/10 cursor-pointer"
+              >
+                Nie
+              </button>
+              <button
+                type="button"
+                data-testid="btn-confirm-clear-archive"
+                onClick={handleConfirmClearAll}
+                className="inline-flex items-center gap-1.5 rounded-xs bg-red-700 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-red-800 cursor-pointer"
+              >
+                <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                Tak, usuń wszystko
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                data-testid="btn-export-archive"
+                onClick={handleExportArchive}
+                className="inline-flex items-center gap-1.5 rounded-xs bg-amber-800 px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-amber-900 cursor-pointer"
+              >
+                <Download className="h-3.5 w-3.5" aria-hidden="true" />
+                Eksportuj archiwum JSON
+              </button>
 
-          <button
-            type="button"
-            data-testid="btn-close-archive"
-            onClick={handleClose}
-            className="notebook-pencil-box px-4 py-2 text-xs font-semibold text-[#2b231d] transition-colors hover:bg-amber-900/10 cursor-pointer"
-          >
-            Zamknij
-          </button>
-        </>
+              <button
+                type="button"
+                data-testid="btn-clear-archive"
+                disabled={entries.length === 0}
+                onClick={() => {
+                  setConfirmingEntryKey(null);
+                  setConfirmingClearAll(true);
+                }}
+                className="inline-flex items-center gap-1.5 rounded-xs border border-red-900/25 bg-red-50 px-3.5 py-2 text-xs font-semibold text-red-800 transition-colors hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-45 cursor-pointer"
+              >
+                <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                Usuń wszystko
+              </button>
+            </div>
+
+            <button
+              type="button"
+              data-testid="btn-close-archive"
+              onClick={handleClose}
+              className="notebook-pencil-box px-4 py-2 text-xs font-semibold text-[#2b231d] transition-colors hover:bg-amber-900/10 cursor-pointer"
+            >
+              Zamknij
+            </button>
+          </>
+        )
       }
     >
       {entries.length === 0 ? (
@@ -88,52 +181,101 @@ export function ArchiveModal() {
         </div>
       ) : (
         <ul className="space-y-2.5">
-          {entries.map((entry, index) => (
-            <li
-              key={`${entry.task.id}-${entry.oproznionoDnia}-${index}`}
-              data-testid={`archive-entry-${index}`}
-              className="notebook-pencil-box p-3.5"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div className="font-semibold text-[#2b231d]">
-                  {entry.task.tytul}
-                </div>
-                <span className="rounded-full border border-amber-900/20 bg-amber-50/80 px-2 py-0.5 text-[11px] font-semibold text-amber-950">
-                  {PRIORITY_LABELS[entry.task.priorytet]}
-                </span>
-              </div>
+          {entries.map((entry, index) => {
+            const entryKey = `${entry.task.id}-${entry.oproznionoDnia}-${index}`;
+            const isConfirming = confirmingEntryKey === entryKey;
 
-              {entry.task.opis && (
-                <p className="mt-1 text-xs text-[#5c4f44] line-clamp-2">
-                  {entry.task.opis}
-                </p>
-              )}
+            return (
+              <li
+                key={entryKey}
+                data-testid={`archive-entry-${index}`}
+                className="notebook-pencil-box p-3.5"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="font-semibold text-[#2b231d]">
+                    {entry.task.tytul}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="rounded-full border border-amber-900/20 bg-amber-50/80 px-2 py-0.5 text-[11px] font-semibold text-amber-950">
+                      {PRIORITY_LABELS[entry.task.priorytet]}
+                    </span>
 
-              <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-[#5c4f44]">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span>Termin: {formatDisplayDate(entry.task.termin)}</span>
-                  {entry.task.tagi.map((tag, tagIdx) => {
-                    const color = getTagColor(tag);
-                    return (
-                      <span
-                        key={`${tag}-${tagIdx}`}
-                        className="rounded-full px-1.5 py-0.5 text-[10px] font-medium"
-                        style={{
-                          backgroundColor: color.bg,
-                          color: color.text,
-                        }}
+                    {isConfirming ? (
+                      <div
+                        data-testid={`confirm-delete-archive-entry-${index}`}
+                        className="flex items-center gap-1.5 rounded-xs border border-red-300 bg-red-50 px-2 py-0.5"
                       >
-                        #{tag}
-                      </span>
-                    );
-                  })}
+                        <span className="text-[11px] font-semibold text-red-900">
+                          Czy na pewno?
+                        </span>
+                        <button
+                          type="button"
+                          data-testid={`btn-confirm-delete-archive-entry-${index}`}
+                          onClick={() => handleConfirmDeleteEntry(entry)}
+                          className="rounded-xs bg-red-700 px-2 py-0.5 text-[11px] font-semibold text-white transition-colors hover:bg-red-800 cursor-pointer"
+                        >
+                          Tak
+                        </button>
+                        <button
+                          type="button"
+                          data-testid={`btn-cancel-delete-archive-entry-${index}`}
+                          onClick={() => setConfirmingEntryKey(null)}
+                          className="rounded-xs border border-amber-900/20 bg-white px-2 py-0.5 text-[11px] font-semibold text-[#2b231d] transition-colors hover:bg-amber-50 cursor-pointer"
+                        >
+                          Nie
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        data-testid={`btn-delete-archive-entry-${index}`}
+                        aria-label={`Usuń trwale zadanie ${entry.task.tytul}`}
+                        title="Usuń trwale z archiwum"
+                        onClick={() => {
+                          setConfirmingClearAll(false);
+                          setConfirmingEntryKey(entryKey);
+                        }}
+                        className="inline-flex items-center gap-1 rounded-xs border border-red-900/20 bg-red-50/80 px-2 py-0.5 text-[11px] font-semibold text-red-800 transition-colors hover:border-red-900/40 hover:bg-red-100 cursor-pointer"
+                      >
+                        <Trash2 className="h-3 w-3" aria-hidden="true" />
+                        Usuń
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <span>
-                  Zarchiwizowano: {formatArchiveTimestamp(entry.oproznionoDnia)}
-                </span>
-              </div>
-            </li>
-          ))}
+
+                {entry.task.opis && (
+                  <p className="mt-1 text-xs text-[#5c4f44] line-clamp-2">
+                    {entry.task.opis}
+                  </p>
+                )}
+
+                <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-[#5c4f44]">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span>Termin: {formatDisplayDate(entry.task.termin)}</span>
+                    {entry.task.tagi.map((tag, tagIdx) => {
+                      const color = getTagColor(tag);
+                      return (
+                        <span
+                          key={`${tag}-${tagIdx}`}
+                          className="rounded-full px-1.5 py-0.5 text-[10px] font-medium"
+                          style={{
+                            backgroundColor: color.bg,
+                            color: color.text,
+                          }}
+                        >
+                          #{tag}
+                        </span>
+                      );
+                    })}
+                  </div>
+                  <span>
+                    Zarchiwizowano: {formatArchiveTimestamp(entry.oproznionoDnia)}
+                  </span>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
     </NotebookModal>

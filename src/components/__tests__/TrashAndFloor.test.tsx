@@ -505,6 +505,92 @@ describe('Milestone M4 — TrashCanWidget, FloorPhysicsLayer & Archive Modals', 
         expect.stringContaining('"archiwum"'),
       );
     });
+
+    it('supports per-task permanent delete ("Czy na pewno?") and clear-all ("Czy na pewno chcesz wszystko usunąć?") in ArchiveModal', () => {
+      let latestCtx!: TaskContextValue;
+      const existingArchive: ArchiveEntry[] = [
+        {
+          task: {
+            id: 10,
+            tytul: 'Pierwsze archiwalne',
+            opis: '',
+            termin: null,
+            priorytet: 'niski',
+            wykonane: true,
+            tagi: [],
+          },
+          oproznionoDnia: '2026-11-18T10:00:00.000Z',
+        },
+        {
+          task: {
+            id: 11,
+            tytul: 'Drugie archiwalne',
+            opis: '',
+            termin: null,
+            priorytet: 'sredni',
+            wykonane: true,
+            tagi: [],
+          },
+          oproznionoDnia: '2026-11-19T10:00:00.000Z',
+        },
+        {
+          task: {
+            id: 12,
+            tytul: 'Trzecie archiwalne',
+            opis: '',
+            termin: null,
+            priorytet: 'wysoki',
+            wykonane: true,
+            tagi: [],
+          },
+          oproznionoDnia: '2026-11-20T10:00:00.000Z',
+        },
+      ];
+
+      renderM4Harness({ tasks: [], archive: existingArchive }, (ctx) => {
+        latestCtx = ctx;
+      });
+
+      act(() => {
+        latestCtx.dispatch({ type: 'OPEN_MODAL', payload: { type: 'archive' } });
+      });
+
+      const archiveModal = screen.getByTestId('archive-modal');
+      expect(archiveModal).toBeInTheDocument();
+
+      // Entries are displayed in reverse chronological order: index 0 is id 12 ("Trzecie archiwalne")
+      fireEvent.click(screen.getByTestId('btn-delete-archive-entry-0'));
+      const entryConfirm = screen.getByTestId('confirm-delete-archive-entry-0');
+      expect(entryConfirm).toHaveTextContent('Czy na pewno?');
+
+      // Cancel single delete -> entry remains
+      fireEvent.click(screen.getByTestId('btn-cancel-delete-archive-entry-0'));
+      expect(screen.queryByTestId('confirm-delete-archive-entry-0')).not.toBeInTheDocument();
+      expect(latestCtx.state.archive).toHaveLength(3);
+
+      // Click delete again and confirm "Tak" -> permanently removes id 12
+      fireEvent.click(screen.getByTestId('btn-delete-archive-entry-0'));
+      fireEvent.click(screen.getByTestId('btn-confirm-delete-archive-entry-0'));
+      expect(latestCtx.state.archive.map((e) => e.task.id)).toEqual([10, 11]);
+      expect(screen.queryByText('Trzecie archiwalne')).not.toBeInTheDocument();
+
+      // Click "Usuń wszystko" -> shows "Czy na pewno chcesz wszystko usunąć?"
+      fireEvent.click(screen.getByTestId('btn-clear-archive'));
+      const clearConfirm = screen.getByTestId('confirm-clear-archive');
+      expect(clearConfirm).toHaveTextContent('Czy na pewno chcesz wszystko usunąć?');
+
+      // Cancel clear-all -> remaining 2 entries still there
+      fireEvent.click(screen.getByTestId('btn-cancel-clear-archive'));
+      expect(screen.queryByTestId('confirm-clear-archive')).not.toBeInTheDocument();
+      expect(latestCtx.state.archive).toHaveLength(2);
+
+      // Click "Usuń wszystko" again and confirm -> empties archive
+      fireEvent.click(screen.getByTestId('btn-clear-archive'));
+      fireEvent.click(screen.getByTestId('btn-confirm-clear-archive'));
+      expect(latestCtx.state.archive).toEqual([]);
+      expect(screen.getByText('Archiwum jest puste')).toBeInTheDocument();
+      expect(screen.getByTestId('btn-clear-archive')).toBeDisabled();
+    });
   });
 
   describe('Tier 5 Adversarial Hardening', () => {

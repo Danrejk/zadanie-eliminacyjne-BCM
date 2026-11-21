@@ -307,6 +307,7 @@ test.describe('Tier 3 — Cross-Feature Pairwise Combinations', () => {
     // Permanently delete ball 4
     await page.getByTestId('trash-ball-4').click({ button: 'right' });
     await page.getByTestId('context-menu-delete').click();
+    await page.getByTestId('context-menu-delete-confirm').click();
     await expect(page.getByTestId('trash-ball-4')).toHaveCount(0);
 
     // Empty remaining 4 trash tasks (17..20) to archive

@@ -153,6 +153,11 @@ export type TaskAction =
   | { type: 'SPILL_TRASH_TO_FLOOR'; payload: { originX: number; originY: number } }
   | { type: 'RESTORE_TASK'; payload: { id: number } }
   | { type: 'EMPTY_TRASH'; payload: { emptiedAt: string } }
+  | {
+      type: 'DELETE_ARCHIVE_ENTRY';
+      payload: { taskId: number; oproznionoDnia: string };
+    }
+  | { type: 'CLEAR_ARCHIVE' }
   | { type: 'LOAD_TASKS_FILE'; payload: { file: TasksFile; sourceLabel?: string } }
   | { type: 'RESET_TO_SAMPLE'; payload: { file: TasksFile } }
   | { type: 'SET_DRAGGING_FLOOR_BALL'; payload: { id: number | null } }
