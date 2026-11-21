@@ -801,5 +801,140 @@ describe('Milestone M4 — TrashCanWidget, FloorPhysicsLayer & Archive Modals', 
       fireEvent.keyDown(window, { key: 'Escape' });
       expect(slideSpy).toHaveBeenCalledWith(false, false);
     });
+
+    it('catches a single floor ball when holding LMB and sweeping over it, without catching a second ball', () => {
+      let latestCtx!: TaskContextValue;
+      const twoActiveTasks = createSeedTasks().map((t) =>
+        t.id === 2 ? { ...t, wykonane: false } : t,
+      );
+      renderM4Harness({ tasks: twoActiveTasks }, (ctx) => {
+        latestCtx = ctx;
+      });
+
+      act(() => {
+        latestCtx.dispatch({
+          type: 'COMPLETE_TO_FLOOR',
+          payload: { id: 1, originX: 200, originY: 200 },
+        });
+        latestCtx.dispatch({
+          type: 'COMPLETE_TO_FLOOR',
+          payload: { id: 2, originX: 400, originY: 200 },
+        });
+      });
+
+      // Press LMB on empty space away from both balls
+      fireEvent.pointerDown(document.body, {
+        button: 0,
+        pointerId: 10,
+        clientX: 50,
+        clientY: 50,
+      });
+      expect(latestCtx.state.draggingFloorBallId).toBeNull();
+
+      // Sweep across ball 1 -> catches ball 1
+      fireEvent.pointerMove(window, {
+        pointerId: 10,
+        clientX: 200,
+        clientY: 200,
+      });
+      expect(latestCtx.state.draggingFloorBallId).toBe(1);
+
+      // Continue sweeping across ball 2 -> still only holding ball 1 (never switches/adds ball 2)
+      fireEvent.pointerMove(window, {
+        pointerId: 10,
+        clientX: 400,
+        clientY: 200,
+      });
+      expect(latestCtx.state.draggingFloorBallId).toBe(1);
+
+      // Release LMB -> releases ball 1
+      fireEvent.pointerUp(window, {
+        button: 0,
+        pointerId: 10,
+        clientX: 400,
+        clientY: 200,
+      });
+      expect(latestCtx.state.draggingFloorBallId).toBeNull();
+    });
+
+    it('does not sweep-catch a floor ball when pointerdown started on a PostItNote', () => {
+      let latestCtx!: TaskContextValue;
+      const twoActiveTasks = createSeedTasks().map((t) =>
+        t.id === 2 ? { ...t, wykonane: false } : t,
+      );
+      const seed: InitialStateSeed = {
+        wersja: 1,
+        tasks: twoActiveTasks,
+        archive: [],
+        muted: false,
+      };
+
+      function Wrapper() {
+        const ctx = useTasks();
+        latestCtx = ctx;
+        const task2 = ctx.activeTasks.find((t) => t.id === 2);
+        return (
+          <>
+            {task2 && (
+              <PostItNote
+                task={task2}
+                zone="todayTomorrow"
+                isDimmed={false}
+                isDragging={ctx.state.draggingNoteId === 2}
+                isModalOpen={false}
+                muted={false}
+                dispatch={ctx.dispatch}
+              />
+            )}
+            <TrashCanWidget />
+            <FloorPhysicsLayer />
+          </>
+        );
+      }
+
+      render(
+        <TaskProvider initialSeed={seed}>
+          <Wrapper />
+        </TaskProvider>,
+      );
+
+      act(() => {
+        latestCtx.dispatch({
+          type: 'COMPLETE_TO_FLOOR',
+          payload: { id: 1, originX: 300, originY: 300 },
+        });
+      });
+
+      const note2 = screen.getByTestId('postit-note-2');
+      fireEvent.pointerDown(note2, { button: 0, pointerId: 11, clientX: 100, clientY: 100 });
+      fireEvent.pointerMove(window, { pointerId: 11, clientX: 300, clientY: 300 });
+      expect(latestCtx.state.draggingFloorBallId).toBeNull();
+
+      fireEvent.pointerUp(window, { button: 0, pointerId: 11, clientX: 300, clientY: 300 });
+    });
+
+    it('catches a floor ball when LMB hold starts over the open side TrashDrawer', () => {
+      let latestCtx!: TaskContextValue;
+      renderM4Harness({}, (ctx) => {
+        latestCtx = ctx;
+      });
+
+      act(() => {
+        latestCtx.dispatch({
+          type: 'COMPLETE_TO_FLOOR',
+          payload: { id: 1, originX: 300, originY: 300 },
+        });
+      });
+
+      fireEvent.click(screen.getByTestId('trash-hitbox'));
+      const drawer = screen.getByTestId('trash-drawer');
+
+      fireEvent.pointerDown(drawer, { button: 0, pointerId: 12, clientX: 900, clientY: 200 });
+      fireEvent.pointerMove(window, { pointerId: 12, clientX: 300, clientY: 300 });
+      expect(latestCtx.state.draggingFloorBallId).toBe(1);
+
+      fireEvent.pointerUp(window, { button: 0, pointerId: 12, clientX: 300, clientY: 300 });
+      expect(latestCtx.state.draggingFloorBallId).toBeNull();
+    });
   });
 });

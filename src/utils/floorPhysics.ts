@@ -458,11 +458,27 @@ export function stepFloorPhysics(
     const elapsed = Math.max(0, nowMs - ball.enterStartTime);
     if (elapsed >= TRASH_ENTER_DURATION_MS) {
       finishedEnteringIds.push(ball.taskId);
+    } else if (validExpandedTrash) {
+      const { bodyRect } = validExpandedTrash;
+      const bodyW = bodyRect.right - bodyRect.left;
+      const bodyH = bodyRect.bottom - bodyRect.top;
+      const targetX = bodyRect.left + bodyW / 2;
+      const startX = Number.isFinite(ball.enterStartX) ? ball.enterStartX : targetX;
+      const startY = Number.isFinite(ball.enterStartY)
+        ? ball.enterStartY
+        : bodyRect.top + (245 / 296) * bodyH;
+      const targetY = Math.max(startY, bodyRect.top + (245 / 296) * bodyH);
+      const progress = 1 - Math.pow(1 - elapsed / TRASH_ENTER_DURATION_MS, 2);
+      ball.x = startX + (targetX - startX) * progress;
+      ball.y = startY + (targetY - startY) * progress;
     } else if (validTrashRect) {
       const targetX = (validTrashRect.left + validTrashRect.right) / 2;
-      const targetY = (validTrashRect.top + validTrashRect.bottom) / 2;
+      const h = validTrashRect.bottom - validTrashRect.top;
       const startX = Number.isFinite(ball.enterStartX) ? ball.enterStartX : targetX;
-      const startY = Number.isFinite(ball.enterStartY) ? ball.enterStartY : targetY;
+      const startY = Number.isFinite(ball.enterStartY)
+        ? ball.enterStartY
+        : validTrashRect.top + h * 0.68;
+      const targetY = Math.max(startY, validTrashRect.top + h * 0.68);
       const progress = 1 - Math.pow(1 - elapsed / TRASH_ENTER_DURATION_MS, 2);
       ball.x = startX + (targetX - startX) * progress;
       ball.y = startY + (targetY - startY) * progress;
@@ -510,6 +526,52 @@ export function stepFloorPhysics(
     // Integration
     ball.x += ball.vx * dt;
     ball.y += ball.vy * dt;
+
+    // Check trashcan landing-zone collection BEFORE floor/drawer bounce so caught balls stop immediately
+    if (validExpandedTrash && couldScoreThisStep) {
+      const { bodyRect } = validExpandedTrash;
+      const bodyW = bodyRect.right - bodyRect.left;
+      const bodyH = bodyRect.bottom - bodyRect.top;
+      const leftBottomX = bodyRect.left + (46 / 280) * bodyW;
+      const rightBottomX = bodyRect.left + (234 / 280) * bodyW;
+      const collectionRect: RectLike = {
+        left: leftBottomX,
+        top: bodyRect.top + (210 / 296) * bodyH,
+        right: rightBottomX,
+        bottom: bodyRect.bottom,
+      };
+      if (doesSegmentHitRect(prevX, prevY, ball.x, ball.y, collectionRect, 0)) {
+        ball.enteringTrash = true;
+        ball.enterStartTime = hasFiniteNow ? nowMs : null;
+        ball.enterStartX = ball.x;
+        ball.enterStartY = ball.y;
+        ball.vx = 0;
+        ball.vy = 0;
+        ball.vRot = 0;
+        newlyHitTrashIds.push(ball.taskId);
+        continue;
+      }
+    } else if (couldScoreThisStep && validTrashRect) {
+      const w = validTrashRect.right - validTrashRect.left;
+      const h = validTrashRect.bottom - validTrashRect.top;
+      const basketInteriorRect: RectLike = {
+        left: validTrashRect.left + w * 0.16,
+        top: validTrashRect.top + h * 0.22,
+        right: validTrashRect.right - w * 0.16,
+        bottom: validTrashRect.bottom - h * 0.08,
+      };
+      if (doesSegmentHitRect(prevX, prevY, ball.x, ball.y, basketInteriorRect, 0)) {
+        ball.enteringTrash = true;
+        ball.enterStartTime = hasFiniteNow ? nowMs : null;
+        ball.enterStartX = ball.x;
+        ball.enterStartY = ball.y;
+        ball.vx = 0;
+        ball.vy = 0;
+        ball.vRot = 0;
+        newlyHitTrashIds.push(ball.taskId);
+        continue;
+      }
+    }
 
     // Wall & ceiling collisions
     if (ball.x < minX) {
@@ -566,7 +628,7 @@ export function stepFloorPhysics(
     // Angular rotation
     ball.rotation = (ball.rotation + ball.vRot * dt) % 360;
 
-    // Trashcan collision / scoring
+    // Expanded trashcan angled walls & drawer solid collider
     if (validExpandedTrash) {
       const { bodyRect } = validExpandedTrash;
       const bodyW = bodyRect.right - bodyRect.left;
@@ -590,27 +652,7 @@ export function stepFloorPhysics(
         'trashcan',
       );
 
-      // Collection zone at the bottom interior of the basket
-      const collectionRect: RectLike = {
-        left: leftBottomX,
-        top: bodyRect.top + (210 / 296) * bodyH,
-        right: rightBottomX,
-        bottom: bodyRect.bottom,
-      };
-      const collectedAtBottom =
-        couldScoreThisStep &&
-        doesSegmentHitRect(prevX, prevY, ball.x, ball.y, collectionRect, 0);
-
-      if (collectedAtBottom) {
-        ball.enteringTrash = true;
-        ball.enterStartTime = hasFiniteNow ? nowMs : null;
-        ball.enterStartX = ball.x;
-        ball.enterStartY = ball.y;
-        ball.vx = 0;
-        ball.vy = 0;
-        ball.vRot = 0;
-        newlyHitTrashIds.push(ball.taskId);
-      } else if (validExpandedTrash.drawerRect && isFiniteRect(validExpandedTrash.drawerRect)) {
+      if (validExpandedTrash.drawerRect && isFiniteRect(validExpandedTrash.drawerRect)) {
         const solidDrawerRect: RectLike = {
           left: validExpandedTrash.drawerRect.left,
           top: validExpandedTrash.drawerRect.top,
@@ -618,25 +660,6 @@ export function stepFloorPhysics(
           bottom: validExpandedTrash.drawerRect.bottom,
         };
         recordBounce(resolveCircleRectBounce(ball, solidDrawerRect), 'drawer');
-      }
-    } else if (couldScoreThisStep && validTrashRect) {
-      const w = validTrashRect.right - validTrashRect.left;
-      const h = validTrashRect.bottom - validTrashRect.top;
-      const basketInteriorRect: RectLike = {
-        left: validTrashRect.left + w * 0.16,
-        top: validTrashRect.top + h * 0.22,
-        right: validTrashRect.right - w * 0.16,
-        bottom: validTrashRect.bottom - h * 0.08,
-      };
-      if (doesSegmentHitRect(prevX, prevY, ball.x, ball.y, basketInteriorRect, 0)) {
-        ball.enteringTrash = true;
-        ball.enterStartTime = hasFiniteNow ? nowMs : null;
-        ball.enterStartX = ball.x;
-        ball.enterStartY = ball.y;
-        ball.vx = 0;
-        ball.vy = 0;
-        ball.vRot = 0;
-        newlyHitTrashIds.push(ball.taskId);
       }
     }
 
