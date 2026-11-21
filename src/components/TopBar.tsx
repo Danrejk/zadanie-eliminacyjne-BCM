@@ -201,7 +201,7 @@ export function TopBar() {
               <Pin className="h-4 w-4 text-red-400 -rotate-12" />
             </span>
             <h1 className="text-lg sm:text-xl font-bold tracking-tight text-amber-50 drop-shadow-xs">
-              Tablica Korkowa
+              Praktyczna Tablica
             </h1>
           </div>
 

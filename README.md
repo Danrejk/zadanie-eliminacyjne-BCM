@@ -1,4 +1,5 @@
-# SmartApp: Tablica Korkowa
+# SmartApp — Praktyczna Tablica
+
 
 Interaktywny, studencki planner zadań w formie **tablicy korkowej z karteczkami Post-it, kolorowymi pinezkami, fizyką 2D oraz wysuwaną szufladą z koszem**, przygotowany przez drużynę **"Praktykanci"** na zadanie eliminacyjne SmartApp.
 
