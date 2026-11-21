@@ -9,6 +9,7 @@ export const AIR_DRAG_60HZ = 0.995;          // applied as Math.pow(0.995, dt * 
 export const MAX_DT = 0.033;                 // 33ms clamp (anti-tunneling after tab switch)
 export const MAX_THROW_SPEED = 2400;         // px/s vector magnitude clamp
 export const STOP_SPEED_EPS = 18;            // px/s rest threshold
+export const BOUNCE_SOUND_MIN_SPEED = STOP_SPEED_EPS * 2; // px/s minimum impact speed for audible bounce
 export const FLOOR_BOTTOM_MARGIN = 16;       // px below resting ball bottom edge
 export const TRASH_HITBOX_PADDING = 10;      // px forgiving expansion around trash rect
 export const TRASH_ENTER_DURATION_MS = 200;  // shrink-into-bin "plop" duration
@@ -39,9 +40,15 @@ export interface ExpandedTrashCollider {
   drawerRect?: RectLike | null; // solid side-view physical drawer box
 }
 
+export interface BounceEvent {
+  taskId: number;
+  impactSpeed: number;
+}
+
 export interface PhysicsStepResult {
   newlyHitTrashIds: number[];     // taskIds that collided with trash hitbox on this step
   finishedEnteringIds: number[];  // taskIds whose 200ms plop animation completed
+  bouncedEvents: BounceEvent[];   // balls that bounced off floor, walls, ceiling, or solid basket surfaces
   hasBallInFlight: boolean;       // true while any non-dragging, non-entering ball has canScoreTrash
 }
 
@@ -296,7 +303,7 @@ export function clampBallsToViewport(balls: FloorBall[], viewport: ViewportSize)
   }
 }
 
-function resolveCircleRectBounce(ball: FloorBall, rect: RectLike): void {
+function resolveCircleRectBounce(ball: FloorBall, rect: RectLike): number {
   const r = ball.radius;
   const closestX = Math.max(rect.left, Math.min(ball.x, rect.right));
   const closestY = Math.max(rect.top, Math.min(ball.y, rect.bottom));
@@ -305,7 +312,7 @@ function resolveCircleRectBounce(ball: FloorBall, rect: RectLike): void {
   const distSq = dx * dx + dy * dy;
 
   if (distSq >= r * r) {
-    return;
+    return 0;
   }
 
   if (distSq > 0.0001) {
@@ -321,8 +328,10 @@ function resolveCircleRectBounce(ball: FloorBall, rect: RectLike): void {
       ball.vx -= (1 + WALL_RESTITUTION) * vn * nx;
       ball.vy -= (1 + WALL_RESTITUTION) * vn * ny;
       ball.vRot = Math.max(-720, Math.min(720, ball.vx * 0.45));
+      const impact = -vn;
+      return impact > BOUNCE_SOUND_MIN_SPEED ? impact : 0;
     }
-    return;
+    return 0;
   }
 
   // Ball center is inside the rect; push out along the shallowest side
@@ -332,19 +341,25 @@ function resolveCircleRectBounce(ball: FloorBall, rect: RectLike): void {
   const penBottom = Math.abs(rect.bottom - ball.y);
   const minPen = Math.min(penLeft, penRight, penTop, penBottom);
 
+  let impact = 0;
   if (minPen === penLeft) {
+    impact = ball.vx > 0 ? ball.vx : 0;
     ball.x = rect.left - r;
     ball.vx = -Math.abs(ball.vx) * WALL_RESTITUTION;
   } else if (minPen === penRight) {
+    impact = ball.vx < 0 ? -ball.vx : 0;
     ball.x = rect.right + r;
     ball.vx = Math.abs(ball.vx) * WALL_RESTITUTION;
   } else if (minPen === penTop) {
+    impact = ball.vy > 0 ? ball.vy : 0;
     ball.y = rect.top - r;
     ball.vy = -Math.abs(ball.vy) * WALL_RESTITUTION;
   } else {
+    impact = ball.vy < 0 ? -ball.vy : 0;
     ball.y = rect.bottom + r;
     ball.vy = Math.abs(ball.vy) * WALL_RESTITUTION;
   }
+  return impact > BOUNCE_SOUND_MIN_SPEED ? impact : 0;
 }
 
 /**
@@ -375,6 +390,7 @@ export function stepFloorPhysics(
   const hasFiniteNow = Number.isFinite(nowMs);
   const newlyHitTrashIds: number[] = [];
   const finishedEnteringIds: number[] = [];
+  const bouncedEvents: BounceEvent[] = [];
 
   // Pass 1: Entering-trash "plop" animations
   for (let i = 0; i < balls.length; i++) {
@@ -425,6 +441,7 @@ export function stepFloorPhysics(
     const prevX = ball.x;
     const prevY = ball.y;
     const couldScoreThisStep = ball.canScoreTrash;
+    let maxBounceSpeed = 0;
 
     // Gravity & air drag
     ball.vy += GRAVITY * dt;
@@ -438,14 +455,26 @@ export function stepFloorPhysics(
 
     // Wall & ceiling collisions
     if (ball.x < minX) {
+      const impact = ball.vx < 0 ? -ball.vx : 0;
+      if (impact > BOUNCE_SOUND_MIN_SPEED) {
+        maxBounceSpeed = Math.max(maxBounceSpeed, impact);
+      }
       ball.x = minX;
       ball.vx = Math.abs(ball.vx) * WALL_RESTITUTION;
     } else if (ball.x > maxX) {
+      const impact = ball.vx > 0 ? ball.vx : 0;
+      if (impact > BOUNCE_SOUND_MIN_SPEED) {
+        maxBounceSpeed = Math.max(maxBounceSpeed, impact);
+      }
       ball.x = maxX;
       ball.vx = -Math.abs(ball.vx) * WALL_RESTITUTION;
     }
 
     if (ball.y < r) {
+      const impact = ball.vy < 0 ? -ball.vy : 0;
+      if (impact > BOUNCE_SOUND_MIN_SPEED) {
+        maxBounceSpeed = Math.max(maxBounceSpeed, impact);
+      }
       ball.y = r;
       ball.vy = Math.abs(ball.vy) * WALL_RESTITUTION;
     }
@@ -453,8 +482,12 @@ export function stepFloorPhysics(
     // Floor collision & settling
     if (ball.y >= floorY) {
       ball.y = floorY;
-      if (Math.abs(ball.vy) > STOP_SPEED_EPS * 2) {
-        ball.vy = -Math.abs(ball.vy) * BOUNCE_RESTITUTION;
+      const impact = Math.abs(ball.vy);
+      if (impact > BOUNCE_SOUND_MIN_SPEED) {
+        if (ball.vy > 0) {
+          maxBounceSpeed = Math.max(maxBounceSpeed, impact);
+        }
+        ball.vy = -impact * BOUNCE_RESTITUTION;
       } else {
         ball.vy = 0;
       }
@@ -500,7 +533,7 @@ export function stepFloorPhysics(
           right: Math.max(bodyRect.right, safeW),
           bottom: bodyRect.bottom,
         };
-        resolveCircleRectBounce(ball, solidWallRect);
+        maxBounceSpeed = Math.max(maxBounceSpeed, resolveCircleRectBounce(ball, solidWallRect));
 
         if (validExpandedTrash.drawerRect && isFiniteRect(validExpandedTrash.drawerRect)) {
           const solidDrawerRect: RectLike = {
@@ -509,7 +542,7 @@ export function stepFloorPhysics(
             right: Math.max(validExpandedTrash.drawerRect.right, safeW),
             bottom: validExpandedTrash.drawerRect.bottom,
           };
-          resolveCircleRectBounce(ball, solidDrawerRect);
+          maxBounceSpeed = Math.max(maxBounceSpeed, resolveCircleRectBounce(ball, solidDrawerRect));
         }
       }
     } else if (
@@ -525,6 +558,13 @@ export function stepFloorPhysics(
       ball.vy = 0;
       ball.vRot = 0;
       newlyHitTrashIds.push(ball.taskId);
+    }
+
+    if (!ball.enteringTrash && maxBounceSpeed > 0) {
+      bouncedEvents.push({
+        taskId: ball.taskId,
+        impactSpeed: maxBounceSpeed,
+      });
     }
   }
 
@@ -567,6 +607,7 @@ export function stepFloorPhysics(
   return {
     newlyHitTrashIds,
     finishedEnteringIds,
+    bouncedEvents,
     hasBallInFlight,
   };
 }

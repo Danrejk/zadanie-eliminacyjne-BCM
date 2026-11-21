@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  playBallBounceSound,
   playCrumpleSound,
   playPinClickSound,
   playRestoreSound,
@@ -189,5 +190,22 @@ describe('sound', () => {
     expect(() => playPinClickSound(false)).not.toThrow();
     expect(() => playTrashPlopSound(false)).not.toThrow();
     expect(() => playRestoreSound(false)).not.toThrow();
+    expect(() => playBallBounceSound(false, 500)).not.toThrow();
+  });
+
+  it('plays bounce sound with both noise burst and tap oscillator when unmuted and ignores when muted', () => {
+    const mock = installMockAudioContext('running');
+
+    playBallBounceSound(true, 600);
+    expect(mock.ctor).not.toHaveBeenCalled();
+
+    playBallBounceSound(false, 600);
+    expect(mock.ctor).toHaveBeenCalledTimes(1);
+    expect(mock.bufStart).toHaveBeenCalledTimes(1);
+    expect(mock.oscStart).toHaveBeenCalledTimes(1);
+
+    expect(() => playBallBounceSound(false, Number.NaN)).not.toThrow();
+    expect(mock.bufStart).toHaveBeenCalledTimes(2);
+    expect(mock.oscStart).toHaveBeenCalledTimes(2);
   });
 });

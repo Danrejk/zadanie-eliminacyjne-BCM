@@ -197,3 +197,72 @@ export function playRestoreSound(muted: boolean): void {
     // Safe no-op
   }
 }
+
+/**
+ * Synthesizes a short, tactile crumpled-paper bounce sound scaled by impact speed.
+ */
+export function playBallBounceSound(muted: boolean, impactSpeed: number = 400): void {
+  if (muted) {
+    return;
+  }
+
+  const ctx = getAudioContext();
+  if (!ctx) {
+    return;
+  }
+
+  try {
+    const safeSpeed = Number.isFinite(impactSpeed) ? Math.max(0, impactSpeed) : 400;
+    const intensity = Math.min(1, Math.max(0.2, safeSpeed / 1200));
+    const t = ctx.currentTime;
+
+    // Short papery crinkle burst
+    const duration = 0.065;
+    const sampleRate = ctx.sampleRate || 44100;
+    const frameCount = Math.max(1, Math.floor(sampleRate * duration));
+    const buffer = ctx.createBuffer(1, frameCount, sampleRate);
+    const channelData = buffer.getChannelData(0);
+
+    for (let i = 0; i < frameCount; i++) {
+      channelData[i] = Math.random() * 2 - 1;
+    }
+
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 1800 + intensity * 600;
+    filter.Q.value = 1.4;
+
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.005, t);
+    noiseGain.gain.linearRampToValueAtTime(0.11 * intensity, t + 0.008);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+
+    source.connect(filter);
+    filter.connect(noiseGain);
+    noiseGain.connect(ctx.destination);
+
+    source.start(t);
+    source.stop(t + duration);
+
+    // Subtle low-mid paper tap
+    const osc = ctx.createOscillator();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(190 + intensity * 70, t);
+    osc.frequency.exponentialRampToValueAtTime(75, t + 0.05);
+
+    const oscGain = ctx.createGain();
+    oscGain.gain.setValueAtTime(0.09 * intensity, t);
+    oscGain.gain.exponentialRampToValueAtTime(0.001, t + 0.055);
+
+    osc.connect(oscGain);
+    oscGain.connect(ctx.destination);
+
+    osc.start(t);
+    osc.stop(t + 0.055);
+  } catch {
+    // Safe no-op
+  }
+}

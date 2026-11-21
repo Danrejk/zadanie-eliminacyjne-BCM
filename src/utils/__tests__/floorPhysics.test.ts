@@ -425,6 +425,48 @@ describe('floorPhysics', () => {
       );
       expect(hoopRes.newlyHitTrashIds).toEqual([31]);
       expect(hoopBall.enteringTrash).toBe(true);
+      expect(hoopRes.bouncedEvents).toEqual([]);
+    });
+
+    it('emits bouncedEvents for floor, wall, ceiling, and solid basket impacts above threshold, and stays silent at rest', () => {
+      const floorY = getFloorY(VIEWPORT.height, BALL_RADIUS);
+
+      // Floor bounce
+      const floorBall = createFloorBall(
+        { taskId: 40, originX: 300, originY: floorY - 2, spawnedAt: 0, vx: 0, vy: 500 },
+        VIEWPORT,
+      );
+      const floorRes = stepFloorPhysics([floorBall], 1 / 60, VIEWPORT, null, 16);
+      expect(floorRes.bouncedEvents).toHaveLength(1);
+      expect(floorRes.bouncedEvents[0].taskId).toBe(40);
+      expect(floorRes.bouncedEvents[0].impactSpeed).toBeGreaterThan(400);
+
+      // Left wall bounce
+      const wallBall = createFloorBall(
+        { taskId: 41, originX: BALL_RADIUS + 1, originY: 300, spawnedAt: 0, vx: -450, vy: 0 },
+        VIEWPORT,
+      );
+      const wallRes = stepFloorPhysics([wallBall], 1 / 60, VIEWPORT, null, 16);
+      expect(wallRes.bouncedEvents).toHaveLength(1);
+      expect(wallRes.bouncedEvents[0].taskId).toBe(41);
+      expect(wallRes.bouncedEvents[0].impactSpeed).toBeGreaterThan(400);
+
+      // Ceiling bounce
+      const ceilBall = createFloorBall(
+        { taskId: 42, originX: 300, originY: BALL_RADIUS + 1, spawnedAt: 0, vx: 0, vy: -400 },
+        VIEWPORT,
+      );
+      const ceilRes = stepFloorPhysics([ceilBall], 1 / 60, VIEWPORT, null, 16);
+      expect(ceilRes.bouncedEvents).toHaveLength(1);
+      expect(ceilRes.bouncedEvents[0].taskId).toBe(42);
+
+      // Resting ball on floor does not emit bounce events
+      const restBall = createFloorBall(
+        { taskId: 43, originX: 500, originY: floorY, spawnedAt: 0, vx: 0, vy: 0 },
+        VIEWPORT,
+      );
+      const restRes = stepFloorPhysics([restBall], 1 / 60, VIEWPORT, null, 16);
+      expect(restRes.bouncedEvents).toEqual([]);
     });
   });
 });

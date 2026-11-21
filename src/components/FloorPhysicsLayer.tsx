@@ -25,7 +25,7 @@ import {
 } from '../utils/floorPhysics';
 import { formatDisplayDate } from '../utils/dateBuckets';
 import { getTagColor } from '../utils/tagColors';
-import { playTrashPlopSound } from '../utils/sound';
+import { playBallBounceSound, playTrashPlopSound } from '../utils/sound';
 import { CrumpledBall } from './CrumpledBall';
 
 function getViewportSize(): ViewportSize {
@@ -112,6 +112,7 @@ export function FloorPhysicsLayer() {
   const ballVisualRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const lastRenderedRef = useRef<Map<number, RenderedBallState>>(new Map());
   const samplesRef = useRef<Map<number, PointerSample[]>>(new Map());
+  const lastBounceSoundMapRef = useRef<Map<number, number>>(new Map());
   const trashRectRef = useRef<DOMRect | null>(null);
   const viewportRef = useRef<ViewportSize>(getViewportSize());
   const wakeLoopRef = useRef<(() => void) | null>(null);
@@ -144,6 +145,7 @@ export function FloorPhysicsLayer() {
       if (!activeIds.has(id)) {
         ballsRef.current.delete(id);
         samplesRef.current.delete(id);
+        lastBounceSoundMapRef.current.delete(id);
         lastRenderedRef.current.delete(id);
       }
     }
@@ -331,6 +333,24 @@ export function FloorPhysicsLayer() {
             nowMs,
             lastRenderedRef.current,
           );
+        }
+      }
+
+      if (result.bouncedEvents.length > 0) {
+        let loudestBounce: { taskId: number; impactSpeed: number } | null = null;
+        for (const ev of result.bouncedEvents) {
+          const lastAt = lastBounceSoundMapRef.current.get(ev.taskId) ?? -Infinity;
+          if (nowMs - lastAt >= 45) {
+            if (!loudestBounce || ev.impactSpeed > loudestBounce.impactSpeed) {
+              loudestBounce = ev;
+            }
+          }
+        }
+        if (loudestBounce) {
+          for (const ev of result.bouncedEvents) {
+            lastBounceSoundMapRef.current.set(ev.taskId, nowMs);
+          }
+          playBallBounceSound(mutedRef.current, loudestBounce.impactSpeed);
         }
       }
 
