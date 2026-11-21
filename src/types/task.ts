@@ -93,7 +93,8 @@ export interface FilterState {
 export type ContextMenuTarget =
   | { kind: 'note'; taskId: number; x: number; y: number }
   | { kind: 'floorBall'; taskId: number; x: number; y: number }
-  | { kind: 'trashBall'; taskId: number; x: number; y: number };
+  | { kind: 'trashBall'; taskId: number; x: number; y: number }
+  | { kind: 'cell'; priority: Priority; zone: TimeZone; x: number; y: number };
 
 export type ActiveModal =
   | { type: 'none' }
