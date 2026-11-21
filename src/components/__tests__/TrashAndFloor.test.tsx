@@ -701,5 +701,19 @@ describe('Milestone M4 — TrashCanWidget, FloorPhysicsLayer & Archive Modals', 
       expect(bounceSpy.mock.calls[0][0]).toBe(false);
       expect(bounceSpy.mock.calls[0][1]).toBeGreaterThan(0);
     });
+
+    it('plays drawer slide sound when opening and closing the trash drawer', () => {
+      const slideSpy = vi
+        .spyOn(soundUtils, 'playDrawerSlideSound')
+        .mockImplementation(() => {});
+
+      renderM4Harness();
+
+      fireEvent.click(screen.getByTestId('trash-hitbox'));
+      expect(slideSpy).toHaveBeenCalledWith(false, true);
+
+      fireEvent.keyDown(window, { key: 'Escape' });
+      expect(slideSpy).toHaveBeenCalledWith(false, false);
+    });
   });
 });

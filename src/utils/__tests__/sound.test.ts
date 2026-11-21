@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   playBallBounceSound,
   playCrumpleSound,
+  playDrawerSlideSound,
   playPinClickSound,
   playRestoreSound,
   playTrashPlopSound,
@@ -56,7 +57,11 @@ function installMockAudioContext(state: AudioContextState = 'running'): MockAudi
 
   const createBiquadFilter = vi.fn(() => ({
     type: 'bandpass',
-    frequency: { value: 0 },
+    frequency: {
+      value: 0,
+      setValueAtTime: vi.fn(),
+      exponentialRampToValueAtTime: vi.fn(),
+    },
     Q: { value: 0 },
     connect: vi.fn(),
   }));
@@ -237,5 +242,21 @@ describe('sound', () => {
     playBallBounceSound(false, 500, 'trashcan');
     expect(mock.bufStart).toHaveBeenCalledTimes(3);
     expect(mock.oscStart).toHaveBeenCalledTimes(5);
+  });
+
+  it('plays drawer slide sound on open and close and respects muted', () => {
+    const mock = installMockAudioContext('running');
+
+    playDrawerSlideSound(true, true);
+    playDrawerSlideSound(true, false);
+    expect(mock.ctor).not.toHaveBeenCalled();
+
+    playDrawerSlideSound(false, true);
+    expect(mock.bufStart).toHaveBeenCalledTimes(1);
+    expect(mock.oscStart).toHaveBeenCalledTimes(1);
+
+    playDrawerSlideSound(false, false);
+    expect(mock.bufStart).toHaveBeenCalledTimes(2);
+    expect(mock.oscStart).toHaveBeenCalledTimes(2);
   });
 });

@@ -427,3 +427,86 @@ export function playBallBounceSound(
 
   scheduleBounce();
 }
+
+/**
+ * Synthesizes a warm wooden-rail slide sound when opening or closing the trash drawer.
+ */
+export function playDrawerSlideSound(muted: boolean, open: boolean): void {
+  if (muted) {
+    return;
+  }
+
+  const ctx = getAudioContext();
+  if (!ctx) {
+    return;
+  }
+
+  try {
+    const t = ctx.currentTime;
+    const sampleRate = ctx.sampleRate || 44100;
+    const duration = open ? 0.22 : 0.19;
+    const frameCount = Math.max(1, Math.floor(sampleRate * duration));
+    const buffer = ctx.createBuffer(1, frameCount, sampleRate);
+    const channelData = buffer.getChannelData(0);
+
+    for (let i = 0; i < frameCount; i++) {
+      channelData[i] = Math.random() * 2 - 1;
+    }
+
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.Q.value = 1.6;
+    if (open) {
+      filter.frequency.setValueAtTime(320, t);
+      filter.frequency.exponentialRampToValueAtTime(560, t + duration);
+    } else {
+      filter.frequency.setValueAtTime(520, t);
+      filter.frequency.exponentialRampToValueAtTime(260, t + duration);
+    }
+
+    const slideGain = ctx.createGain();
+    slideGain.gain.setValueAtTime(0.005, t);
+    slideGain.gain.linearRampToValueAtTime(0.14, t + 0.04);
+    slideGain.gain.linearRampToValueAtTime(0.11, t + duration * 0.72);
+    slideGain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+
+    source.connect(filter);
+    filter.connect(slideGain);
+    slideGain.connect(ctx.destination);
+
+    source.start(t);
+    source.stop(t + duration);
+
+    // Subtle wooden latch click on open, or soft wooden shut thud on close
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    const oscGain = ctx.createGain();
+
+    if (open) {
+      osc.frequency.setValueAtTime(280, t);
+      osc.frequency.exponentialRampToValueAtTime(160, t + 0.035);
+      oscGain.gain.setValueAtTime(0.08, t);
+      oscGain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+      osc.connect(oscGain);
+      oscGain.connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.04);
+    } else {
+      const thudAt = t + 0.135;
+      osc.frequency.setValueAtTime(180, thudAt);
+      osc.frequency.exponentialRampToValueAtTime(75, thudAt + 0.065);
+      oscGain.gain.setValueAtTime(0.001, t);
+      oscGain.gain.setValueAtTime(0.15, thudAt);
+      oscGain.gain.exponentialRampToValueAtTime(0.001, thudAt + 0.07);
+      osc.connect(oscGain);
+      oscGain.connect(ctx.destination);
+      osc.start(thudAt);
+      osc.stop(thudAt + 0.07);
+    }
+  } catch {
+    // Safe no-op
+  }
+}

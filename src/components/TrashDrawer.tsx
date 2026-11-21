@@ -5,7 +5,7 @@ import type { Task } from '../types/task';
 import { useTasks } from '../context/TaskContext';
 import { PRIORITY_LABELS, formatDisplayDate } from '../utils/dateBuckets';
 import { getTagColor } from '../utils/tagColors';
-import { playPinClickSound, playTrashPlopSound } from '../utils/sound';
+import { playDrawerSlideSound, playPinClickSound, playTrashPlopSound } from '../utils/sound';
 import { getLargeBasketTextures } from '../utils/basketTextures';
 import { CrumpledBall } from './CrumpledBall';
 
@@ -178,6 +178,7 @@ export function TrashDrawer() {
         state.contextMenu === null
       ) {
         e.preventDefault();
+        playDrawerSlideSound(state.muted, false);
         dispatch({ type: 'SET_TRASH_DRAWER_OPEN', payload: { open: false } });
       }
     };
@@ -186,7 +187,7 @@ export function TrashDrawer() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, state.activeModal.type, state.contextMenu, dispatch]);
+  }, [isOpen, state.activeModal.type, state.contextMenu, state.muted, dispatch]);
 
   const { slots, totalHeight } = useMemo(
     () => computeHoneycombSlots(inTrashTasks),
@@ -194,7 +195,7 @@ export function TrashDrawer() {
   );
 
   const handleClose = useCallback(() => {
-    playPinClickSound(state.muted);
+    playDrawerSlideSound(state.muted, false);
     setHoveredTooltip(null);
     dispatch({ type: 'SET_TRASH_DRAWER_OPEN', payload: { open: false } });
   }, [state.muted, dispatch]);
