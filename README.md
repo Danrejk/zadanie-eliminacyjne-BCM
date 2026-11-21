@@ -58,6 +58,7 @@ Dodatkowe komendy: `npm run build` (build produkcyjny), `npm run preview` (podgl
 2. **Druga, lewa szuflada z zegarem / timerem pracy**: symetryczna szuflada po lewej stronie ekranu z timerem mierzącym czas spędzony nad zadaniem lub nauką, z wykorzystaniem tych danych w podsumowaniu.
 3. **Kategorie zadań oparte na modelu równowagi zajęciowej (*occupational balance*) i zarządzania energią (*energy management*)**: podział zadań na 5 kategorii energetycznych (m.in. w nawiązaniu do modelu Siegela): *intelektualne*, *kreatywne*, *fizyczne*, *społeczne* oraz *bytowe / logistyka*, aby student mógł świadomie balansować wysiłek w tygodniu. Zrezygnowaliśmy z tego przez limit czasowy oraz wymóg ścisłego trzymania się schematu `zadania.json`.
 4. **Dokładna terminowość względem chwili ukończenia**: obecne podsumowanie liczy `Na czas` / `Po terminie` względem dnia opróżniania kosza (zakłada codzienne opróżnianie), ponieważ schemat `zadania.json` nie przechowuje daty wykonania zadania.
+5. **Dodatkowy polish wizualny**: Wiele elementów na stronie nie zostało idealnie dopasowane do ogólnego stylu, lub występują niektóre sytuacje, gdzie coś nie jest do końca tak jak powinno być, ale staraliśmy sie wyeliminować jak najwięcej takich sytuacji. 
 
 #### Znane ograniczenia techniczne
 - **Brak synchronizacji między urządzeniami (backend)**: aplikacja działa w pełni lokalnie w przeglądarce (`localStorage` + pliki JSON).
