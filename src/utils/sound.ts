@@ -5,7 +5,7 @@ function getAudioContext(): AudioContext | null {
     return null;
   }
 
-  if (audioCtx !== null) {
+  if (audioCtx !== null && audioCtx.state !== 'closed') {
     try {
       if (audioCtx.state === 'suspended' && typeof audioCtx.resume === 'function') {
         void Promise.resolve(audioCtx.resume()).catch(() => {});
@@ -15,6 +15,8 @@ function getAudioContext(): AudioContext | null {
     }
     return audioCtx;
   }
+
+  audioCtx = null;
 
   try {
     const AudioContextCtor =
@@ -34,6 +36,18 @@ function getAudioContext(): AudioContext | null {
     audioCtx = null;
     return null;
   }
+}
+
+/**
+ * Unlocks / resumes the shared AudioContext inside a trusted user gesture
+ * (e.g. pointerdown when grabbing a crumpled ball or clicking unmute) so
+ * subsequent requestAnimationFrame bounce sounds are not blocked by autoplay policy.
+ */
+export function unlockAudioContext(muted: boolean): void {
+  if (muted) {
+    return;
+  }
+  getAudioContext();
 }
 
 /**
@@ -199,7 +213,7 @@ export function playRestoreSound(muted: boolean): void {
 }
 
 /**
- * Synthesizes a short, tactile crumpled-paper bounce sound scaled by impact speed.
+ * Synthesizes a tactile crumpled-paper bounce sound scaled by impact speed.
  */
 export function playBallBounceSound(muted: boolean, impactSpeed: number = 400): void {
   if (muted) {
@@ -211,58 +225,75 @@ export function playBallBounceSound(muted: boolean, impactSpeed: number = 400): 
     return;
   }
 
-  try {
-    const safeSpeed = Number.isFinite(impactSpeed) ? Math.max(0, impactSpeed) : 400;
-    const intensity = Math.min(1, Math.max(0.2, safeSpeed / 1200));
-    const t = ctx.currentTime;
+  const scheduleBounce = () => {
+    try {
+      const safeSpeed = Number.isFinite(impactSpeed) ? Math.max(0, impactSpeed) : 400;
+      const intensity = Math.min(1, Math.max(0.38, safeSpeed / 750));
+      const t = ctx.currentTime;
 
-    // Short papery crinkle burst
-    const duration = 0.065;
-    const sampleRate = ctx.sampleRate || 44100;
-    const frameCount = Math.max(1, Math.floor(sampleRate * duration));
-    const buffer = ctx.createBuffer(1, frameCount, sampleRate);
-    const channelData = buffer.getChannelData(0);
+      // Crisp papery crinkle burst
+      const duration = 0.09;
+      const sampleRate = ctx.sampleRate || 44100;
+      const frameCount = Math.max(1, Math.floor(sampleRate * duration));
+      const buffer = ctx.createBuffer(1, frameCount, sampleRate);
+      const channelData = buffer.getChannelData(0);
 
-    for (let i = 0; i < frameCount; i++) {
-      channelData[i] = Math.random() * 2 - 1;
+      for (let i = 0; i < frameCount; i++) {
+        channelData[i] = Math.random() * 2 - 1;
+      }
+
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.value = 1600 + intensity * 800;
+      filter.Q.value = 0.85;
+
+      const noiseGain = ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.01, t);
+      noiseGain.gain.linearRampToValueAtTime(0.28 * intensity, t + 0.012);
+      noiseGain.gain.linearRampToValueAtTime(0.12 * intensity, t + 0.036);
+      noiseGain.gain.linearRampToValueAtTime(0.2 * intensity, t + 0.052);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+
+      source.connect(filter);
+      filter.connect(noiseGain);
+      noiseGain.connect(ctx.destination);
+
+      source.start(t);
+      source.stop(t + duration);
+
+      // Audible mid-range paper tap/thump
+      const osc = ctx.createOscillator();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(340 + intensity * 140, t);
+      osc.frequency.exponentialRampToValueAtTime(125, t + 0.07);
+
+      const oscGain = ctx.createGain();
+      oscGain.gain.setValueAtTime(0.22 * intensity, t);
+      oscGain.gain.exponentialRampToValueAtTime(0.001, t + 0.075);
+
+      osc.connect(oscGain);
+      oscGain.connect(ctx.destination);
+
+      osc.start(t);
+      osc.stop(t + 0.075);
+    } catch {
+      // Safe no-op
     }
+  };
 
-    const source = ctx.createBufferSource();
-    source.buffer = buffer;
-
-    const filter = ctx.createBiquadFilter();
-    filter.type = 'bandpass';
-    filter.frequency.value = 1800 + intensity * 600;
-    filter.Q.value = 1.4;
-
-    const noiseGain = ctx.createGain();
-    noiseGain.gain.setValueAtTime(0.005, t);
-    noiseGain.gain.linearRampToValueAtTime(0.11 * intensity, t + 0.008);
-    noiseGain.gain.exponentialRampToValueAtTime(0.001, t + duration);
-
-    source.connect(filter);
-    filter.connect(noiseGain);
-    noiseGain.connect(ctx.destination);
-
-    source.start(t);
-    source.stop(t + duration);
-
-    // Subtle low-mid paper tap
-    const osc = ctx.createOscillator();
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(190 + intensity * 70, t);
-    osc.frequency.exponentialRampToValueAtTime(75, t + 0.05);
-
-    const oscGain = ctx.createGain();
-    oscGain.gain.setValueAtTime(0.09 * intensity, t);
-    oscGain.gain.exponentialRampToValueAtTime(0.001, t + 0.055);
-
-    osc.connect(oscGain);
-    oscGain.connect(ctx.destination);
-
-    osc.start(t);
-    osc.stop(t + 0.055);
-  } catch {
-    // Safe no-op
+  if (ctx.state === 'suspended' && typeof ctx.resume === 'function') {
+    void Promise.resolve(ctx.resume())
+      .then(() => {
+        if (ctx.state === 'running') {
+          scheduleBounce();
+        }
+      })
+      .catch(() => {});
+    return;
   }
+
+  scheduleBounce();
 }

@@ -6,6 +6,7 @@ import {
   playRestoreSound,
   playTrashPlopSound,
   resetSoundContext,
+  unlockAudioContext,
 } from '../sound';
 
 interface MockAudioContextHandle {
@@ -207,5 +208,16 @@ describe('sound', () => {
     expect(() => playBallBounceSound(false, Number.NaN)).not.toThrow();
     expect(mock.bufStart).toHaveBeenCalledTimes(2);
     expect(mock.oscStart).toHaveBeenCalledTimes(2);
+  });
+
+  it('unlockAudioContext creates/resumes AudioContext only when unmuted', () => {
+    const mock = installMockAudioContext('suspended');
+
+    unlockAudioContext(true);
+    expect(mock.ctor).not.toHaveBeenCalled();
+
+    unlockAudioContext(false);
+    expect(mock.ctor).toHaveBeenCalledTimes(1);
+    expect(mock.resume).toHaveBeenCalledTimes(1);
   });
 });

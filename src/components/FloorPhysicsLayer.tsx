@@ -25,7 +25,7 @@ import {
 } from '../utils/floorPhysics';
 import { formatDisplayDate } from '../utils/dateBuckets';
 import { getTagColor } from '../utils/tagColors';
-import { playBallBounceSound, playTrashPlopSound } from '../utils/sound';
+import { playBallBounceSound, playTrashPlopSound, unlockAudioContext } from '../utils/sound';
 import { CrumpledBall } from './CrumpledBall';
 
 function getViewportSize(): ViewportSize {
@@ -418,6 +418,8 @@ export function FloorPhysicsLayer() {
     e.preventDefault();
     e.stopPropagation();
 
+    unlockAudioContext(mutedRef.current);
+
     e.currentTarget.setPointerCapture?.(e.pointerId);
 
     const viewport = viewportRef.current;
@@ -502,6 +504,8 @@ export function FloorPhysicsLayer() {
     if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
       e.currentTarget.releasePointerCapture?.(e.pointerId);
     }
+
+    unlockAudioContext(mutedRef.current);
 
     const samples = samplesRef.current.get(taskId) ?? [];
     const { vx, vy } = computeThrowVelocity(samples, MAX_THROW_SPEED);

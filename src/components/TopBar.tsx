@@ -20,6 +20,7 @@ import {
   serializeTasksFile,
   downloadJsonFile,
 } from '../utils/jsonIO';
+import { unlockAudioContext } from '../utils/sound';
 
 async function readFileText(file: File): Promise<string> {
   if (typeof file.text === 'function') {
@@ -166,6 +167,9 @@ export function TopBar() {
   };
 
   const handleToggleMute = () => {
+    if (state.muted) {
+      unlockAudioContext(false);
+    }
     dispatch({ type: 'TOGGLE_MUTE' });
   };
 
