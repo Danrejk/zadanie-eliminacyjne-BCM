@@ -1,8 +1,8 @@
 # SmartApp: Tablica Korkowa
 
-Interaktywny, studencki planner zadań w formie **tablicy korkowej z karteczkami Post-it, kolorowymi pinezkami, fizyką 2D na podłodze oraz wysuwaną szufladą z koszem**, przygotowany przez drużynę **"Praktykanci"** na zadanie eliminacyjne SmartApp.
+Interaktywny, studencki planner zadań w formie **tablicy korkowej z karteczkami Post-it, kolorowymi pinezkami, fizyką 2D oraz wysuwaną szufladą z koszem**, przygotowany przez drużynę **"Praktykanci"** na zadanie eliminacyjne SmartApp.
 
-Zamiast płaskiej listy to-do stworzyliśmy fizyczne biurko studenta w przeglądarce: pilne kolokwia i projekty od razu rzucają się w oczy dzięki intuicyjnemu rozmieszczeniu i atrakcyjnej prezentacji, a ukończone zadania można zgnieść w kulkę i wrzucić do metalowego kosza.
+Zamiast kolejnej płaskiej listy to-do stworzyliśmy fizyczne biurko studenta w przeglądarce. Pilne kolokwia i projekty od razu rzucają się w oczy dzięki intuicyjnej tablicy, a to, co najbardziej wyróżnia aplikację, to **mechanika zgniatania ukończonych zadań w papierowe kulki i rzucania nimi do kosza**: jest po prostu zabawna, daje satysfakcję i **wizualnie pokazuje, ile pracy masz już za sobą**, co świetnie napędza motywację.
 
 **Stack technologiczny:** React 19 · TypeScript · Vite · Tailwind CSS · Motion (`motion/react`) · Web Audio API · Vitest · Playwright
 
@@ -23,30 +23,11 @@ Zamiast płaskiej listy to-do stworzyliśmy fizyczne biurko studenta w przegląd
 Wymagania: **Node.js** (zalecane v20+) oraz **npm**.
 
 ```bash
-# 1. Instalacja zależności
-npm install
-
-# 2. Uruchomienie w trybie deweloperskim
-npm run dev
+npm install      # instalacja zależności
+npm run dev      # uruchomienie w trybie dev (http://localhost:5173)
 ```
 
-Aplikacja uruchomi się domyślnie pod adresem `http://localhost:5173`.
-
-### Dodatkowe komendy
-
-```bash
-# Budowanie wersji produkcyjnej (TypeScript + Vite)
-npm run build
-
-# Podgląd zbudowanej wersji produkcyjnej
-npm run preview
-
-# Testy jednostkowe (Vitest + React Testing Library)
-npm run test
-
-# Testy E2E w przeglądarce Chromium (Playwright)
-npm run test:e2e
-```
+Dodatkowe komendy: `npm run build` (build produkcyjny), `npm run preview` (podgląd buildu), `npm run test` (testy jednostkowe Vitest), `npm run test:e2e` (testy E2E Playwright).
 
 ---
 
@@ -54,55 +35,43 @@ npm run test:e2e
 
 ### Wymagania bazowe (7/7)
 
-- [x] **Lista zadań**: wszystkie aktywne zadania prezentowane są jako karteczki Post-it na tablicy korkowej 3×5 (priorytet × strefa czasowa) z automatycznym sortowaniem po terminie w każdej komórce; ukończone zadania trafiają do kosza.
-- [x] **Dodawanie zadania**: przycisk `Nowe zadanie` w górnym pasku (lub kliknięcie PPM bezpośrednio w wybraną komórkę tablicy).
-- [x] **Edycja zadania**: kliknięcie karteczki otwiera jej podgląd, z którego jednym kliknięciem można przejść do edycji; priorytet i termin można też zmieniać przez przeciąganie (Drag & Drop) między komórkami lub z menu kontekstowego (PPM).
-- [x] **Wykreślanie zadania jako zrobione (i cofanie tego)**: dwuklik na karteczkę, przeciągnięcie jej na kosz lub opcja w menu kontekstowym oznacza zadanie jako `wykonane: true` i zgniata je w papierową kulkę. Cofnięcie (przywrócenie na tablicę z `wykonane: false`) działa zarówno dla kulek na podłodze, jak i w wysuwanej szufladzie kosza.
-- [x] **Usuwanie zadania**: trwałe usuwanie zadania dostępne z menu kontekstowego karteczki/kulki, widoku podglądu zadania oraz podczas opróżniania kosza (z przeniesieniem do osobnego archiwum).
-- [x] **Wczytanie zadań z pliku JSON**: przycisk `Wczytaj JSON` z rygorystycznym walidatorem struktury, typów, poprawności dat kalendarzowych oraz unikalności `id` (z czytelnymi komunikatami błędów po polsku).
-- [x] **Zapis zadań do pliku JSON w tym samym formacie**: przycisk `Eksportuj JSON` zapisuje plik `zadania.json` w 100% zgodny ze schematem `{ "wersja": number, "zadania": [...] }` (dokładnie 7 wymaganych pól na zadanie, bez wyciekania pól wewnętrznych).
+- [x] **Lista zadań**: aktywne zadania jako karteczki Post-it na tablicy 3×5 (sortowane po terminie); ukończone trafiają do kosza.
+- [x] **Dodawanie zadania**: przycisk `Nowe zadanie` w górnym pasku lub kliknięcie PPM bezpośrednio w komórkę tablicy.
+- [x] **Edycja zadania**: kliknięcie otwiera podgląd karteczki z przejściem do edycji; priorytet i termin można też zmieniać przez Drag & Drop lub menu kontekstowe (PPM).
+- [x] **Wykreślanie zadania jako zrobione (i cofanie tego)**: dwuklik, przeciągnięcie na kosz lub PPM zgniata karteczkę w kulkę (`wykonane: true`); cofnięcie (`wykonane: false`) działa z poziomu podłogi i szuflady kosza.
+- [x] **Usuwanie zadania**: dostępne w menu kontekstowym karteczki/kulki, podglądzie zadania oraz przy opróżnianiu kosza (z przeniesieniem do archiwum).
+- [x] **Wczytanie zadań z pliku JSON**: przycisk `Wczytaj JSON` z rygorystycznym walidatorem struktury, dat i unikalności `id` (czytelne błędy po polsku).
+- [x] **Zapis zadań do pliku JSON w tym samym formacie**: `Eksportuj JSON` generuje `zadania.json` w 100% zgodny z `{ "wersja": number, "zadania": [...] }` (dokładnie 7 pól na zadanie).
 
 ### Dodatkowe działające funkcje
 
-- **Tablica korkowa 3×5 z automatyczną kategoryzacją**:
-  - Oś pionowa (**priorytety**): `Wysoki` (różowy), `Średni` (żółty), `Niski` (miętowy).
-  - Oś pozioma (**strefy czasowe**): `Po terminie`, `Dziś i jutro`, `Ten tydzień`, `Później`, `Bez terminu`.
-  - Czerwona pieczątka `PO TERMINIE` dla zaległych zadań.
-- **Wyszukiwanie i filtrowanie po tagach (pinezkach)**:
-  - Wyszukiwanie na żywo po tytule i opisie zadania.
-  - Dwa tryby pracy z filtrami (`Filtruj`: ukrywanie niepasujących / `Podświetl`: przygaszanie) oraz szybki przycisk resetu.
-- **Fizyka 2D, 3-warstwowy kosz i wysuwana drewniana szuflada**:
-  - Zgniecione kulki spadają na podłogę, gdzie można je łapać i rzucać w stronę kosza.
-  - Kliknięcie kosza wysuwa drewnianą szufladę z metalowym koszem, w którym kulki układają się automatycznie. Każdą kulkę w koszu można podejrzeć (tooltip + pełny podgląd zadania), przywrócić na tablicę lub trwale usunąć.
-  - Dostępne są też akcje zbiorcze: wysypanie kulek z kosza na podłogę, zebranie wszystkich kulek z podłogi jednym kliknięciem oraz opróżnienie kosza.
-  - Po odświeżeniu strony (`F5`) stan podłogi resetuje się, a wszystkie ukończone zadania bezpiecznie czekają w koszu (autozapis w `localStorage`).
-- **Zeszytowe modale, podsumowanie i oddzielne archiwum**:
-  - Wszystkie okna dialogowe mają spójną stylistykę kartki z zeszytu (linie, dziurki na segregator, ołówkowe obramowania), a podgląd zadania prezentuje je w formie karteczki Post-it.
-  - Opróżnianie kosza wyświetla podsumowanie z podziałem na **priorytety** oraz **terminowość (`Na czas` / `Po terminie`)** (liczoną względem dnia opróżniania kosza), usuwa zadania z głównego `zadania.json` i przenosi je z datą do osobnego archiwum (`smartapp_archive_v1` / eksport do `archiwum_usunietych.json`).
-- **Syntetyczne dźwięki Web Audio API**:
-  - Zróżnicowane efekty dźwiękowe generowane w locie (zgniatanie papieru, klik pinezki, lekkie odbicie kulki od podłogi, odgłosy uderzeń o ścianki kosza i drewnianą szufladę, wysuwanie/wsuwanie szuflady, wpadanie do kosza i przywracanie zadania), z przełącznikiem wyciszenia w górnym pasku.
+- **Tablica korkowa 3×5**: oś pionowa to priorytety (`Wysoki` różowy, `Średni` żółty, `Niski` miętowy), oś pozioma to strefy czasowe (`Po terminie`, `Dziś i jutro`, `Ten tydzień`, `Później`, `Bez terminu`) z czerwoną pieczątką `PO TERMINIE`.
+- **Wyszukiwanie i pinezki (tagi)**: wyszukiwanie na żywo po tytule/opisie oraz filtrowanie po tagach w dwóch trybach (`Filtruj`: ukryj inne / `Podświetl`: przygaś inne) + szybki reset.
+- **Zgniecione kulki, fizyka 2D i wysuwana szuflada z koszem**: ukończone zadania spadają na podłogę jako papierowe kulki, które można łapać i wrzucać do metalowego kosza. Kliknięcie kosza wysuwa drewnianą szufladę, w której kulki układają się automatycznie; każdą można podejrzeć (tooltip + pełny podgląd), przywrócić lub usunąć. Działają też akcje zbiorcze (wysypanie kulek, zebranie z podłogi, opróżnienie kosza), a po odświeżeniu (`F5`) stan jest bezpiecznie odtwarzany z `localStorage`.
+- **Zeszytowe modale, podsumowanie i archiwum**: okna dialogowe stylizowane na kartki z zeszytu (podgląd zadania jako Post-it). Opróżnianie kosza pokazuje podsumowanie (priorytety + terminowość liczona względem dnia opróżnienia) i przenosi zadania do osobnego archiwum (`smartapp_archive_v1` / eksport `archiwum_usunietych.json`).
+- **Syntetyczne dźwięki Web Audio API**: generowane w locie efekty (zgniatanie papieru, klik pinezki, różne odbicia od podłogi, kosza i szuflady, wysuwanie szuflady, wpadanie do kosza) z przyciskiem wyciszenia.
 
 ### Czego nie zdążyliśmy zrobić / znane ograniczenia
 
 #### Pomysły, na które zabrakło czasu (co chcieliśmy osiągnąć)
-1. **Konfigurowalne kolumny i przedziały czasowe tablicy**: chcieliśmy dodać ustawienia pozwalające studentowi samodzielnie określić liczbę kolumn oraz dokładne granice przedziałów czasowych (zamiast sztywnego podziału na *Dziś i jutro*, *Ten tydzień*, *Później*), żeby każdy mógł dopasować tablicę do swojego trybu pracy.
-2. **Druga, lewa szuflada z zegarem / timerem pracy**: planowaliśmy symetryczną szufladę po lewej stronie ekranu z wbudowanym timerem do mierzenia czasu spędzonego nad konkretnym zadaniem lub sesją nauki, aby później uwzględniać te statystyki czasu w podsumowaniu pracy.
-3. **Kategorie zadań oparte na modelu równowagi zajęciowej (*occupational balance*) i zarządzania energią (*energy management*)**: chcieliśmy wprowadzić podział zadań na 5 kategorii energetycznych (nawiązujących m.in. do modelu Siegela): *intelektualne*, *kreatywne*, *fizyczne*, *społeczne* oraz *bytowe / logistyka*, aby pomagać studentowi świadomie balansować różne rodzaje wysiłku w ciągu tygodnia. Zrezygnowaliśmy z tego zarówno przez limit czasowy, jak i wymóg ścisłego trzymania się narzuconego schematu `zadania.json` bez dodatkowych pól.
-4. **Dokładna terminowość względem chwili ukończenia zadania**: obecne podsumowanie przy opróżnianiu kosza liczy status `Na czas` / `Po terminie` względem dnia opróżnienia kosza (co zakłada, że kosz jest opróżniany codziennie). Nie zdążyliśmy wdrożyć śledzenia dokładnej daty wykonania zadania (ograniczonego też brakiem takiego pola w schemacie `zadania.json`).
+1. **Konfigurowalne kolumny i przedziały czasowe tablicy**: ustawienia pozwalające samodzielnie wybrać liczbę kolumn i dokładne granice przedziałów czasowych, aby dopasować tablicę do własnego trybu pracy.
+2. **Druga, lewa szuflada z zegarem / timerem pracy**: symetryczna szuflada po lewej stronie ekranu z timerem mierzącym czas spędzony nad zadaniem lub nauką, z wykorzystaniem tych danych w podsumowaniu.
+3. **Kategorie zadań oparte na modelu równowagi zajęciowej (*occupational balance*) i zarządzania energią (*energy management*)**: podział zadań na 5 kategorii energetycznych (m.in. w nawiązaniu do modelu Siegela): *intelektualne*, *kreatywne*, *fizyczne*, *społeczne* oraz *bytowe / logistyka*, aby student mógł świadomie balansować wysiłek w tygodniu. Zrezygnowaliśmy z tego przez limit czasowy oraz wymóg ścisłego trzymania się schematu `zadania.json`.
+4. **Dokładna terminowość względem chwili ukończenia**: obecne podsumowanie liczy `Na czas` / `Po terminie` względem dnia opróżniania kosza (zakłada codzienne opróżnianie), ponieważ schemat `zadania.json` nie przechowuje daty wykonania zadania.
 
 #### Znane ograniczenia techniczne
-- **Brak synchronizacji między urządzeniami (backend)**: aplikacja działa w pełni lokalnie w przeglądarce (`localStorage` + import/eksport JSON) bez zewnętrznego serwera.
+- **Brak synchronizacji między urządzeniami (backend)**: aplikacja działa w pełni lokalnie w przeglądarce (`localStorage` + pliki JSON).
 
 ---
 
 ## 3. Co dodaliście od siebie i dlaczego akurat to
 
-1. **Tablica korkowa 3×5 zamiast zwykłej listy**: zwykła lista to-do wymaga czytania każdego wiersza, żeby ocenić, co pali się najbardziej. Macierz *priorytet × termin* pozwala studentowi jednym rzutem oka zobaczyć pilne kolokwia w lewym górnym rogu, kolory karteczek naturalnie kodują wagę zadania, a czerwona pieczątka `PO TERMINIE` natychmiast przyciąga wzrok do zaległości.
-2. **Deterministyczne kolory pinezek (hash FNV-1a) i gwóźdź dla zadań bez tagów**: dzięki proceduralnemu wyliczaniu koloru z nazwy tagu, dany tag (np. `#studia`) ma zawsze ten sam kolor pinezki na tablicy, w filtrach i w formularzu, bez ręcznej konfiguracji. Zadania bez tagów dostają cienki gwóźdź bez łebka, co od razu wizualnie je odróżnia.
-3. **Fizyka 2D na podłodze, 3-warstwowy kosz i wysuwana drewniana szuflada**: odhaczanie checkboxów szybko staje się mechaniczne. Zgniecenie karteczki w kulkę po dwukliku i wrzucenie jej do stożkowego kosza z fizyką odbić daje natychmiastową satysfakcję z domknięcia zadania, a wysuwana drewniana szuflada pozwala zajrzeć do środka, podejrzeć wyrzucone zadania i w razie potrzeby cofnąć ukończenie. Jednocześnie nie tracimy użyteczności: nawet jeśli kulki zostaną na podłodze, zadanie jest już zapisane jako wykonane.
-4. **Zeszytowe modale i podgląd zadania jako karteczka Post-it**: zamiast surowych okienek formularzy, wszystkie modale przypominają wyrwane kartki z zeszytu z ołówkowymi obramowaniami, a kliknięcie zadania najpierw otwiera czytelny podgląd stylizowany na karteczkę Post-it. Dzięki temu przypadkowe kliknięcie nie psuje treści, a cała aplikacja utrzymuje spójny, studencki klimat.
-5. **Podsumowanie przed opróżnieniem kosza i oddzielne archiwum `archiwum_usunietych.json`**: przed opróżnieniem kosza student widzi szybki bilans ukończonych zadań według priorytetów (oraz terminowości przy codziennym opróżnianiu). Zamiast bezpowrotnie kasować historię albo zaśmiecać główny plik `zadania.json`, opróżnione zadania trafiają z datą do oddzielnego archiwum, dzięki czemu główny plik pozostaje w 100% czysty i zgodny ze specyfikacją.
-6. **Syntezator dźwięków Web Audio API bez zewnętrznych plików audio**: lekkie, syntetyzowane w locie efekty (szelest papieru, klik pinezki, różne brzmienia odbić od podłogi, metalowej siatki kosza i drewnianej szuflady oraz dźwięk jej wysuwania) wzmacniają fizyczność interfejsu bez ładowania dodatkowych plików sieciowych i z możliwością wyciszenia jednym kliknięciem.
-7. **Rygorystyczny walidator importu `zadania.json`**: przy wczytywaniu własnych plików aplikacja dokładnie sprawdza strukturę, typy, poprawność dat kalendarzowych oraz unikalność `id`, chroniąc stan tablicy przed uszkodzonymi danymi i jasno informując użytkownika, co wymaga poprawy.
+1. **Zgniecione kulki, rzut do kosza i wysuwana drewniana szuflada (główny wyróżnik)**: odhaczanie zwykłych checkboxów jest nudne i po chwili znika z oczu. U nas ukończenie zadania to fizyczny, zabawny gest: karteczka zamienia się w kulkę, którą można rzucić do kosza z fizyką 2D. Co ważniejsze, **zapełniający się kulkami kosz wizualnie pokazuje, ile zadań udało się już zrobić**, co daje konkretną satysfakcję i motywuje do kolejnego kroku. Szuflada pozwala zajrzeć do środka, podejrzeć wyrzucone zadania i w razie potrzeby je cofnąć, a nawet bez rzutu zadanie od razu zapisuje się jako wykonane.
+2. **Tablica korkowa 3×5 zamiast płaskiej listy**: macierz *priorytet × termin* od razu eksponuje najpilniejsze kolokwia w lewym górnym rogu, kolory karteczek kodują wagę, a pieczątka `PO TERMINIE` natychmiast ostrzega o zaległościach.
+3. **Deterministyczne kolory pinezek (hash FNV-1a) i gwóźdź bez tagów**: ten sam tag (np. `#studia`) ma zawsze identyczny kolor w całej aplikacji bez ręcznej konfiguracji, a zadania bez tagów dostają cienki gwóźdź bez łebka.
+4. **Zeszytowe modale i podgląd zadania jako Post-it**: okna przypominają wyrwane kartki z zeszytu z ołówkowymi obramowaniami, a kliknięcie zadania najpierw otwiera bezpieczny podgląd karteczki, co chroni przed przypadkową edycją i wzmacnia studencki klimat.
+5. **Podsumowanie przed opróżnieniem i osobne archiwum `archiwum_usunietych.json`**: student dostaje szybki bilans wykonanej pracy, a historia trafia z datą do osobnego pliku, dzięki czemu główny `zadania.json` pozostaje w 100% czysty i zgodny ze specyfikacją.
+6. **Syntezator dźwięków Web Audio API bez zewnętrznych plików**: lekkie, proceduralne dźwięki (papier, pinezka, odbicia od podłogi, metalowej siatki i drewna, wysuwanie szuflady) potęgują wrażenie fizycznego biurka bez obciążania sieci.
+7. **Rygorystyczny walidator importu `zadania.json`**: weryfikuje strukturę, typy, daty kalendarzowe i unikalność `id`, chroniąc tablicę przed uszkodzonymi plikami.
 
-**Jakość techniczna:** zadbaliśmy również o płynność działania i niezawodność: warstwa fizyki usypia się, gdy kulki spoczywają, warstwy siatki kosza są pre-renderowane jako bitmapy 2x, a animacje szuflady korzystają z płynnych transformacji GPU. Logika aplikacji, walidator JSON, fizyka, dźwięki i kluczowe ścieżki użytkownika są pokryte testami jednostkowymi (`Vitest`) oraz 5-poziomowym zestawem testów E2E (`Playwright`).
+**Jakość techniczna:** zadbaliśmy o płynność (usypianie fizyki w spoczynku, pre-renderowane warstwy kosza 2x, animacje GPU) oraz pokrycie testami jednostkowymi (`Vitest`) i 5-poziomowym zestawem testów E2E (`Playwright`).
