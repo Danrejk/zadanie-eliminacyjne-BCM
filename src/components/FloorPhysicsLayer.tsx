@@ -120,7 +120,6 @@ const SWEEP_EXCLUDED_SELECTOR = [
   '[data-testid^="floor-ball-"]',
   '[data-testid^="postit-note-"]',
   '[data-testid="trash-can-widget"]',
-  '[data-testid="trash-drawer"]',
   '[data-testid="context-menu"]',
   '[data-testid="context-menu-backdrop"]',
   'header',

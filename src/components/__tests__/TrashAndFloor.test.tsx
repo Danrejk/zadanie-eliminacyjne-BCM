@@ -912,5 +912,29 @@ describe('Milestone M4 — TrashCanWidget, FloorPhysicsLayer & Archive Modals', 
 
       fireEvent.pointerUp(window, { button: 0, pointerId: 11, clientX: 300, clientY: 300 });
     });
+
+    it('catches a floor ball when LMB hold starts over the open side TrashDrawer', () => {
+      let latestCtx!: TaskContextValue;
+      renderM4Harness({}, (ctx) => {
+        latestCtx = ctx;
+      });
+
+      act(() => {
+        latestCtx.dispatch({
+          type: 'COMPLETE_TO_FLOOR',
+          payload: { id: 1, originX: 300, originY: 300 },
+        });
+      });
+
+      fireEvent.click(screen.getByTestId('trash-hitbox'));
+      const drawer = screen.getByTestId('trash-drawer');
+
+      fireEvent.pointerDown(drawer, { button: 0, pointerId: 12, clientX: 900, clientY: 200 });
+      fireEvent.pointerMove(window, { pointerId: 12, clientX: 300, clientY: 300 });
+      expect(latestCtx.state.draggingFloorBallId).toBe(1);
+
+      fireEvent.pointerUp(window, { button: 0, pointerId: 12, clientX: 300, clientY: 300 });
+      expect(latestCtx.state.draggingFloorBallId).toBeNull();
+    });
   });
 });
