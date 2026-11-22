@@ -162,11 +162,11 @@ describe('Milestone M3 — TopBar, TaskModal, ContextMenu & Toast', () => {
   // 1. TopBar Tests
   // =========================================================================
   describe('TopBar component', () => {
-    it('renders clean Polish title "Tablica Korkowa" without forcing team name into header', () => {
+    it('renders clean Polish title "Praktyczna Tablica" without forcing team name into header', () => {
       renderM3Harness();
       const topbar = screen.getByTestId('topbar');
       expect(topbar).toBeInTheDocument();
-      expect(within(topbar).getByText('Tablica Korkowa')).toBeInTheDocument();
+      expect(within(topbar).getByText('Praktyczna Tablica')).toBeInTheDocument();
       expect(topbar.textContent).not.toMatch(/Praktykanci/i);
     });
 
