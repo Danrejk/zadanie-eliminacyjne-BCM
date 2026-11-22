@@ -11,11 +11,11 @@ Zamiast kolejnej płaskiej listy to-do stworzyliśmy fizyczne biurko studenta w 
 
 ## Prezentacja i zrzuty ekranu
 
-- **Prezentacja wideo (2 min):** `[TODO: wstaw link do prezentacji]`
+- **Prezentacja wideo (2 min):** `[![Video prezentacja](https://img.youtube.com/vi/VIDEO_ID/maxresdefault.jpg)](https://youtu.be/pwar_R35ubo)`
 
-> `[TODO: dodaj zrzut ekranu głównej tablicy korkowej 3×5]`
->
-> `[TODO: dodaj zrzut ekranu z wysuniętą szufladą kosza i kulkami na podłodze / podglądem zadania w stylu zeszytu]`
+`![Screenshot1](/docs/screenshot1.png)`
+
+`![Screenshot2](/docs/screenshot2.png)`
 
 ---
 
