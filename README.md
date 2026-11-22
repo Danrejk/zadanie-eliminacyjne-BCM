@@ -11,11 +11,11 @@ Zamiast kolejnej płaskiej listy to-do stworzyliśmy fizyczne biurko studenta w 
 
 ## Prezentacja i zrzuty ekranu
 
-- **Prezentacja wideo (2 min):** `[![Video prezentacja](https://img.youtube.com/vi/VIDEO_ID/maxresdefault.jpg)](https://youtu.be/pwar_R35ubo)`
+- **Prezentacja wideo (2 min):** [![Video prezentacja](https://img.youtube.com/vi/VIDEO_ID/maxresdefault.jpg)](https://youtu.be/pwar_R35ubo)
 
-`![Screenshot1](/docs/screenshot1.png)`
+![Screenshot1](/docs/screenshot1.png)
 
-`![Screenshot2](/docs/screenshot2.png)`
+![Screenshot2](/docs/screenshot2.png)
 
 ---
 
